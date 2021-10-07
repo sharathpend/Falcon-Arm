@@ -1,4 +1,5 @@
-
+#ifndef PQCLEAN_FALCON512_CLEAN_FPR_H
+#define PQCLEAN_FALCON512_CLEAN_FPR_H
 #include <math.h>
 
 /*
@@ -269,3 +270,5 @@ fpr_expm_p63(fpr x, fpr ccs)
 extern const fpr fpr_gm_tab[];
 
 extern const fpr fpr_p2_tab[];
+
+#endif
