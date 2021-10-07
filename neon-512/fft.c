@@ -1,19 +1,26 @@
 #include "inner.h"
 
+// c <= addr interleave
+#define vload4(c, addr) c = vld4q_f64(addr);
+// c <= addr x4
+#define vloadx4(c, addr) c = vld1q_f64_x4(addr);
+// addr <= c
+#define vstorex4(addr, c) vst1q_f64_x4(addr, c);
+
 #define transpose(a, b, t, ia, ib, it)            \
     t.val[it] = a.val[ia];                        \
     a.val[ia] = vzip1q_f64(t.val[it], b.val[ib]); \
     b.val[ib] = vzip2q_f64(t.val[it], b.val[ib]);
 
 // c = a - b
-#define vsubx4(c, a, b)                        \
+#define vsubx4(c, a, b)                       \
     c.val[0] = vsubq_f64(a.val[0], b.val[0]); \
     c.val[1] = vsubq_f64(a.val[1], b.val[1]); \
     c.val[2] = vsubq_f64(a.val[2], b.val[2]); \
     c.val[3] = vsubq_f64(a.val[3], b.val[3]);
 
 // c = a + b
-#define vaddx4(c, a, b)                        \
+#define vaddx4(c, a, b)                       \
     c.val[0] = vaddq_f64(a.val[0], b.val[0]); \
     c.val[1] = vaddq_f64(a.val[1], b.val[1]); \
     c.val[2] = vaddq_f64(a.val[2], b.val[2]); \
@@ -31,18 +38,11 @@
     c.val[2] = vaddq_f64(b.val[ia0], b.val[ia2]); \
     c.val[3] = vaddq_f64(b.val[ia1], b.val[ia3]);
 
-
-// c <= addr interleave
-#define vload4(c, addr) c = vld4q_f64(addr);
-
-// c <= addr x4
-#define vloadx4(c, addr) c = vld1q_f64_x4(addr);
-
 // c = a * b[i]
 #define vfmul_lane(c, a, b, ib0, ib1, ib2, ib3, i0, i1, i2, i3) \
-    c.val[0] = vmulq_laneq_f64(a.val[0], b.val[ib0], i0);      \
-    c.val[1] = vmulq_laneq_f64(a.val[1], b.val[ib1], i1);      \
-    c.val[2] = vmulq_laneq_f64(a.val[2], b.val[ib2], i2);      \
+    c.val[0] = vmulq_laneq_f64(a.val[0], b.val[ib0], i0);       \
+    c.val[1] = vmulq_laneq_f64(a.val[1], b.val[ib1], i1);       \
+    c.val[2] = vmulq_laneq_f64(a.val[2], b.val[ib2], i2);       \
     c.val[3] = vmulq_laneq_f64(a.val[3], b.val[ib3], i3);
 
 // d = c + a*b
@@ -59,7 +59,6 @@
     d.val[2] = vfmsq_laneq_f64(c.val[2], a.val[2], b.val[ib2], i2); \
     d.val[3] = vfmsq_laneq_f64(c.val[3], a.val[3], b.val[ib3], i3);
 
-
 void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
 {
     // Total: 32 registers
@@ -69,11 +68,13 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
     float64x2x4_t v_re, v_im;             // 8
     float64x2x4_t tmp;                    // 4
 
-    const int FALCON_N = 1 << logn;
+    const unsigned FALCON_N = 1 << logn;
 
     const unsigned hn = FALCON_N >> 1;
+    unsigned m = FALCON_N, t = 1;
+    unsigned hm = m >> 1, dt = t << 1;
     // Layer 1, 2, 3, 4
-    for (int j = 0; j < FALCON_N; j += 16)
+    for (int j = 0; j < FALCON_N/2; j += 16)
     {
         // Level 1
         // x_re = 0, 4 | 2, 6 | 8, 12 | 10, 14
@@ -193,7 +194,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
 
         // print_vector(x_re);
         // print_vector(y_re);
-/* 
+        /* 
         // Level 2
         // x_re = 0,4 | 2,6 | 8,12 | 10,14
         // y_re = 1,5 | 3,7 | 9,13 | 11,15
@@ -438,12 +439,12 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // y_re: 8,9 | 10,11 | 12,13 | 14,15
         // x_im: 256,257 | 258,259 | 260,261 | 262,263
         // y_im: 264,265 | 266,267 | 268,269 | 270,271
-        vst1q_f64_x4(&f[j], x_re);
-        vst1q_f64_x4(&f[j + 8], y_re);
-        vst1q_f64_x4(&f[j + hn], x_im);
-        vst1q_f64_x4(&f[j + hn + 8], y_im);
+        vstorex4(&f[j], x_re);
+        vstorex4(&f[j + 8], y_re);
+        vstorex4(&f[j + hn], x_im);
+        vstorex4(&f[j + hn + 8], y_im);
     }
-/* 
+    /* 
     // Layer 5, 6
     // TODO: update the bound fix bound
     float64x2x2_t l5_x_re, l5_y_re, l5_x_im, l5_y_im;
@@ -623,11 +624,10 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
  */
 
     // Layer 7, 8
-    for (int i = 0; i < 256; i+= 128)
-    for (int j = i; j < i + 64; j+= 4)
-    {
-
-    }
+    for (int i = 0; i < 256; i += 128)
+        for (int j = i; j < i + 64; j += 4)
+        {
+        }
 
     // End function
 }

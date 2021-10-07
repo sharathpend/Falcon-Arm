@@ -10,7 +10,7 @@ void print_array(fpr *a, int length, const char *string, int print_float)
     for (int i = 0; i < length; i++)
     {
         // printf("[%d] = %d\n", i, a[i]);
-        tmp = a[i].v;
+        tmp = a[i];
         if (print_float)
         {
             printf("%f, ", tmp);
@@ -38,9 +38,9 @@ int compare(fpr *gold, fpr *test, int bound, const char *string)
     {
         a = gold[i];
         b = test[i];
-        if (a.v != b.v)
+        if (a != b)
         {
-            printf("Wrong [%d]: %lf != %f \n", i, a.v, b.v);
+            printf("Wrong [%d]: %lf != %f \n", i, a, b);
             return 1;
         }
     }

@@ -14,7 +14,7 @@ int main()
 
     for (int i = 0; i < FALCON_N; i++)
     {
-        tmp.v = i;
+        tmp = i;
         f_gold[i] = tmp;
         f_test[i] = tmp;
     }
@@ -22,7 +22,7 @@ int main()
     // PQCLEAN_FALCON512_NEON_FFT(f_gold, LOGN);
     // print_array(f_gold, FALCON_N, "FFT", 1);
     
-    print_array(f_gold, FALCON_N, "Before iFFT", 1);
+    // print_array(f_gold, FALCON_N, "Before iFFT", 1);
     PQCLEAN_FALCON512_NEON_iFFT(f_gold, FALCON_LOGN);
     print_array(f_gold, FALCON_N, "iFFT", 1);
 
