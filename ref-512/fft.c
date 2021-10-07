@@ -292,12 +292,12 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
      * We make the last iteration a no-op by tweaking the final
      * division into a division by N/2, not N.
      */
-    size_t u, n, hn, t, m;
+    size_t u, FALCON_N, hn, t, m;
 
-    n = (size_t)1 << logn;
+    FALCON_N = (size_t)1 << logn;
     t = 1;
-    m = n;
-    hn = n >> 1;
+    m = FALCON_N;
+    hn = FALCON_N >> 1;
     for (u = logn; u > 1; u --) {
         size_t hm, dt, i1, j1;
 
@@ -337,7 +337,7 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
         fpr ni;
 
         ni = fpr_p2_tab[logn];
-        for (u = 0; u < n; u ++) {
+        for (u = 0; u < FALCON_N; u ++) {
             f[u] = fpr_mul(f[u], ni);
         }
     }
