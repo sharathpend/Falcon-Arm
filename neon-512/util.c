@@ -54,7 +54,7 @@ void print_vector(float64x2x4_t a)
     {
         for (int j = 0; j < 2; j++)
         {
-            printf("a[%d][%d] = %f\n", i, j, a->val[i][j]);
+            printf("a[%d][%d] = %f\n", i, j, a.val[i][j]);
         }
     }
 }

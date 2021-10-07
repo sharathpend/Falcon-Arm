@@ -3,11 +3,11 @@
 #include "inner.h"
 #include "util.h"
 
-#define LOGN 9
+#define FALCON_LOGN 9
+#define FALCON_N (1 << FALCON_LOGN)
 
 int main()
 {
-    const size_t FALCON_N = (size_t)1 << LOGN;
     fpr f_gold[FALCON_N], f_test[FALCON_N];
     fpr tmp;
     // int ret = 0;
@@ -23,7 +23,7 @@ int main()
     // print_array(f_gold, FALCON_N, "FFT", 1);
     
     print_array(f_gold, FALCON_N, "Before iFFT", 1);
-    PQCLEAN_FALCON512_NEON_iFFT(f_gold, LOGN);
+    PQCLEAN_FALCON512_NEON_iFFT(f_gold, FALCON_LOGN);
     print_array(f_gold, FALCON_N, "iFFT", 1);
 
     return 0;
