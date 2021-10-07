@@ -1,0 +1,4 @@
+*.json
+*.txt
+ref-fft
+avx2_fft
