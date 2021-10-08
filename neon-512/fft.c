@@ -62,9 +62,8 @@
 void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
 {
     // Total: 32 registers
-    float64x2x4_t x_y_re[2], x_y_im[2];   // 16
+    float64x2x4_t x_y_re[2], x_y_im[2], s_re_im[2];   // 24
     float64x2x4_t x_re, x_im, y_re, y_im; // 0
-    float64x2x4_t s_re_im;                // 4
     float64x2x4_t v_re, v_im;             // 8
     float64x2x4_t tmp;                    // 4
 
@@ -74,7 +73,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
     unsigned m = FALCON_N, t = 1;
     unsigned hm = m >> 1, dt = t << 1;
     // Layer 1, 2, 3, 4
-    for (int j = 0; j < FALCON_N/2; j += 16)
+    for (int j = 0; j < FALCON_N/2; j += 8)
     {
         // Level 1
         // x_re = 0, 4 | 2, 6 | 8, 12 | 10, 14
@@ -89,10 +88,6 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // x_y_im[0] = vld4q_f64(&f[j + hn]);
         // x_y_re[1] = vld4q_f64(&f[j + 8]);
         // x_y_im[1] = vld4q_f64(&f[j + hn + 8]);
-
-        // s_re_im = 512 -> 519
-        // s_re_im = vld1q_f64_x4(&fpr_gm_tab[(FALCON_N >> 1) + j]);
-        vloadx4(s_re_im, &fpr_gm_tab[hn + j]);
 
         // This assignment is free
         x_re.val[0] = x_y_re[0].val[0];
@@ -161,36 +156,39 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // re:  v_re*s_re + v_im*s_im
         // im: -v_re*s_im + v_im*s_re
 
+        // s_re_im = 512 -> 519
+        // s_re: 512 -> 518, step 2
+        // s_im: 513 -> 519, step 2
+        vload4(s_re_im[0], &fpr_gm_tab[FALCON_N + j]);
+        vload4(s_re_im[1], &fpr_gm_tab[FALCON_N + j + 8]);
+
         // Calculate y
         // v_im*s_im
-        vfmul_lane(tmp, v_im, s_re_im, 0, 1, 2, 3, 1, 1, 1, 1);
-        // tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 1);
-        // tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 1);
-        // tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 1);
-        // tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 1);
+        
+        tmp.val[0] = vmulq_f64(v_im.val[0], s_re_im[0].val[1]);
+        tmp.val[1] = vmulq_f64(v_im.val[1], s_re_im[0].val[3]);
+        tmp.val[2] = vmulq_f64(v_im.val[2], s_re_im[1].val[1]);
+        tmp.val[3] = vmulq_f64(v_im.val[3], s_re_im[1].val[3]);
 
         // v_im*s_im + v_re*s_re
         // y_re: 1,5 | 3,7 | 9,13 | 11,15
-        vfma_lane(y_re, tmp, v_re, s_re_im, 0, 1, 2, 3, 0, 0, 0, 0);
-        // y_re.val[0] = vfmaq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
-        // y_re.val[1] = vfmaq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 0);
-        // y_re.val[2] = vfmaq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 0);
-        // y_re.val[3] = vfmaq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 0);
+        y_re.val[0] = vfmaq_f64(tmp.val[0], v_re.val[0], s_re_im[0].val[0]);
+        y_re.val[1] = vfmaq_f64(tmp.val[1], v_re.val[1], s_re_im[0].val[2]);
+        y_re.val[2] = vfmaq_f64(tmp.val[2], v_re.val[2], s_re_im[1].val[0]);
+        y_re.val[3] = vfmaq_f64(tmp.val[3], v_re.val[3], s_re_im[1].val[2]);
 
         // v_im*s_re
-        vfmul_lane(tmp, v_im, s_re_im, 0, 1, 2, 3, 0, 0, 0, 0);
-        // tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 0);
-        // tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 0);
-        // tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 0);
-        // tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 0);
+        tmp.val[0] = vmulq_f64(v_im.val[0], s_re_im[0].val[0]);
+        tmp.val[1] = vmulq_f64(v_im.val[1], s_re_im[0].val[2]);
+        tmp.val[2] = vmulq_f64(v_im.val[2], s_re_im[1].val[0]);
+        tmp.val[3] = vmulq_f64(v_im.val[3], s_re_im[1].val[2]);
 
         // v_im*s_re - v_re*s_im
         // y_im: 257,261 | 259,263 | 265,269 | 267,271
-        vfms_lane(y_im, tmp, v_re, s_re_im, 0, 1, 2, 3, 1, 1, 1, 1);
-        // y_im.val[0] = vfmsq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
-        // y_im.val[1] = vfmsq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 1);
-        // y_im.val[2] = vfmsq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 1);
-        // y_im.val[3] = vfmsq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 1);
+        y_im.val[0] = vfmsq_f64(tmp.val[0], v_re.val[0], s_re_im[0].val[1]);
+        y_im.val[1] = vfmsq_f64(tmp.val[1], v_re.val[1], s_re_im[0].val[3]);
+        y_im.val[2] = vfmsq_f64(tmp.val[2], v_re.val[2], s_re_im[1].val[1]);
+        y_im.val[3] = vfmsq_f64(tmp.val[3], v_re.val[3], s_re_im[1].val[3]);
 
         // print_vector(x_re);
         // print_vector(y_re);
