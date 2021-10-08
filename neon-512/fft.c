@@ -4,6 +4,8 @@
 #define vload4(c, addr) c = vld4q_f64(addr);
 // c <= addr x4
 #define vloadx4(c, addr) c = vld1q_f64_x4(addr);
+// c <= addr x2
+#define vload2(c, addr) c = vld2q_f64(addr);
 // addr <= c
 #define vstorex4(addr, c) vst1q_f64_x4(addr, c);
 
@@ -66,6 +68,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
     float64x2x4_t x_re, x_im, y_re, y_im; // 0
     float64x2x4_t v_re, v_im;             // 8
     float64x2x4_t tmp;                    // 4
+    float64x2x2_t s_tmp;                  // 2
 
     const unsigned FALCON_N = 1 << logn;
 
@@ -73,7 +76,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
     unsigned m = FALCON_N, t = 1;
     unsigned hm = m >> 1, dt = t << 1;
     // Layer 1, 2, 3, 4
-    for (int j = 0; j < FALCON_N/2; j += 8)
+    for (int j = 0; j < FALCON_N/2; j += 16)
     {
         // Level 1
         // x_re = 0, 4 | 2, 6 | 8, 12 | 10, 14
@@ -192,16 +195,20 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
 
         // print_vector(x_re);
         // print_vector(y_re);
-        /* 
-        // Level 2
+
+
+        ////////////////////// Level 2
         // x_re = 0,4 | 2,6 | 8,12 | 10,14
         // y_re = 1,5 | 3,7 | 9,13 | 11,15
         // x_im = 256,260 | 258,262 | 264,268 | 266,270
         // y_im = 257,261 | 259,263 | 265,269 | 267,271
 
-        // TODO: Load s_re_im
-        // s_re_im = vld1q_f64_x4(&fpr_gm_tab[(FALCON_N >> 2) + (j >> 1)]);
-        vloadx4(s_re_im, &fpr_gm_tab[(hn + j) >> 1]);
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N >> 1) + j]);
+        s_re_im[0].val[0] = s_tmp.val[0];
+        s_re_im[0].val[1] = s_tmp.val[1];
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N >> 1) + j + 4]);
+        s_re_im[0].val[2] = s_tmp.val[0];
+        s_re_im[0].val[3] = s_tmp.val[1];
         ////////
         // x - y
         ////////
@@ -243,30 +250,30 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
 
         // Calculate y
         // v_im*s_im
-        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 1);
-        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 1);
-        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 1);
-        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 1);
+        tmp.val[0] = vmulq_f64(v_im.val[0], s_re_im[0].val[1]);
+        tmp.val[1] = vmulq_f64(v_im.val[1], s_re_im[0].val[3]);
+        tmp.val[2] = vmulq_f64(v_im.val[2], s_re_im[0].val[1]);
+        tmp.val[3] = vmulq_f64(v_im.val[3], s_re_im[0].val[3]);
 
         // v_im*s_im + v_re*s_re
         // y_re: 2,6 | 10,14 | 3,7 | 11,15
-        y_re.val[0] = vfmaq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
-        y_re.val[1] = vfmaq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 0);
-        y_re.val[2] = vfmaq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 0);
-        y_re.val[3] = vfmaq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 0);
+        y_re.val[0] = vfmaq_f64(tmp.val[0], v_re.val[0], s_re_im[0].val[0]);
+        y_re.val[1] = vfmaq_f64(tmp.val[1], v_re.val[1], s_re_im[0].val[2]);
+        y_re.val[2] = vfmaq_f64(tmp.val[2], v_re.val[2], s_re_im[0].val[0]);
+        y_re.val[3] = vfmaq_f64(tmp.val[3], v_re.val[3], s_re_im[0].val[2]);
 
         // v_im*s_re
-        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 0);
-        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 0);
-        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 0);
-        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 0);
+        tmp.val[0] = vmulq_f64(v_im.val[0], s_re_im[0].val[0]);
+        tmp.val[1] = vmulq_f64(v_im.val[1], s_re_im[0].val[2]);
+        tmp.val[2] = vmulq_f64(v_im.val[2], s_re_im[0].val[0]);
+        tmp.val[3] = vmulq_f64(v_im.val[3], s_re_im[0].val[2]);
 
         // v_im*s_re - v_re*s_im
         // y_im: 258,262 | 266,270 | 259,263 | 267,271
-        y_im.val[0] = vfmsq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
-        y_im.val[1] = vfmsq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 1);
-        y_im.val[2] = vfmsq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 1);
-        y_im.val[3] = vfmsq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 1);
+        y_im.val[0] = vfmsq_f64(tmp.val[0], v_re.val[0], s_re_im[0].val[1]);
+        y_im.val[1] = vfmsq_f64(tmp.val[1], v_re.val[1], s_re_im[0].val[3]); 
+        y_im.val[2] = vfmsq_f64(tmp.val[2], v_re.val[2], s_re_im[0].val[1]);
+        y_im.val[3] = vfmsq_f64(tmp.val[3], v_re.val[3], s_re_im[0].val[3]);
 
         // Level 3
         // Before Transpose
@@ -275,8 +282,6 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // x_im = 256,260 | 264,268 | 257,261 | 265,269
         // y_im = 258,262 | 266,270 | 259,263 | 267,271
 
-        // TODO: Load s_re_im
-        s_re_im = vld1q_f64_x4(&fpr_gm_tab[(FALCON_N >> 3) + (j >> 2)]);
 
         transpose(x_re, x_re, tmp, 0, 2, 0);
         transpose(x_re, x_re, tmp, 1, 3, 1);
@@ -293,98 +298,101 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // y_re = 2,3 | 10,11 | 6,7 | 14,15
         // x_im = 256,257 | 264,265 | 260,261 | 268,269
         // y_im = 258,259 | 266,267 | 262,263 | 270,271
+        
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N >> 2) + j]);
 
         ////////
         // x - y
         ////////
+        // TODO: DEBUG HERE
 
-        // 0,1 - 4,5 | 8,9   - 12,13
-        // 2,3 - 6,7 | 10,11 - 14,15
-        // TODO: check this x_re
+        // 0,1 - 4,5   | 2,3 - 6,7
+        // 8,9 - 12,13 | 10,11 - 14,15
         v_re.val[0] = vsubq_f64(x_re.val[0], x_re.val[2]);
-        v_re.val[1] = vsubq_f64(x_re.val[1], x_re.val[3]);
-        v_re.val[2] = vsubq_f64(y_re.val[0], y_re.val[2]);
+        v_re.val[2] = vsubq_f64(x_re.val[1], x_re.val[3]); 
+        v_re.val[1] = vsubq_f64(y_re.val[0], y_re.val[2]);
         v_re.val[3] = vsubq_f64(y_re.val[1], y_re.val[3]);
 
-        // 256,257 - 260,261 | 264,265 - 268,269
-        // 258,259 - 262,263 | 266,267 - 270,271
-        v_im.val[0] = vsubq_f64(x_im.val[0], x_im.val[1]);
-        v_im.val[1] = vsubq_f64(x_im.val[2], x_im.val[3]);
-        v_im.val[2] = vsubq_f64(y_im.val[0], y_im.val[1]);
-        v_im.val[3] = vsubq_f64(y_im.val[2], y_im.val[3]);
+        // 256,257 - 260,261 | 258,259 - 262,263
+        // 264,265 - 268,269 | 266,267 - 270,271
+        v_im.val[0] = vsubq_f64(x_im.val[0], x_im.val[2]);
+        v_im.val[2] = vsubq_f64(x_im.val[1], x_im.val[3]);
+        v_im.val[1] = vsubq_f64(y_im.val[0], y_im.val[2]);
+        v_im.val[3] = vsubq_f64(y_im.val[1], y_im.val[3]);
 
         ////////
         // x + y
         ////////
 
-        // x_re: 0,1 | 8,9 | 2,3 | 10,11
-        // 0,1 <= 0,1 - 4,5 | 8,9   <= 8,9   - 12,13
-        // 2,3 <= 2,3 - 6,7 | 10,11 <= 10,11 - 14,15
-        x_re.val[0] = vaddq_f64(x_re.val[0], x_re.val[1]);
-        x_re.val[1] = vaddq_f64(x_re.val[2], x_re.val[3]);
-        x_re.val[2] = vaddq_f64(y_re.val[0], y_re.val[1]);
-        x_re.val[3] = vaddq_f64(y_re.val[2], y_re.val[3]);
+        // x_re: 0,1 | 2,3 |  8,9 | 10,11
+        // 0,1 <= 0,1 + 4,5  | 2,3 <= 2,3 + 6,7 
+        // 8,9 <= 8,9 + 12,13| 10,11 <= 10,11 + 14,15
+        x_re.val[0] = vaddq_f64(x_re.val[0], x_re.val[2]);
+        x_re.val[2] = vaddq_f64(x_re.val[1], x_re.val[3]);
+        x_re.val[1] = vaddq_f64(y_re.val[0], y_re.val[2]);
+        x_re.val[3] = vaddq_f64(y_re.val[1], y_re.val[3]);
 
-        // x_im: 256,257 | 264,265 | 258,259 | 266,267
-        // 256,257 <= 256,257 + 260,261 | 264,265 <= 264,265 - 268,269
-        // 258,259 <= 258,259 + 262,263 | 266,267 <= 266,267 - 270,271
-        x_im.val[0] = vaddq_f64(x_im.val[0], x_im.val[1]);
-        x_im.val[1] = vaddq_f64(x_im.val[2], x_im.val[3]);
-        x_im.val[2] = vaddq_f64(y_im.val[0], y_im.val[1]);
-        x_im.val[3] = vaddq_f64(y_im.val[2], y_im.val[3]);
+        // x_im: 256,257 | 258,259 | 264,265 | 266,267
+        // 256,257 <= 256,257 + 260,261 | 258,259 <= 258,259 + 262,263
+        // 264,265 <= 264,265 + 268,269 | 266,267 <= 266,267 + 270,271
+        x_im.val[0] = vaddq_f64(x_im.val[0], x_im.val[2]);
+        x_im.val[2] = vaddq_f64(x_im.val[1], x_im.val[3]);
+        x_im.val[1] = vaddq_f64(y_im.val[0], y_im.val[2]);
+        x_im.val[3] = vaddq_f64(y_im.val[1], y_im.val[3]);
 
         // Calculate y
         // v_im*s_im
-        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 1);
-        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 1);
-        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 1);
-        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 1);
+        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_tmp.val[1], 0);
+        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_tmp.val[1], 0);
+        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_tmp.val[1], 1);
+        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_tmp.val[1], 1);
 
         // v_im*s_im + v_re*s_re
-        // y_re: 4,5 | 12,13 | 6,7 | 14,15
-        y_re.val[0] = vfmaq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
-        y_re.val[1] = vfmaq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 0);
-        y_re.val[2] = vfmaq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 0);
-        y_re.val[3] = vfmaq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 0);
+        // y_re: 4,5 | 6,7 | 12,13 | 14,15
+        y_re.val[0] = vfmaq_laneq_f64(tmp.val[0], v_re.val[0], s_tmp.val[0], 0);
+        y_re.val[1] = vfmaq_laneq_f64(tmp.val[1], v_re.val[1], s_tmp.val[0], 0);
+        y_re.val[2] = vfmaq_laneq_f64(tmp.val[2], v_re.val[2], s_tmp.val[0], 1);
+        y_re.val[3] = vfmaq_laneq_f64(tmp.val[3], v_re.val[3], s_tmp.val[0], 1);
 
         // v_im*s_re
-        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 0);
-        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 0);
-        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 0);
-        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 0);
+        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_tmp.val[0], 0);
+        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_tmp.val[0], 0);
+        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_tmp.val[0], 1);
+        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_tmp.val[0], 1);
 
         // v_im*s_re - v_re*s_im
-        // y_im: 260,261 | 268,269 | 262,263 | 270,271
-        y_im.val[0] = vfmsq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
-        y_im.val[1] = vfmsq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 1);
-        y_im.val[2] = vfmsq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 1);
-        y_im.val[3] = vfmsq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 1);
+        // y_im: 260,261 |  262,263 | 268,269 | 270,271
+        y_im.val[0] = vfmsq_laneq_f64(tmp.val[0], v_re.val[0], s_tmp.val[1], 0);
+        y_im.val[1] = vfmsq_laneq_f64(tmp.val[1], v_re.val[1], s_tmp.val[1], 0);
+        y_im.val[2] = vfmsq_laneq_f64(tmp.val[2], v_re.val[2], s_tmp.val[1], 1);
+        y_im.val[3] = vfmsq_laneq_f64(tmp.val[3], v_re.val[3], s_tmp.val[1], 1);
 
+        
         // Level 4
-        // x_re: 0,1 | 8,9 | 2,3 | 10,11
-        // y_re: 4,5 | 12,13 | 6,7 | 14,15
-        // x_im: 256,257 | 264,265 | 258,259 | 266,267
-        // y_im: 260,261 | 268,269 | 262,263 | 270,271
+        // x_re: 0,1 | 2,3 | 8,9 | 10,11
+        // y_re: 4,5 | 6,7 | 12,13 | 14,15
+        // x_im: 256,257 | 258,259 | 264,265 | 266,267
+        // y_im: 260,261 | 262,263 | 268,269 | 270,271
 
         // Load s_re_im
-        s_re_im = vld1q_f64_x4(&fpr_gm_tab[(FALCON_N >> 4) + (j >> 1)]);
+        s_tmp.val[0] = vld1q_f64(&fpr_gm_tab[(FALCON_N >> 3) + j]);
         ////////
         // x - y
         ////////
 
         // 0,1 -   8,9 | 2,3 - 10,11
         // 4,5 - 12,13 | 6,7 - 14,15
-        v_re.val[0] = vsubq_f64(x_re.val[0], x_re.val[1]);
-        v_re.val[1] = vsubq_f64(x_re.val[2], x_re.val[3]);
-        v_re.val[2] = vsubq_f64(y_re.val[0], y_re.val[1]);
-        v_re.val[3] = vsubq_f64(y_re.val[2], y_re.val[3]);
+        v_re.val[0] = vsubq_f64(x_re.val[0], x_re.val[2]);
+        v_re.val[1] = vsubq_f64(x_re.val[1], x_re.val[3]);
+        v_re.val[2] = vsubq_f64(y_re.val[0], y_re.val[2]);
+        v_re.val[3] = vsubq_f64(y_re.val[1], y_re.val[3]);
 
         // 256,257 - 264,265 | 258,259 - 266,267
         // 260,261 - 268,269 | 262,263 - 270,271
-        v_im.val[0] = vsubq_f64(x_im.val[0], x_im.val[1]);
-        v_im.val[1] = vsubq_f64(x_im.val[2], x_im.val[3]);
-        v_im.val[2] = vsubq_f64(y_im.val[0], y_im.val[1]);
-        v_im.val[3] = vsubq_f64(y_im.val[2], y_im.val[3]);
+        v_im.val[0] = vsubq_f64(x_im.val[0], x_im.val[2]);
+        v_im.val[1] = vsubq_f64(x_im.val[1], x_im.val[3]);
+        v_im.val[2] = vsubq_f64(y_im.val[0], y_im.val[2]);
+        v_im.val[3] = vsubq_f64(y_im.val[1], y_im.val[3]);
 
         ////////
         // x + y
@@ -393,46 +401,46 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // x_re: 0,1 | 2,3 | 4,5 | 6,7
         // 0,1 <= 0,1 +   8,9 | 2,3 <= 2,3 + 10,11
         // 4,5 <= 4,5 + 12,13 | 6,7 <= 6,7 + 14,15
-        x_re.val[0] = vaddq_f64(x_re.val[0], x_re.val[1]);
-        x_re.val[1] = vaddq_f64(x_re.val[2], x_re.val[3]);
-        x_re.val[2] = vaddq_f64(y_re.val[0], y_re.val[1]);
-        x_re.val[3] = vaddq_f64(y_re.val[2], y_re.val[3]);
+        x_re.val[0] = vaddq_f64(x_re.val[0], x_re.val[2]);
+        x_re.val[1] = vaddq_f64(x_re.val[1], x_re.val[3]);
+        x_re.val[2] = vaddq_f64(y_re.val[0], y_re.val[2]);
+        x_re.val[3] = vaddq_f64(y_re.val[1], y_re.val[3]);
 
         // x_im: 256,257 | 258,259 | 260,261 | 262,263
         // 256,257 <= 256,257 + 264,265 | 258,259 <= 258,259 + 266,267
         // 260,261 <= 260,261 + 268,269 | 262,263 <= 262,263 + 270,271
-        x_im.val[0] = vaddq_f64(x_im.val[0], x_im.val[1]);
-        x_im.val[1] = vaddq_f64(x_im.val[2], x_im.val[3]);
-        x_im.val[2] = vaddq_f64(y_im.val[0], y_im.val[1]);
-        x_im.val[3] = vaddq_f64(y_im.val[2], y_im.val[3]);
+        x_im.val[0] = vaddq_f64(x_im.val[0], x_im.val[2]);
+        x_im.val[1] = vaddq_f64(x_im.val[1], x_im.val[3]);
+        x_im.val[2] = vaddq_f64(y_im.val[0], y_im.val[2]);
+        x_im.val[3] = vaddq_f64(y_im.val[1], y_im.val[3]);
 
         // Calculate y
         // v_im*s_im
-        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 1);
-        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 1);
-        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 1);
-        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 1);
+        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_tmp.val[0], 1);
+        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_tmp.val[0], 1);
+        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_tmp.val[0], 1);
+        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_tmp.val[0], 1);
 
         // v_im*s_im + v_re*s_re
         // y_re: 8,9 | 10,11 | 12,13 | 14,15
-        y_re.val[0] = vfmaq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
-        y_re.val[1] = vfmaq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 0);
-        y_re.val[2] = vfmaq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 0);
-        y_re.val[3] = vfmaq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 0);
+        y_re.val[0] = vfmaq_laneq_f64(tmp.val[0], v_re.val[0], s_tmp.val[0], 0);
+        y_re.val[1] = vfmaq_laneq_f64(tmp.val[1], v_re.val[1], s_tmp.val[0], 0);
+        y_re.val[2] = vfmaq_laneq_f64(tmp.val[2], v_re.val[2], s_tmp.val[0], 0);
+        y_re.val[3] = vfmaq_laneq_f64(tmp.val[3], v_re.val[3], s_tmp.val[0], 0);
 
         // v_im*s_re
-        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_re_im.val[0], 0);
-        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_re_im.val[1], 0);
-        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_re_im.val[2], 0);
-        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_re_im.val[3], 0);
+        tmp.val[0] = vmulq_laneq_f64(v_im.val[0], s_tmp.val[0], 0);
+        tmp.val[1] = vmulq_laneq_f64(v_im.val[1], s_tmp.val[0], 0);
+        tmp.val[2] = vmulq_laneq_f64(v_im.val[2], s_tmp.val[0], 0);
+        tmp.val[3] = vmulq_laneq_f64(v_im.val[3], s_tmp.val[0], 0);
 
         // v_im*s_re - v_re*s_im
         // y_im: 264,265 | 266,267 | 268,269 | 270,271
-        y_im.val[0] = vfmsq_laneq_f64(tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
-        y_im.val[1] = vfmsq_laneq_f64(tmp.val[1], v_re.val[1], s_re_im.val[1], 1);
-        y_im.val[2] = vfmsq_laneq_f64(tmp.val[2], v_re.val[2], s_re_im.val[2], 1);
-        y_im.val[3] = vfmsq_laneq_f64(tmp.val[3], v_re.val[3], s_re_im.val[3], 1);
- */
+        y_im.val[0] = vfmsq_laneq_f64(tmp.val[0], v_re.val[0], s_tmp.val[0], 1);
+        y_im.val[1] = vfmsq_laneq_f64(tmp.val[1], v_re.val[1], s_tmp.val[0], 1);
+        y_im.val[2] = vfmsq_laneq_f64(tmp.val[2], v_re.val[2], s_tmp.val[0], 1);
+        y_im.val[3] = vfmsq_laneq_f64(tmp.val[3], v_re.val[3], s_tmp.val[0], 1);
+
         // x_re: 0,1 | 2,3 | 4,5 | 6,7
         // y_re: 8,9 | 10,11 | 12,13 | 14,15
         // x_im: 256,257 | 258,259 | 260,261 | 262,263
