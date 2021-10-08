@@ -6,5 +6,6 @@
 void print_array(fpr *a, int length, const char *string, int print_float);
 double fRand(double fMin, double fMax);
 int compare(fpr *gold, fpr *test, int bound, const char *string);
+void print_layer(fpr *a, int length, int falcon_n);
 
 #endif

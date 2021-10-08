@@ -17,7 +17,7 @@ void print_array(fpr *a, int length, const char *string, int print_float)
         }
         else
         {
-            printf("%llu, ", (uint64_t) tmp);
+            printf("%lu, ", (uint64_t) tmp);
         }
     }
     printf("\n==============\n");
@@ -55,6 +55,25 @@ void print_vector(float64x2x4_t a)
         for (int j = 0; j < 2; j++)
         {
             printf("a[%d][%d] = %f\n", i, j, a.val[i][j]);
+        }
+    }
+}
+
+void print_layer(fpr *a, int length, int falcon_n)
+{
+    for (int j = 0; j < 4; j++)
+    {
+        for (int i = 0; i < length; i+=4)
+        {
+            printf("[%d] = %0.10f\n", i + j, a[i + j]);
+        }
+    }
+
+    for (int j = 0; j < 4; j++)
+    {
+        for (int i = 0; i < length; i+=4)
+        {
+            printf("[%d] = %0.10f\n", i + j + falcon_n/2, a[i + j + falcon_n/2]);
         }
     }
 }
