@@ -1,4 +1,5 @@
 #include "inner.h"
+#include <stdio.h>
 
 /*
  * FFT code.
@@ -247,6 +248,8 @@ PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
     }
 }
 
+#define DEBUG 1
+
 /* see inner.h */
 void
 PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
@@ -298,7 +301,99 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
     t = 1;
     m = FALCON_N;
     hn = FALCON_N >> 1;
-    for (u = logn; u > 1; u --) {
+    // for (u = logn; u > 1; u --) {
+    for (u = logn; u > logn - 1; u --) {
+        size_t hm, dt, i1, j1;
+
+        hm = m >> 1;
+        dt = t << 1;
+        for (i1 = 0, j1 = 0; j1 < hn; i1 ++, j1 += dt) {
+            size_t j, j2;
+
+            j2 = j1 + t;
+            fpr s_re, s_im;
+            int tmp_re, tmp_im;
+            tmp_re = ((hm + i1) << 1) + 0;
+            tmp_im = ((hm + i1) << 1) + 1;
+
+            s_re = fpr_gm_tab[tmp_re];
+            s_im = fpr_neg(fpr_gm_tab[tmp_im]);
+            for (j = j1; j < j2; j ++) {
+                fpr x_re, x_im, y_re, y_im;
+
+                x_re = f[j];
+                x_im = f[j + hn];
+                y_re = f[j + t];
+                y_im = f[j + t + hn];
+#if DEBUG == 1
+                (f[j]) = fpr_add(x_re, y_re);
+                (f[j + hn]) = fpr_add(x_im, y_im);
+
+                fpr fpct_a_re, fpct_a_im;
+                fpr fpct_b_re, fpct_b_im;
+                fpr fpct_d_re, fpct_d_im;
+                fpct_a_re = (fpr_sub(x_re, y_re));
+                fpct_a_im = (fpr_sub(x_im, y_im));
+                fpct_b_re = (s_re);
+                fpct_b_im = (s_im);
+
+                if (u == logn)
+                {
+                    printf("%d = %d + %d\n", j, j, j + t);
+                    printf("%d = %d + %d\n", j + hn, j + hn, j + t + hn);
+                    printf("%d = (%d - %d) * %d - (%d - %d)*%d\n", j + t, j, j + t, tmp_re, j + hn, j + t + hn, tmp_im);
+                    printf("%d = (%d - %d) * %d - (%d - %d)*%d\n", j + t + hn, j, j + t, tmp_im, j + hn, j + t + hn, tmp_re);
+                }
+                fpct_d_re = fpr_sub(fpr_mul(fpct_a_re, fpct_b_re), fpr_mul(fpct_a_im, fpct_b_im));
+                fpct_d_im = fpr_add(fpr_mul(fpct_a_re, fpct_b_im), fpr_mul(fpct_a_im, fpct_b_re));
+                (f[j + t]) = fpct_d_re;
+                (f[j + t + hn]) = fpct_d_im;
+                
+                // printf("x_re, y_re: %d, %d\t", j, j + t);
+                // printf("%d, %d * (%d, %d)\n", j+t, j+t+hn, tmp_re, tmp_im);
+#else 
+                FPC_ADD(f[j], f[j + hn],
+                        x_re, x_im, y_re, y_im);
+                FPC_SUB(x_re, x_im, x_re, x_im, y_re, y_im);
+
+                FPC_MUL(f[j + t], f[j + t + hn],
+                x_re, x_im, s_re, s_im);
+#endif
+
+            }
+
+        }
+        t = dt;
+        m = hm;
+
+        printf("========%d\n", u);
+    }
+
+    /*
+     * Last iteration is a no-op, provided that we divide by N/2
+     * instead of N. We need to make a special case for logn = 0.
+     */
+
+    // if (logn > 0) {
+    //     fpr ni;
+
+    //     ni = fpr_p2_tab[logn];
+    //     for (u = 0; u < FALCON_N; u ++) {
+    //         f[u] = fpr_mul(f[u], ni);
+    //     }
+    // }
+}
+
+void
+PQCLEAN_FALCON512_CLEAN_iFFT_original(fpr *f, unsigned logn) {
+    size_t u, FALCON_N, hn, t, m;
+
+    FALCON_N = (size_t)1 << logn;
+    t = 1;
+    m = FALCON_N;
+    hn = FALCON_N >> 1;
+    // for (u = logn; u > 1; u --) {
+    for (u = logn; u > logn - 1; u --) {
         size_t hm, dt, i1, j1;
 
         hm = m >> 1;
@@ -329,19 +424,16 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
         m = hm;
     }
 
-    /*
-     * Last iteration is a no-op, provided that we divide by N/2
-     * instead of N. We need to make a special case for logn = 0.
-     */
-    if (logn > 0) {
-        fpr ni;
+    // if (logn > 0) {
+    //     fpr ni;
 
-        ni = fpr_p2_tab[logn];
-        for (u = 0; u < FALCON_N; u ++) {
-            f[u] = fpr_mul(f[u], ni);
-        }
-    }
+    //     ni = fpr_p2_tab[logn];
+    //     for (u = 0; u < FALCON_N; u ++) {
+    //         f[u] = fpr_mul(f[u], ni);
+    //     }
+    // }
 }
+
 
 /* see inner.h */
 void

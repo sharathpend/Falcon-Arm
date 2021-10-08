@@ -529,7 +529,7 @@ void PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn);
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
 void PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn);
-
+void PQCLEAN_FALCON512_CLEAN_iFFT_original(fpr *f, unsigned logn);
 /*
  * Add polynomial b to polynomial a. a and b MUST NOT overlap. This
  * function works in both normal and FFT representations.
