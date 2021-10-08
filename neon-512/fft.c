@@ -28,39 +28,6 @@
     c.val[2] = vaddq_f64(a.val[2], b.val[2]); \
     c.val[3] = vaddq_f64(a.val[3], b.val[3]);
 
-#define vsubx4_mix(c, a, b, ia0, ia1, ia2, ia3)   \
-    c.val[0] = vsubq_f64(a.val[ia0], a.val[ia2]); \
-    c.val[1] = vsubq_f64(a.val[ia1], a.val[ia3]); \
-    c.val[2] = vsubq_f64(b.val[ia0], b.val[ia2]); \
-    c.val[3] = vsubq_f64(b.val[ia1], b.val[ia3]);
-
-#define vaddx4_mix(c, a, b, ia0, ia1, ia2, ia3)   \
-    c.val[0] = vaddq_f64(a.val[ia0], a.val[ia2]); \
-    c.val[1] = vaddq_f64(a.val[ia1], a.val[ia3]); \
-    c.val[2] = vaddq_f64(b.val[ia0], b.val[ia2]); \
-    c.val[3] = vaddq_f64(b.val[ia1], b.val[ia3]);
-
-// c = a * b[i]
-#define vfmul_lane(c, a, b, ib0, ib1, ib2, ib3, i0, i1, i2, i3) \
-    c.val[0] = vmulq_laneq_f64(a.val[0], b.val[ib0], i0);       \
-    c.val[1] = vmulq_laneq_f64(a.val[1], b.val[ib1], i1);       \
-    c.val[2] = vmulq_laneq_f64(a.val[2], b.val[ib2], i2);       \
-    c.val[3] = vmulq_laneq_f64(a.val[3], b.val[ib3], i3);
-
-// d = c + a*b
-#define vfma_lane(d, c, a, b, ib0, ib1, ib2, ib3, i0, i1, i2, i3)   \
-    d.val[0] = vfmaq_laneq_f64(c.val[0], a.val[0], b.val[ib0], i0); \
-    d.val[1] = vfmaq_laneq_f64(c.val[1], a.val[1], b.val[ib1], i1); \
-    d.val[2] = vfmaq_laneq_f64(c.val[2], a.val[2], b.val[ib2], i2); \
-    d.val[3] = vfmaq_laneq_f64(c.val[3], a.val[3], b.val[ib3], i3);
-
-// d = c - a*b
-#define vfms_lane(d, c, a, b, ib0, ib1, ib2, ib3, i0, i1, i2, i3)   \
-    d.val[0] = vfmsq_laneq_f64(c.val[0], a.val[0], b.val[ib0], i0); \
-    d.val[1] = vfmsq_laneq_f64(c.val[1], a.val[1], b.val[ib1], i1); \
-    d.val[2] = vfmsq_laneq_f64(c.val[2], a.val[2], b.val[ib2], i2); \
-    d.val[3] = vfmsq_laneq_f64(c.val[3], a.val[3], b.val[ib3], i3);
-
 void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
 {
     // Total: 32 registers
@@ -120,19 +87,11 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         //  1,5 <= 0,4  -  1,5 |   3,7 <=   2,6 -  3,7
         // 9,13 <= 8,12 - 9,13 | 11,15 <= 10,14 - 11,15
         vsubx4(v_re, x_re, y_re);
-        // v_re.val[0] = vsubq_f64(x_re.val[0], y_re.val[0]);
-        // v_re.val[1] = vsubq_f64(x_re.val[1], y_re.val[1]);
-        // v_re.val[2] = vsubq_f64(x_re.val[2], y_re.val[2]);
-        // v_re.val[3] = vsubq_f64(x_re.val[3], y_re.val[3]);
-
+        
         // 257,261 <= 256,260 - 257,261 | 259,263 <= 258,262 - 259,263
         // 265,269 <= 264,268 - 265,269 | 267,271 <= 266,270 - 267,271
         vsubx4(v_im, x_im, y_im);
-        // v_im.val[0] = vsubq_f64(x_im.val[0], y_im.val[0]);
-        // v_im.val[1] = vsubq_f64(x_im.val[1], y_im.val[1]);
-        // v_im.val[2] = vsubq_f64(x_im.val[2], y_im.val[2]);
-        // v_im.val[3] = vsubq_f64(x_im.val[3], y_im.val[3]);
-
+        
         ////////
         // x + y
         ////////
@@ -141,23 +100,15 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // 0,4  <= 0,4  +  1,5 |   2,6 <=   2,6 +   3,7
         // 8,12 <= 8,12 + 9,13 | 10,14 <= 10,14 + 11,15
         vaddx4(x_re, x_re, y_re);
-        // x_re.val[0] = vaddq_f64(x_re.val[0], y_re.val[0]);
-        // x_re.val[1] = vaddq_f64(x_re.val[1], y_re.val[1]);
-        // x_re.val[2] = vaddq_f64(x_re.val[2], y_re.val[2]);
-        // x_re.val[3] = vaddq_f64(x_re.val[3], y_re.val[3]);
-
+        
         // x_im: 256,260 | 258,262 | 264,268 | 266,270
         // 256,260 <= 256,260 + 257,261 | 258,262 <= 258,262 + 259,263
         // 264,268 <= 264,268 + 265,269 | 266,270 <= 266,270 + 267,271
         vaddx4(x_im, x_im, y_im);
-        // x_im.val[0] = vaddq_f64(x_im.val[0], y_im.val[0]);
-        // x_im.val[1] = vaddq_f64(x_im.val[1], y_im.val[1]);
-        // x_im.val[2] = vaddq_f64(x_im.val[2], y_im.val[2]);
-        // x_im.val[3] = vaddq_f64(x_im.val[3], y_im.val[3]);
-
+        
         // s * (x - y) = s*v = (s_re + i*s_im)(v_re + i*v_im)
-        // re:  v_re*s_re + v_im*s_im
-        // im: -v_re*s_im + v_im*s_re
+        // y_re:  v_re*s_re + v_im*s_im
+        // y_im: -v_re*s_im + v_im*s_re
 
         // s_re_im = 512 -> 519
         // s_re: 512 -> 518, step 2
@@ -203,10 +154,10 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // x_im = 256,260 | 258,262 | 264,268 | 266,270
         // y_im = 257,261 | 259,263 | 265,269 | 267,271
 
-        vload2(s_tmp, &fpr_gm_tab[(FALCON_N >> 1) + j]);
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 1]);
         s_re_im[0].val[0] = s_tmp.val[0];
         s_re_im[0].val[1] = s_tmp.val[1];
-        vload2(s_tmp, &fpr_gm_tab[(FALCON_N >> 1) + j + 4]);
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j + 8) >> 1]);
         s_re_im[0].val[2] = s_tmp.val[0];
         s_re_im[0].val[3] = s_tmp.val[1];
         ////////
@@ -299,7 +250,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // x_im = 256,257 | 264,265 | 260,261 | 268,269
         // y_im = 258,259 | 266,267 | 262,263 | 270,271
         
-        vload2(s_tmp, &fpr_gm_tab[(FALCON_N >> 2) + j]);
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 2]);
 
         ////////
         // x - y
@@ -375,7 +326,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         // y_im: 260,261 | 262,263 | 268,269 | 270,271
 
         // Load s_re_im
-        s_tmp.val[0] = vld1q_f64(&fpr_gm_tab[(FALCON_N >> 3) + j]);
+        s_tmp.val[0] = vld1q_f64(&fpr_gm_tab[(FALCON_N + j )>> 3]);
         ////////
         // x - y
         ////////
