@@ -711,6 +711,28 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
             y_im.val[2] = vfmsq_laneq_f64(tmp.val[2], v_re.val[2], s1_tmp, 1);
             y_im.val[3] = vfmsq_laneq_f64(tmp.val[3], v_re.val[3], s1_tmp, 1);
 
+            // Divide by N at the end
+            x_re.val[0] = vmulq_n_f64(x_re.val[0], fpr_p2_tab[logn]);
+            x_re.val[1] = vmulq_n_f64(x_re.val[1], fpr_p2_tab[logn]);
+            x_re.val[2] = vmulq_n_f64(x_re.val[2], fpr_p2_tab[logn]);
+            x_re.val[3] = vmulq_n_f64(x_re.val[3], fpr_p2_tab[logn]);
+
+            y_re.val[0] = vmulq_n_f64(y_re.val[0], fpr_p2_tab[logn]);
+            y_re.val[1] = vmulq_n_f64(y_re.val[1], fpr_p2_tab[logn]);
+            y_re.val[2] = vmulq_n_f64(y_re.val[2], fpr_p2_tab[logn]);
+            y_re.val[3] = vmulq_n_f64(y_re.val[3], fpr_p2_tab[logn]);
+
+            x_im.val[0] = vmulq_n_f64(x_im.val[0], fpr_p2_tab[logn]);
+            x_im.val[1] = vmulq_n_f64(x_im.val[1], fpr_p2_tab[logn]);
+            x_im.val[2] = vmulq_n_f64(x_im.val[2], fpr_p2_tab[logn]);
+            x_im.val[3] = vmulq_n_f64(x_im.val[3], fpr_p2_tab[logn]);
+
+            y_im.val[0] = vmulq_n_f64(y_im.val[0], fpr_p2_tab[logn]);
+            y_im.val[1] = vmulq_n_f64(y_im.val[1], fpr_p2_tab[logn]);
+            y_im.val[2] = vmulq_n_f64(y_im.val[2], fpr_p2_tab[logn]);
+            y_im.val[3] = vmulq_n_f64(y_im.val[3], fpr_p2_tab[logn]);
+
+
             // Store
             x_tmp.val[0] = x_re.val[0];
             x_tmp.val[1] = x_re.val[1];
