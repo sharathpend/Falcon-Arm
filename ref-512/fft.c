@@ -248,7 +248,7 @@ PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
     }
 }
 
-#define DEBUG 1
+#define DEBUG 0
 
 /* see inner.h */
 void
@@ -302,7 +302,7 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
     m = FALCON_N;
     hn = FALCON_N >> 1;
     // for (u = logn; u > 1; u --) {
-    for (u = logn; u > logn - 1; u --) {
+    for (u = logn; u > 1; u --) {
         size_t hm, dt, i1, j1;
 
         hm = m >> 1;
@@ -337,12 +337,12 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
                 fpct_b_re = (s_re);
                 fpct_b_im = (s_im);
 
-                if (u == logn)
+                if (u == logn - 7)
                 {
-                    printf("%d = %d + %d\n", j, j, j + t);
-                    printf("%d = %d + %d\n", j + hn, j + hn, j + t + hn);
-                    printf("%d = (%d - %d) * %d - (%d - %d)*%d\n", j + t, j, j + t, tmp_re, j + hn, j + t + hn, tmp_im);
-                    printf("%d = (%d - %d) * %d - (%d - %d)*%d\n", j + t + hn, j, j + t, tmp_im, j + hn, j + t + hn, tmp_re);
+                    printf("x_re: %d = %d + %d\n", j, j, j + t);
+                    printf("x_im: %d = %d + %d\n", j + hn, j + hn, j + t + hn);
+                    printf("y_re: %d = (%d - %d) * %d - (%d - %d)*%d\n", j + t, j, j + t, tmp_re, j + hn, j + t + hn, tmp_im);
+                    printf("y_im: %d = (%d - %d) * %d - (%d - %d)*%d\n", j + t + hn, j, j + t, tmp_im, j + hn, j + t + hn, tmp_re);
                 }
                 fpct_d_re = fpr_sub(fpr_mul(fpct_a_re, fpct_b_re), fpr_mul(fpct_a_im, fpct_b_im));
                 fpct_d_im = fpr_add(fpr_mul(fpct_a_re, fpct_b_im), fpr_mul(fpct_a_im, fpct_b_re));
@@ -365,8 +365,9 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
         }
         t = dt;
         m = hm;
-
+#if DEBUG == 1
         printf("========%d\n", u);
+#endif
     }
 
     /*
@@ -374,14 +375,14 @@ PQCLEAN_FALCON512_CLEAN_iFFT(fpr *f, unsigned logn) {
      * instead of N. We need to make a special case for logn = 0.
      */
 
-    // if (logn > 0) {
-    //     fpr ni;
+    if (logn > 0) {
+        fpr ni;
 
-    //     ni = fpr_p2_tab[logn];
-    //     for (u = 0; u < FALCON_N; u ++) {
-    //         f[u] = fpr_mul(f[u], ni);
-    //     }
-    // }
+        ni = fpr_p2_tab[logn];
+        for (u = 0; u < FALCON_N; u ++) {
+            f[u] = fpr_mul(f[u], ni);
+        }
+    }
 }
 
 void
@@ -392,8 +393,8 @@ PQCLEAN_FALCON512_CLEAN_iFFT_original(fpr *f, unsigned logn) {
     t = 1;
     m = FALCON_N;
     hn = FALCON_N >> 1;
-    // for (u = logn; u > 1; u --) {
-    for (u = logn; u > logn - 1; u --) {
+    for (u = logn; u > 1; u --) {
+    // for (u = logn; u > logn - 1; u --) {
         size_t hm, dt, i1, j1;
 
         hm = m >> 1;
@@ -424,14 +425,14 @@ PQCLEAN_FALCON512_CLEAN_iFFT_original(fpr *f, unsigned logn) {
         m = hm;
     }
 
-    // if (logn > 0) {
-    //     fpr ni;
+    if (logn > 0) {
+        fpr ni;
 
-    //     ni = fpr_p2_tab[logn];
-    //     for (u = 0; u < FALCON_N; u ++) {
-    //         f[u] = fpr_mul(f[u], ni);
-    //     }
-    // }
+        ni = fpr_p2_tab[logn];
+        for (u = 0; u < FALCON_N; u ++) {
+            f[u] = fpr_mul(f[u], ni);
+        }
+    }
 }
 
 
