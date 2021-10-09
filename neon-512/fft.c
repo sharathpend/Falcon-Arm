@@ -1,7 +1,7 @@
 #include "inner.h"
-#include "macro.h"
 
-void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
+
+void PQCLEAN_FALCON512_NEON_iFFT(fpr *f)
 {
     // Total: 32 = 16 + 8 + 8 register
     float64x2x4_t s_re_im, tmp;           // 8
@@ -13,7 +13,6 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
     // Level 6, 7
     float64x2_t div_n;
 
-    const unsigned int FALCON_N = 1 << logn;
     const unsigned int hn = FALCON_N >> 1;
 
     // Level 0, 1, 2, 3
@@ -506,7 +505,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
 
     vload(s_re_im.val[2], &fpr_gm_tab[(FALCON_N) >> 7]);
 
-    div_n = vdupq_n_f64(fpr_p2_tab[logn]);
+    div_n = vdupq_n_f64(fpr_p2_tab[FALCON_LOGN]);
     vfmul(s_re_im.val[2], s_re_im.val[2], div_n);
 
     for (int j = 0; j < 64; j += 4)
@@ -839,4 +838,9 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn)
         }
 
     } */
+}
+
+void PQCLEAN_FALCON512_NEON_FFT(fpr *f)
+{
+
 }

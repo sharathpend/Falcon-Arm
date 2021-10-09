@@ -75,6 +75,8 @@
  */
 #include "fips202.h"
 #include "fpr.h"
+#include "params.h"
+#include "macro.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -552,7 +554,7 @@ prng_get_u8(prng *p) {
  *
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
-void PQCLEAN_FALCON512_NEON_FFT(fpr *f, unsigned logn);
+void PQCLEAN_FALCON512_NEON_FFT(fpr *f);
 
 /*
  * Compute the inverse FFT in-place: the source array should contain the
@@ -562,7 +564,7 @@ void PQCLEAN_FALCON512_NEON_FFT(fpr *f, unsigned logn);
  *
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
-void PQCLEAN_FALCON512_NEON_iFFT(fpr *f, unsigned logn);
+void PQCLEAN_FALCON512_NEON_iFFT(fpr *f);
 
 /*
  * Add polynomial b to polynomial a. a and b MUST NOT overlap. This
