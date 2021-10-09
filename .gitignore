@@ -2,3 +2,4 @@
 *.txt
 ref-fft
 avx2_fft
+neon-fft
