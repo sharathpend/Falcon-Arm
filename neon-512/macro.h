@@ -12,6 +12,8 @@
 #define vstorex2(addr, c) vst1q_f64_x2(addr, c);
 // addr <= c
 #define vstorex4(addr, c) vst1q_f64_x4(addr, c);
+// addr <= c
+#define vstore4(addr, c) vst4q_f64(addr, c);
 // c = a - b
 #define vfsub(c, a, b) c = vsubq_f64(a, b);
 // c = a + b
@@ -28,7 +30,6 @@
 #define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
 // d = c - a * b[i]
 #define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
-
 
 #define transpose(a, b, t, ia, ib, it)            \
     t.val[it] = a.val[ia];                        \
