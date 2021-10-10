@@ -1190,25 +1190,23 @@ void PQCLEAN_FALCON512_NEON_FFT(fpr *f)
         vfma(y_im.val[3], y_im.val[3], y1_im.val[3], s_re_im.val[2]);
 
         vfadd(x_re.val[0], x1_re.val[0], y_re.val[0]);
-        vfadd(x_re.val[1], y1_re.val[0], y_re.val[1]);
-        vfadd(x_re.val[2], x1_re.val[2], y_re.val[2]);
-        vfadd(x_re.val[3], y1_re.val[2], y_re.val[3]);
-
-        vfadd(x_im.val[0], x1_im.val[0], y_im.val[0]);
-        vfadd(x_im.val[1], y1_im.val[0], y_im.val[1]);
-
-        vfadd(x_im.val[2], x1_im.val[2], y_im.val[2]);
-        vfadd(x_im.val[3], y1_im.val[2], y_im.val[3]);
-
         vfsub(y_re.val[0], x1_re.val[0], y_re.val[0]);
+        vfadd(x_re.val[1], y1_re.val[0], y_re.val[1]);
         vfsub(y_re.val[1], y1_re.val[0], y_re.val[1]);
+
+        vfadd(x_re.val[2], x1_re.val[2], y_re.val[2]);
         vfsub(y_re.val[2], x1_re.val[2], y_re.val[2]);
+        vfadd(x_re.val[3], y1_re.val[2], y_re.val[3]);
         vfsub(y_re.val[3], y1_re.val[2], y_re.val[3]);
 
+        vfadd(x_im.val[0], x1_im.val[0], y_im.val[0]);
         vfsub(y_im.val[0], x1_im.val[0], y_im.val[0]);
+        vfadd(x_im.val[1], y1_im.val[0], y_im.val[1]);
         vfsub(y_im.val[1], y1_im.val[0], y_im.val[1]);
 
+        vfadd(x_im.val[2], x1_im.val[2], y_im.val[2]);
         vfsub(y_im.val[2], x1_im.val[2], y_im.val[2]);
+        vfadd(x_im.val[3], y1_im.val[2], y_im.val[3]);
         vfsub(y_im.val[3], y1_im.val[2], y_im.val[3]);
 
         // x_re: 0,4 | 2,6 | 8,12 | 10,14
