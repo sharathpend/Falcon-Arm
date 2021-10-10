@@ -180,7 +180,7 @@ PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
     n = (size_t)1 << logn;
     hn = n >> 1;
     t = hn;
-    for (u = 1, m = 2; u < 3; u ++, m <<= 1) {
+    for (u = 1, m = 2; u < logn; u ++, m <<= 1) {
         size_t ht, hm, i1, j1;
 
         ht = t >> 1;
@@ -222,7 +222,7 @@ PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
                 (f[j + ht]) = y_re;
                 (f[j + ht + hn]) = y_im;
 
-                if (u == 2)
+                if (u == 8)
                 {
                     // printf("v_re: %d*%d - %d*%d\n", j + ht, bla, j + ht + hn, blo);
                     // printf("v_im: %d*%d + %d*%d\n", j + ht, blo, j + ht + hn, bla);
@@ -293,7 +293,7 @@ PQCLEAN_FALCON512_CLEAN_FFT_original(fpr *f, unsigned logn) {
     n = (size_t)1 << logn;
     hn = n >> 1;
     t = hn;
-    for (u = 1, m = 2; u < 3; u ++, m <<= 1) {
+    for (u = 1, m = 2; u < logn; u ++, m <<= 1) {
         size_t ht, hm, i1, j1;
 
         ht = t >> 1;
