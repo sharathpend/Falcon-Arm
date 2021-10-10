@@ -169,8 +169,84 @@
  */
 
 /* see inner.h */
+#define DEBUG 0
+
 void
 PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
+    
+    unsigned u;
+    size_t t, n, hn, m;
+
+    n = (size_t)1 << logn;
+    hn = n >> 1;
+    t = hn;
+    for (u = 1, m = 2; u < 3; u ++, m <<= 1) {
+        size_t ht, hm, i1, j1;
+
+        ht = t >> 1;
+        hm = m >> 1;
+        for (i1 = 0, j1 = 0; i1 < hm; i1 ++, j1 += t) {
+            size_t j, j2;
+
+            j2 = j1 + ht;
+            fpr s_re, s_im;
+            int bla, blo;
+            bla = ((m + i1) << 1) + 0;
+            blo = ((m + i1) << 1) + 1;
+            s_re = fpr_gm_tab[bla];
+            s_im = fpr_gm_tab[blo];
+            for (j = j1; j < j2; j ++) {
+                fpr x_re, x_im, y_re, y_im;
+
+                x_re = f[j];
+                x_im = f[j + hn];
+                y_re = f[j + ht];
+                y_im = f[j + ht + hn];
+#if DEBUG == 1
+                fpr v1_re, v1_im;
+                fpr v2_re, v2_im;
+                
+                v1_re = x_re;
+                v1_im = x_im;
+
+                v2_re = fpr_sub(fpr_mul(y_re, s_re), fpr_mul(y_im, s_im));
+                v2_im = fpr_add(fpr_mul(y_re, s_im), fpr_mul(y_im, s_re));
+                
+                x_re = fpr_add(v1_re, v2_re);
+                x_im = fpr_add(v1_im, v2_im);
+                (f[j]) = x_re;
+                (f[j + hn]) = x_im;
+
+                y_re = fpr_sub(v1_re, v2_re);
+                y_im = fpr_sub(v1_im, v2_im);
+                (f[j + ht]) = y_re;
+                (f[j + ht + hn]) = y_im;
+
+                if (u == 2)
+                {
+                    // printf("v_re: %d*%d - %d*%d\n", j + ht, bla, j + ht + hn, blo);
+                    // printf("v_im: %d*%d + %d*%d\n", j + ht, blo, j + ht + hn, bla);
+                    printf("x_re: %3d = %3d + (%3d*%3d - %3d*%3d)\n", j, j, j + ht, bla, j + ht + hn, blo);
+                    printf("x_im: %3d = %3d + (%3d*%3d + %3d*%3d)\n", j + hn, j + hn, j + ht, blo, j + ht + hn, bla);
+                    printf("y_re: %3d = %3d - (%3d*%3d - %3d*%3d)\n", j + ht, j + ht, j + ht, bla, j + ht + hn, blo);
+                    printf("y_im: %3d = %3d - (%3d*%3d + %3d*%3d)\n", j + ht + hn, j + ht + hn, j + ht, blo, j + ht + hn, bla);
+                }
+#else 
+                FPC_MUL(y_re, y_im, y_re, y_im, s_re, s_im);
+                FPC_ADD(f[j], f[j + hn],
+                        x_re, x_im, y_re, y_im);
+                FPC_SUB(f[j + ht], f[j + ht + hn],
+                        x_re, x_im, y_re, y_im);
+#endif
+            }
+        }
+        t = ht;
+    }
+}
+
+
+void
+PQCLEAN_FALCON512_CLEAN_FFT_original(fpr *f, unsigned logn) {
     /*
      * FFT algorithm in bit-reversal order uses the following
      * iterative algorithm:
@@ -217,7 +293,7 @@ PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
     n = (size_t)1 << logn;
     hn = n >> 1;
     t = hn;
-    for (u = 1, m = 2; u < logn; u ++, m <<= 1) {
+    for (u = 1, m = 2; u < 3; u ++, m <<= 1) {
         size_t ht, hm, i1, j1;
 
         ht = t >> 1;
@@ -248,7 +324,6 @@ PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
     }
 }
 
-#define DEBUG 0
 
 /* see inner.h */
 void

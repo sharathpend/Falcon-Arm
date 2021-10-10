@@ -14,6 +14,7 @@ void print_array(fpr *a, int length, const char *string, int print_float)
         if (print_float)
         {
             printf("%f, ", tmp);
+            // printf("[%d] = %f\n", i, tmp);
         }
         else
         {

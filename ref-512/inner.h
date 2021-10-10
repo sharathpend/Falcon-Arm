@@ -519,7 +519,7 @@ unsigned prng_get_u8(prng *p);
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
 void PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn);
-
+void PQCLEAN_FALCON512_CLEAN_FFT_original(fpr *f, unsigned logn);
 /*
  * Compute the inverse FFT in-place: the source array should contain the
  * FFT representation of a real polynomial (N/2 elements); the resulting
