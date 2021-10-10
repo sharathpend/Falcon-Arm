@@ -851,7 +851,162 @@ void PQCLEAN_FALCON512_NEON_FFT(fpr *f)
     float64x2x2_t x_tmp, y_tmp;
 
     const unsigned int hn = FALCON_N >> 1;
+    for (int l = 8; l > 4; l -= 2)
+    {
+        int distance = 1 << (l - 2);
+        for (int i = 0; i < FALCON_N/2; i+= 1 << l)
+        {
+            vload(s_re_im.val[0], &fpr_gm_tab[(FALCON_N + i) >> (l - 1)]);
+            vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> (l - 2)]);
+            s_re_im.val[1] = s_tmp.val[0];
+            s_re_im.val[2] = s_tmp.val[1];
 
+            for (int j = i; j < i + distance; j += 4)
+            {
+                // Level 7
+                // x1_re: 0->3, 64->67
+                // x1_im: 256->259, 320 -> 323
+                // y_re: 128->131, 192->195
+                // y_im: 384->387, 448 -> 451
+                vloadx2(x_tmp, &f[j]);
+                x1_re.val[0] = x_tmp.val[0];
+                x1_re.val[1] = x_tmp.val[1];
+                vloadx2(x_tmp, &f[j + distance]);
+                x1_re.val[2] = x_tmp.val[0];
+                x1_re.val[3] = x_tmp.val[1];
+
+                vloadx2(y_tmp, &f[j + 2*distance]);
+                y_re.val[0] = y_tmp.val[0];
+                y_re.val[1] = y_tmp.val[1];
+                vloadx2(y_tmp, &f[j + 3*distance]);
+                y_re.val[2] = y_tmp.val[0];
+                y_re.val[3] = y_tmp.val[1];
+
+                vloadx2(x_tmp, &f[j + hn]);
+                x1_im.val[0] = x_tmp.val[0];
+                x1_im.val[1] = x_tmp.val[1];
+                vloadx2(x_tmp, &f[j + hn + distance]);
+                x1_im.val[2] = x_tmp.val[0];
+                x1_im.val[3] = x_tmp.val[1];
+
+                vloadx2(y_tmp, &f[j + hn + 2*distance]);
+                y_im.val[0] = y_tmp.val[0];
+                y_im.val[1] = y_tmp.val[1];
+                vloadx2(y_tmp, &f[j + hn + 3*distance]);
+                y_im.val[2] = y_tmp.val[0];
+                y_im.val[3] = y_tmp.val[1];
+
+                vfmul_lane(y1_re.val[0], y_re.val[0], s_re_im.val[0], 0);
+                vfmul_lane(y1_re.val[1], y_re.val[1], s_re_im.val[0], 0);
+                vfmul_lane(y1_re.val[2], y_re.val[2], s_re_im.val[0], 0);
+                vfmul_lane(y1_re.val[3], y_re.val[3], s_re_im.val[0], 0);
+
+                vfms_lane(y1_re.val[0], y1_re.val[0],  y_im.val[0], s_re_im.val[0], 1);
+                vfms_lane(y1_re.val[1], y1_re.val[1],  y_im.val[1], s_re_im.val[0], 1);
+                vfms_lane(y1_re.val[2], y1_re.val[2],  y_im.val[2], s_re_im.val[0], 1);
+                vfms_lane(y1_re.val[3], y1_re.val[3],  y_im.val[3], s_re_im.val[0], 1);
+
+                vfmul_lane(y1_im.val[0], y_re.val[0], s_re_im.val[0], 1);
+                vfmul_lane(y1_im.val[1], y_re.val[1], s_re_im.val[0], 1);
+                vfmul_lane(y1_im.val[2], y_re.val[2], s_re_im.val[0], 1);
+                vfmul_lane(y1_im.val[3], y_re.val[3], s_re_im.val[0], 1);
+
+                vfma_lane(y1_im.val[0], y1_im.val[0],  y_im.val[0], s_re_im.val[0], 0);
+                vfma_lane(y1_im.val[1], y1_im.val[1],  y_im.val[1], s_re_im.val[0], 0);
+                vfma_lane(y1_im.val[2], y1_im.val[2],  y_im.val[2], s_re_im.val[0], 0);
+                vfma_lane(y1_im.val[3], y1_im.val[3],  y_im.val[3], s_re_im.val[0], 0);
+
+                vfaddx4(x_re, x1_re, y1_re);
+                vfaddx4(x_im, x1_im, y1_im);
+
+                vfsubx4(y_re, x1_re, y1_re);
+                vfsubx4(y_im, x1_im, y1_im);
+                
+                // Level 6
+                // x_re: 0->3, 64->67
+                // y_re: 128->131, 192 -> 195
+                // x_im: 256->259, 320 -> 323
+                // y_im: 384->387, 448 -> 451
+                
+                vfmul_lane(y1_re.val[0], x_re.val[2], s_re_im.val[1], 0);
+                vfmul_lane(y1_re.val[1], x_re.val[3], s_re_im.val[1], 0);
+                vfmul_lane(y1_re.val[2], y_re.val[2], s_re_im.val[2], 0);
+                vfmul_lane(y1_re.val[3], y_re.val[3], s_re_im.val[2], 0);
+
+                vfms_lane(y1_re.val[0], y1_re.val[0], x_im.val[2], s_re_im.val[1], 1);
+                vfms_lane(y1_re.val[1], y1_re.val[1], x_im.val[3], s_re_im.val[1], 1);
+                vfms_lane(y1_re.val[2], y1_re.val[2], y_im.val[2], s_re_im.val[2], 1);
+                vfms_lane(y1_re.val[3], y1_re.val[3], y_im.val[3], s_re_im.val[2], 1);
+
+                vfmul_lane(y1_im.val[0], x_re.val[2], s_re_im.val[1], 1);
+                vfmul_lane(y1_im.val[1], x_re.val[3], s_re_im.val[1], 1);
+                vfmul_lane(y1_im.val[2], y_re.val[2], s_re_im.val[2], 1);
+                vfmul_lane(y1_im.val[3], y_re.val[3], s_re_im.val[2], 1);
+
+                vfma_lane(y1_im.val[0], y1_im.val[0],  x_im.val[2], s_re_im.val[1], 0);
+                vfma_lane(y1_im.val[1], y1_im.val[1],  x_im.val[3], s_re_im.val[1], 0);
+                vfma_lane(y1_im.val[2], y1_im.val[2],  y_im.val[2], s_re_im.val[2], 0);
+                vfma_lane(y1_im.val[3], y1_im.val[3],  y_im.val[3], s_re_im.val[2], 0);
+
+                vfadd(x1_re.val[0], x_re.val[0], y1_re.val[0]);
+                vfadd(x1_re.val[1], x_re.val[1], y1_re.val[1]);
+                vfadd(x1_re.val[2], y_re.val[0], y1_re.val[2]);
+                vfadd(x1_re.val[3], y_re.val[1], y1_re.val[3]);
+
+                vfadd(x1_im.val[0], x_im.val[0], y1_im.val[0]);
+                vfadd(x1_im.val[1], x_im.val[1], y1_im.val[1]);
+                vfadd(x1_im.val[2], y_im.val[0], y1_im.val[2]);
+                vfadd(x1_im.val[3], y_im.val[1], y1_im.val[3]);
+
+                vfsub(y1_re.val[0], x_re.val[0], y1_re.val[0]);
+                vfsub(y1_re.val[1], x_re.val[1], y1_re.val[1]);
+                vfsub(y1_re.val[2], y_re.val[0], y1_re.val[2]);
+                vfsub(y1_re.val[3], y_re.val[1], y1_re.val[3]);
+
+                vfsub(y1_im.val[0], x_im.val[0], y1_im.val[0]);
+                vfsub(y1_im.val[1], x_im.val[1], y1_im.val[1]);
+                vfsub(y1_im.val[2], y_im.val[0], y1_im.val[2]);
+                vfsub(y1_im.val[3], y_im.val[1], y1_im.val[3]);
+                
+                // Level 6
+                // x1_re: 0->3, 128 -> 131
+                // y1_re: 64->67, 192 -> 195
+                // x1_im: 256 -> 259, 384->387
+                // y1_im: 320->323, 448 -> 451
+
+                // Store
+                x_tmp.val[0] = x1_re.val[0];
+                x_tmp.val[1] = x1_re.val[1];
+                vstorex2(&f[j], x_tmp);
+                y_tmp.val[0] = y1_re.val[0];
+                y_tmp.val[1] = y1_re.val[1];
+                vstorex2(&f[j + distance], y_tmp);
+
+                x_tmp.val[0] = x1_re.val[2];
+                x_tmp.val[1] = x1_re.val[3];
+                vstorex2(&f[j + 2*distance], x_tmp);
+                y_tmp.val[0] = y1_re.val[2];
+                y_tmp.val[1] = y1_re.val[3];
+                vstorex2(&f[j + 3*distance], y_tmp);
+
+                x_tmp.val[0] = x1_im.val[0];
+                x_tmp.val[1] = x1_im.val[1];
+                vstorex2(&f[j + hn], x_tmp);
+                y_tmp.val[0] = y1_im.val[0];
+                y_tmp.val[1] = y1_im.val[1];
+                vstorex2(&f[j + hn + distance], y_tmp);
+
+                x_tmp.val[0] = x1_im.val[2];
+                x_tmp.val[1] = x1_im.val[3];
+                vstorex2(&f[j + hn + 2*distance], x_tmp);
+                y_tmp.val[0] = y1_im.val[2];
+                y_tmp.val[1] = y1_im.val[3];
+                vstorex2(&f[j + hn + 3*distance], y_tmp);
+            }
+        }
+    }
+    // End level 7, 6, 5, 4 loop
+/* 
     vload(s_re_im.val[0], &fpr_gm_tab[FALCON_N >> 7]);
     vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N) >> 6]);
     s_re_im.val[1] = s_tmp.val[0];
@@ -1000,6 +1155,7 @@ void PQCLEAN_FALCON512_NEON_FFT(fpr *f)
         y_tmp.val[1] = y1_im.val[3];
         vstorex2(&f[j + hn + 192], y_tmp);
     }
+
 
     // Level 5, 4
     for (int i = 0; i < FALCON_N/2; i+= 1<< 6)
@@ -1152,6 +1308,6 @@ void PQCLEAN_FALCON512_NEON_FFT(fpr *f)
             vstorex2(&f[j + hn + 48], y_tmp);
         }
     }
-
+ */
     // End function
 }
