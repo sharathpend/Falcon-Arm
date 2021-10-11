@@ -570,13 +570,15 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f);
  * Add polynomial b to polynomial a. a and b MUST NOT overlap. This
  * function works in both normal and FFT representations.
  */
-void PQCLEAN_FALCON512_NEON_poly_add(fpr *a, const fpr *b, unsigned logn);
+// void PQCLEAN_FALCON512_NEON_poly_add(fpr *a, const fpr *b, unsigned logn);
+void PQCLEAN_FALCON512_NEON_poly_add(fpr *c, const fpr *a, const fpr *b);
 
 /*
  * Subtract polynomial b from polynomial a. a and b MUST NOT overlap. This
  * function works in both normal and FFT representations.
  */
-void PQCLEAN_FALCON512_NEON_poly_sub(fpr *a, const fpr *b, unsigned logn);
+// void PQCLEAN_FALCON512_NEON_poly_sub(fpr *a, const fpr *b, unsigned logn);
+void PQCLEAN_FALCON512_NEON_poly_sub(fpr *c, const fpr *a, const fpr *b);
 
 /*
  * Negate polynomial a. This function works in both normal and FFT
@@ -589,6 +591,14 @@ void PQCLEAN_FALCON512_NEON_poly_neg(fpr *a, unsigned logn);
  * representation.
  */
 void PQCLEAN_FALCON512_NEON_poly_adj_fft(fpr *a, unsigned logn);
+
+
+/* 
+ * Multiply polynomial a with polynomial b, add polynomial c, then store to polynomial d.
+ * a and b MUST NOT overlap.
+ * This function works only in FFT representation.
+ */
+void PQCLEAN_FALCON512_NEON_poly_mul_fft_add(fpr *d, const fpr *c, const fpr *a, const fpr *b);
 
 /*
  * Multiply polynomial a with polynomial b and store to polynomial c. 
