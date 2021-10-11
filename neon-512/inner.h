@@ -591,11 +591,17 @@ void PQCLEAN_FALCON512_NEON_poly_neg(fpr *a, unsigned logn);
 void PQCLEAN_FALCON512_NEON_poly_adj_fft(fpr *a, unsigned logn);
 
 /*
+ * Multiply polynomial a with polynomial b and store to polynomial c. 
+ * Polynomial c then mulitply with constant `x`. a and b MUST NOT overlap.
+ * This function works only in FFT representation.
+ */
+void PQCLEAN_FALCON512_NEON_poly_mul_fftconst(fpr *c, const fpr *a, const fpr *b, const fpr x);
+/*
  * Multiply polynomial a with polynomial b. a and b MUST NOT overlap.
  * This function works only in FFT representation.
  */
-void PQCLEAN_FALCON512_NEON_poly_mul_fft(fpr *a, const fpr *b, unsigned logn);
-
+// void PQCLEAN_FALCON512_NEON_poly_mul_fft(fpr *a, const fpr *b, unsigned logn);
+void PQCLEAN_FALCON512_NEON_poly_mul_fft(fpr *c, const fpr *a, const fpr *b);
 /*
  * Multiply polynomial a with the adjoint of polynomial b. a and b MUST NOT
  * overlap. This function works only in FFT representation.
@@ -612,7 +618,8 @@ void PQCLEAN_FALCON512_NEON_poly_mulselfadj_fft(fpr *a, unsigned logn);
  * Multiply polynomial with a real constant. This function works in both
  * normal and FFT representations.
  */
-void PQCLEAN_FALCON512_NEON_poly_mulconst(fpr *a, fpr x, unsigned logn);
+void PQCLEAN_FALCON512_NEON_poly_mulconst(fpr *c, const fpr *a, const fpr x);
+// void PQCLEAN_FALCON512_NEON_poly_mulconst(fpr *a, fpr x, unsigned logn);
 
 /*
  * Divide polynomial a by polynomial b, modulo X^N+1 (FFT representation).
