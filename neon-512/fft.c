@@ -655,7 +655,8 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f)
     }
     // End function
 
-    // Optional, combine two level 4-5, 6-7 loop, but the compiler generate overhead loop, so I discard
+    // Optional, combine two level 4-5, 6-7 loop, 
+    // but the compiler generate overhead loop, so I discard
     /* 
     int distance;
     const unsigned int LAST_L = 6; // Last level
