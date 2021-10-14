@@ -169,7 +169,7 @@
  */
 
 /* see inner.h */
-#define DEBUG 0
+#define DEBUG 1
 
 void
 PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
@@ -834,7 +834,7 @@ PQCLEAN_FALCON512_CLEAN_poly_split_fft(
 
 /* see inner.h */
 void
-PQCLEAN_FALCON512_CLEAN_poly_merge_fft(
+PQCLEAN_FALCON512_CLEAN_poly_merge_fft_original(
     fpr *f,
     const fpr *f0, const fpr *f1, unsigned logn) {
     size_t n, hn, qn, u;
@@ -864,5 +864,70 @@ PQCLEAN_FALCON512_CLEAN_poly_merge_fft(
         FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
         f[(u << 1) + 1] = t_re;
         f[(u << 1) + 1 + hn] = t_im;
+    }
+}
+
+
+/* see inner.h */
+void
+PQCLEAN_FALCON512_CLEAN_poly_merge_fft(
+    fpr *f,
+    const fpr *f0, const fpr *f1, unsigned logn) {
+    size_t n, hn, qn, u;
+
+    n = (size_t)1 << logn;
+    hn = n >> 1;
+    qn = hn >> 1;
+
+    /*
+     * An extra copy to handle the special case logn = 1.
+     */
+    f[0] = f0[0];
+    f[hn] = f1[0];
+
+    for (u = 0; u < qn; u ++) {
+        fpr a_re, a_im, b_re, b_im;
+        fpr t_re, t_im;
+
+        a_re = f0[u];
+        a_im = f0[u + qn];
+
+#if DEBUG == 1
+        // FPC_MUL(b_re, b_im, f1[u], f1[u + qn],
+        //         fpr_gm_tab[((u + hn) << 1) + 0],
+        //         fpr_gm_tab[((u + hn) << 1) + 1]);
+        fpr fpct_a_re, fpct_a_im;
+        fpr fpct_s_re, fpct_s_im;
+
+        fpct_a_re = (f1[u]);
+        fpct_a_im = (f1[u + qn]);
+        fpct_s_re = (fpr_gm_tab[((u + hn) << 1) + 0]);
+        fpct_s_im = (fpr_gm_tab[((u + hn) << 1) + 1]);
+        
+        b_re = fpr_sub(fpr_mul(fpct_a_re, fpct_s_re), fpr_mul(fpct_a_im, fpct_s_im));
+        b_im = fpr_add(fpr_mul(fpct_a_re, fpct_s_im), fpr_mul(fpct_a_im, fpct_s_re));
+        
+        // FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
+        t_re = fpr_add(a_re, b_re);
+        t_im = fpr_add(a_im, b_im);
+        f[(u << 1) + 0] = t_re;
+        f[(u << 1) + 0 + hn] = t_im;
+        
+        // FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        t_re = fpr_sub(a_re, b_re);
+        t_im = fpr_sub(a_im, b_im);
+        f[(u << 1) + 1] = t_re;
+        f[(u << 1) + 1 + hn] = t_im;
+#else 
+        FPC_MUL(b_re, b_im, f1[u], f1[u + qn],
+                fpr_gm_tab[((u + hn) << 1) + 0],
+                fpr_gm_tab[((u + hn) << 1) + 1]);
+        FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
+        f[(u << 1) + 0] = t_re;
+        f[(u << 1) + 0 + hn] = t_im;
+        FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        f[(u << 1) + 1] = t_re;
+        f[(u << 1) + 1 + hn] = t_im;
+#endif 
     }
 }
