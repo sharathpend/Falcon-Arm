@@ -33,7 +33,7 @@
 // d = c - a * b[i]
 #define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
 // c = -a 
-#define fneg(c, a) c = vnegq_f64(a);
+#define vfneg(c, a) c = vnegq_f64(a);
 
 #define transpose(a, b, t, ia, ib, it)            \
     t.val[it] = a.val[ia];                        \
