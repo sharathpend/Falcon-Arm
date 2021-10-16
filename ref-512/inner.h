@@ -659,6 +659,8 @@ void PQCLEAN_FALCON512_CLEAN_poly_split_fft(fpr *f0, fpr *f1,
  */
 void PQCLEAN_FALCON512_CLEAN_poly_merge_fft(fpr *f,
         const fpr *f0, const fpr *f1, unsigned logn);
+void PQCLEAN_FALCON512_CLEAN_poly_merge_fft_original(fpr *f,
+        const fpr *f0, const fpr *f1, unsigned logn);
 
 /* ==================================================================== */
 /*
