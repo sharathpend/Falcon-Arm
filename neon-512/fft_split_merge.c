@@ -14,19 +14,20 @@ static void PQCLEAN_FALCON512_NEON_mergeFFT_log5(fpr *f, const fpr *f0, const fp
     const unsigned int n = 1 << logn;
     const unsigned int hn = n >> 1;
     const unsigned int qn = n >> 2;
-    int u1;
+    int u1, u2;
     for (int u = 0; u < qn; u += 8)
     {
         u1 = u << 1;
+        u2 = u1 + n;
         vloadx4(f0_re, &f0[u]);
         vloadx4(f1_re, &f1[u]);
         vloadx4(f0_im, &f0[u + qn]);
         vloadx4(f1_im, &f1[u + qn]);
 
-        vload2(s_tmp[0], &fpr_gm_tab[((u + hn) << 1)] + 0);
-        vload2(s_tmp[1], &fpr_gm_tab[((u + hn) << 1)] + 4);
-        vload2(s_tmp[2], &fpr_gm_tab[((u + hn) << 1)] + 8);
-        vload2(s_tmp[3], &fpr_gm_tab[((u + hn) << 1)] + 12);
+        vload2(s_tmp[0], &fpr_gm_tab[u2 + 0 ]);
+        vload2(s_tmp[1], &fpr_gm_tab[u2 + 4 ]);
+        vload2(s_tmp[2], &fpr_gm_tab[u2 + 8 ]);
+        vload2(s_tmp[3], &fpr_gm_tab[u2 + 12]);
 
         // f0,f1_re: 0-> 7
         // f0,f1_im: qn -> qn + 7
