@@ -841,7 +841,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f)
     } */
 }
 
-void PQCLEAN_FALCON512_NEON_FFT(fpr *f)
+void PQCLEAN_FALCON512_NEON_FFT(fpr *f, const bool negate_true)
 {
     // Total: 32 = 16 + 8 + 8 register
     float64x2x4_t s_re_im, tmp;               // 8
@@ -1191,24 +1191,56 @@ void PQCLEAN_FALCON512_NEON_FFT(fpr *f)
         vfma(y_im.val[3], y_im.val[3], y1_im.val[3], s_re_im.val[2]);
 
         vfadd(x_re.val[0], x1_re.val[0], y_re.val[0]);
-        vfsub(y_re.val[0], x1_re.val[0], y_re.val[0]);
         vfadd(x_re.val[1], y1_re.val[0], y_re.val[1]);
-        vfsub(y_re.val[1], y1_re.val[0], y_re.val[1]);
-
         vfadd(x_re.val[2], x1_re.val[2], y_re.val[2]);
-        vfsub(y_re.val[2], x1_re.val[2], y_re.val[2]);
         vfadd(x_re.val[3], y1_re.val[2], y_re.val[3]);
-        vfsub(y_re.val[3], y1_re.val[2], y_re.val[3]);
-
+        
         vfadd(x_im.val[0], x1_im.val[0], y_im.val[0]);
-        vfsub(y_im.val[0], x1_im.val[0], y_im.val[0]);
         vfadd(x_im.val[1], y1_im.val[0], y_im.val[1]);
-        vfsub(y_im.val[1], y1_im.val[0], y_im.val[1]);
-
         vfadd(x_im.val[2], x1_im.val[2], y_im.val[2]);
-        vfsub(y_im.val[2], x1_im.val[2], y_im.val[2]);
         vfadd(x_im.val[3], y1_im.val[2], y_im.val[3]);
-        vfsub(y_im.val[3], y1_im.val[2], y_im.val[3]);
+        
+        // Constant propagation will optimize this loop
+        if (negate_true)
+        {
+            vfsub(y_re.val[0], y_re.val[0], x1_re.val[0]);
+            vfsub(y_re.val[1], y_re.val[1], y1_re.val[0]);
+
+            vfsub(y_re.val[2], y_re.val[2], x1_re.val[2]);
+            vfsub(y_re.val[3], y_re.val[3], y1_re.val[2]);
+
+            vfsub(y_im.val[0], y_im.val[0], x1_im.val[0]);
+            vfsub(y_im.val[1], y_im.val[1], y1_im.val[0]);
+            
+            vfsub(y_im.val[2], y_im.val[2], x1_im.val[2]);
+            vfsub(y_im.val[3], y_im.val[3], y1_im.val[2]);
+
+            vfneg(x_re.val[0], x_re.val[0]);
+            vfneg(x_re.val[1], x_re.val[1]);
+            vfneg(x_re.val[2], x_re.val[2]);
+            vfneg(x_re.val[3], x_re.val[3]);
+            
+            vfneg(x_im.val[0], x_im.val[0]);
+            vfneg(x_im.val[1], x_im.val[1]);
+            vfneg(x_im.val[2], x_im.val[2]);
+            vfneg(x_im.val[3], x_im.val[3]);
+        }
+        else
+        {
+            vfsub(y_re.val[0], x1_re.val[0], y_re.val[0]);
+            vfsub(y_re.val[1], y1_re.val[0], y_re.val[1]);
+
+            vfsub(y_re.val[2], x1_re.val[2], y_re.val[2]);
+            vfsub(y_re.val[3], y1_re.val[2], y_re.val[3]);
+
+            vfsub(y_im.val[0], x1_im.val[0], y_im.val[0]);
+            vfsub(y_im.val[1], y1_im.val[0], y_im.val[1]);
+
+            vfsub(y_im.val[2], x1_im.val[2], y_im.val[2]);
+            vfsub(y_im.val[3], y1_im.val[2], y_im.val[3]);
+        }
+
+
 
         // x_re: 0,4 | 2,6 | 8,12 | 10,14
         // y_re: 1,5 | 3,7 | 9,13 | 11,15
