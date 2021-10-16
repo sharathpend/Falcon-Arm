@@ -14,18 +14,19 @@ static void PQCLEAN_FALCON512_NEON_mergeFFT_log5(fpr *f, const fpr *f0, const fp
     const unsigned int n = 1 << logn;
     const unsigned int hn = n >> 1;
     const unsigned int qn = n >> 2;
-
-    for (int u = 0; u < qn; u += 16)
+    int u1;
+    for (int u = 0; u < qn; u += 8)
     {
+        u1 = u << 1;
         vloadx4(f0_re, &f0[u]);
         vloadx4(f1_re, &f1[u]);
         vloadx4(f0_im, &f0[u + qn]);
         vloadx4(f1_im, &f1[u + qn]);
 
-        vload2(s_tmp[0], &fpr_gm_tab[((u + hn + 0) << 1)]);
-        vload2(s_tmp[1], &fpr_gm_tab[((u + hn + 1) << 1)]);
-        vload2(s_tmp[2], &fpr_gm_tab[((u + hn + 2) << 1)]);
-        vload2(s_tmp[3], &fpr_gm_tab[((u + hn + 3) << 1)]);
+        vload2(s_tmp[0], &fpr_gm_tab[((u + hn) << 1)] + 0);
+        vload2(s_tmp[1], &fpr_gm_tab[((u + hn) << 1)] + 4);
+        vload2(s_tmp[2], &fpr_gm_tab[((u + hn) << 1)] + 8);
+        vload2(s_tmp[3], &fpr_gm_tab[((u + hn) << 1)] + 12);
 
         // f0,f1_re: 0-> 7
         // f0,f1_im: qn -> qn + 7
@@ -51,15 +52,15 @@ static void PQCLEAN_FALCON512_NEON_mergeFFT_log5(fpr *f, const fpr *f0, const fp
         x_tmp.val[1] = v1.val[0];
         y_tmp.val[0] = v0.val[1];
         y_tmp.val[1] = v1.val[1];
-        vstore2(&f[u], x_tmp);
-        vstore2(&f[u + 4], y_tmp);
+        vstore2(&f[u1], x_tmp);
+        vstore2(&f[u1 + 4], y_tmp);
 
         x_tmp.val[0] = v0.val[2];
         x_tmp.val[1] = v1.val[2];
         y_tmp.val[0] = v0.val[3];
         y_tmp.val[1] = v1.val[3];
-        vstore2(&f[u + 8], x_tmp);
-        vstore2(&f[u + 12], y_tmp);
+        vstore2(&f[u1 + 8], x_tmp);
+        vstore2(&f[u1 + 12], y_tmp);
 
         vfmul(tmp.val[0], f1_re.val[0], s_tmp[0].val[1]);
         vfmul(tmp.val[1], f1_re.val[1], s_tmp[1].val[1]);
@@ -83,15 +84,15 @@ static void PQCLEAN_FALCON512_NEON_mergeFFT_log5(fpr *f, const fpr *f0, const fp
         x_tmp.val[1] = v1.val[0];
         y_tmp.val[0] = v0.val[1];
         y_tmp.val[1] = v1.val[1];
-        vstore2(&f[u + hn], x_tmp);
-        vstore2(&f[u + hn + 4], y_tmp);
+        vstore2(&f[u1 + hn], x_tmp);
+        vstore2(&f[u1 + hn + 4], y_tmp);
 
         x_tmp.val[0] = v0.val[2];
         x_tmp.val[1] = v1.val[2];
         y_tmp.val[0] = v0.val[3];
         y_tmp.val[1] = v1.val[3];
-        vstore2(&f[u + hn + 8], x_tmp);
-        vstore2(&f[u + hn + 12], y_tmp);
+        vstore2(&f[u1 + hn + 8], x_tmp);
+        vstore2(&f[u1 + hn + 12], y_tmp);
     }
 }
 
@@ -100,10 +101,10 @@ static void PQCLEAN_FALCON512_NEON_mergeFFT_log5(fpr *f, const fpr *f0, const fp
  */
 static inline void PQCLEAN_FALCON512_NEON_mergeFFT_log4(fpr *f, const fpr *f0, const fpr *f1)
 {
-    // Total: 32 = 16 + 8 + 8 register
-    float64x2x4_t v0, v1, tmp;  // 4
+    // Total: 20 register
+    float64x2x4_t v0, v1, tmp;  // 12
     float64x2x2_t s_tmp[2];     // 4
-    float64x2x2_t x_tmp, y_tmp; // 0
+    float64x2x2_t x_tmp, y_tmp; // 4
 
     vloadx4(v0, &f0[0]);
     vloadx4(v1, &f1[0]);
@@ -142,9 +143,9 @@ static inline void PQCLEAN_FALCON512_NEON_mergeFFT_log4(fpr *f, const fpr *f0, c
  */
 static inline void PQCLEAN_FALCON512_NEON_mergeFFT_log3(fpr *f, const fpr *f0, const fpr *f1)
 {
-    // Total: 32 = 16 + 8 + 8 register
-    float64x2x2_t v0, v1, tmp;  // 4
-    float64x2x2_t s_tmp;        // 4
+    // Total: 12 register
+    float64x2x2_t v0, v1, tmp;  // 6
+    float64x2x2_t s_tmp;        // 2
     float64x2x2_t x_tmp, y_tmp; // 4
 
     vloadx2(v0, &f0[0]);
@@ -152,17 +153,18 @@ static inline void PQCLEAN_FALCON512_NEON_mergeFFT_log3(fpr *f, const fpr *f0, c
     vload2(s_tmp, &fpr_gm_tab[8]);
 
     vfmul(tmp.val[0], v1.val[0], s_tmp.val[0]);
+    vfmul(tmp.val[1], v1.val[0], s_tmp.val[1]);
+
     vfms(tmp.val[0], tmp.val[0], v1.val[1], s_tmp.val[1]);
+    vfma(tmp.val[1], tmp.val[1], v1.val[1], s_tmp.val[0]);
 
     vfadd(x_tmp.val[0], v0.val[0], tmp.val[0]);
     vfsub(x_tmp.val[1], v0.val[0], tmp.val[0]);
-    vstore2(&f[0], x_tmp);
-
-    vfmul(tmp.val[1], v1.val[0], s_tmp.val[1]);
-    vfma(tmp.val[1], tmp.val[1], v1.val[1], s_tmp.val[0]);
 
     vfadd(y_tmp.val[0], v0.val[1], tmp.val[1]);
     vfsub(y_tmp.val[1], v0.val[1], tmp.val[1]);
+
+    vstore2(&f[0], x_tmp);
     vstore2(&f[4], y_tmp);
 }
 
