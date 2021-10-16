@@ -81,6 +81,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arm_neon.h>
+#include <stdbool.h>
 
 /*
  * Some computations with floating-point elements, in particular
@@ -554,7 +555,8 @@ prng_get_u8(prng *p) {
  *
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
-void PQCLEAN_FALCON512_NEON_FFT(fpr *f);
+// void PQCLEAN_FALCON512_NEON_FFT(fpr *f);
+void PQCLEAN_FALCON512_NEON_FFT(fpr *f, const bool negate_true);
 
 /*
  * Compute the inverse FFT in-place: the source array should contain the
