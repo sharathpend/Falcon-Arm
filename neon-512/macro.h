@@ -9,6 +9,8 @@
 // c <= addr x2
 #define vloadx2(c, addr) c = vld1q_f64_x2(addr);
 // addr <= c
+#define vstore2(addr, c) vst2q_f64(addr, c);
+// addr <= c
 #define vstorex2(addr, c) vst1q_f64_x2(addr, c);
 // addr <= c
 #define vstorex4(addr, c) vst1q_f64_x4(addr, c);
@@ -30,6 +32,8 @@
 #define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
 // d = c - a * b[i]
 #define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
+// c = -a 
+#define fneg(c, a) c = vnegq_f64(a);
 
 #define transpose(a, b, t, ia, ib, it)            \
     t.val[it] = a.val[ia];                        \
