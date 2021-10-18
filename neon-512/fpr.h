@@ -265,4 +265,7 @@ extern const fpr fpr_gm_tab[];
 
 extern const fpr fpr_p2_tab[];
 
+// Precompute for splitFFT
+extern const fpr fpr_gm_tab_half[];
+
 #endif
