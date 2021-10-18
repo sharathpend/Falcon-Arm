@@ -1,5 +1,6 @@
 #include "inner.h"
 
+// TODO: extend iFFT and FFT to support FALCON1024
 void PQCLEAN_FALCON512_NEON_iFFT(fpr *f)
 {
     // Total: 32 = 16 + 8 + 8 register
