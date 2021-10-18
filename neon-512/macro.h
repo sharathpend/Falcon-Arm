@@ -24,6 +24,12 @@
 #define vfmul(c, a, b) c = vmulq_f64(a, b);
 // c = a * n (n is constant)
 #define vfmuln(c, a, n) c = vmulq_n_f64(a, n);
+// c = a * n (n is constant)
+#define vfmulnx4(c, a, n)                \
+    c.val[0] = vmulq_n_f64(a.val[0], n); \
+    c.val[1] = vmulq_n_f64(a.val[1], n); \
+    c.val[2] = vmulq_n_f64(a.val[2], n); \
+    c.val[3] = vmulq_n_f64(a.val[3], n);
 // d = c + a *b
 #define vfma(d, c, a, b) d = vfmaq_f64(c, a, b);
 // d = c - a * b
@@ -34,7 +40,7 @@
 #define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
 // d = c - a * b[i]
 #define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
-// c = -a 
+// c = -a
 #define vfneg(c, a) c = vnegq_f64(a);
 
 #define transpose(a, b, t, ia, ib, it)            \
