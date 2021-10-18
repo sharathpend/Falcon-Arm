@@ -14,6 +14,7 @@ void print_array(fpr *a, int length, const char *string, int print_float)
         if (print_float)
         {
             printf("%f, ", tmp);
+            // printf("[%d] = %f\n", i, tmp);
         }
         else
         {
@@ -40,7 +41,7 @@ int compare(fpr *gold, fpr *test, int bound, const char *string)
         b = test[i];
         if (a != b)
         {
-            printf("Wrong [%d]: %lf != %f \n", i, a, b);
+            printf("Wrong [%d]: %lf != %lf, delta: %lf \n", i, a, b, a - b);
             return 1;
         }
     }
