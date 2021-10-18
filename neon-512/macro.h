@@ -22,6 +22,8 @@
 #define vfadd(c, a, b) c = vaddq_f64(a, b);
 // c = a * b
 #define vfmul(c, a, b) c = vmulq_f64(a, b);
+// c = a * n (n is constant)
+#define vfmuln(c, a, n) c = vmulq_n_f64(a, n);
 // d = c + a *b
 #define vfma(d, c, a, b) d = vfmaq_f64(c, a, b);
 // d = c - a * b
