@@ -650,6 +650,8 @@ void PQCLEAN_FALCON512_CLEAN_poly_LDLmv_fft(fpr *d11, fpr *l10,
  */
 void PQCLEAN_FALCON512_CLEAN_poly_split_fft(fpr *f0, fpr *f1,
         const fpr *f, unsigned logn);
+void PQCLEAN_FALCON512_CLEAN_poly_split_fft_original(fpr *f0, fpr *f1,
+        const fpr *f, unsigned logn);
 
 /*
  * Apply "merge" operation on two polynomials in FFT representation:

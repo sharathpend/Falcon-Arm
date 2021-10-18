@@ -68,7 +68,7 @@ int compare(fpr *gold, fpr *test, int bound, const char *string)
         if (a.v != b.v)
         {
             printf("Wrong [%d]: %lf != %lf, delta: %lf \n", i, a.v, b.v, a.v - b.v);
-            // return 1;
+            return 1;
         }
     }
     printf("OK\n");

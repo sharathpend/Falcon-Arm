@@ -169,7 +169,7 @@
  */
 
 /* see inner.h */
-#define DEBUG 1
+#define DEBUG 0
 
 void
 PQCLEAN_FALCON512_CLEAN_FFT(fpr *f, unsigned logn) {
@@ -809,7 +809,113 @@ PQCLEAN_FALCON512_CLEAN_poly_split_fft(
      */
     f0[0] = f[0];
     f1[0] = f[hn];
-    printf("qn: %d\n", qn);
+    // printf("qn: %d\n", qn);
+
+    for (u = 0; u < qn; u ++) {
+        fpr a_re, a_im, b_re, b_im;
+        fpr t_re, t_im;
+
+        int x_re, y_re, x_im, y_im, bla, blo;
+
+        x_re = (u << 1) + 0; 
+        x_im = (u << 1) + 0 + hn;
+        y_re = (u << 1) + 1;
+        y_im = (u << 1) + 1 + hn;
+
+        a_re = f[x_re];
+        a_im = f[x_im];
+        b_re = f[y_re];
+        b_im = f[y_im];
+
+#if DEBUG == 1
+        // FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
+        t_re = fpr_add(a_re, b_re);
+        t_im = fpr_add(a_im, b_im);
+
+        // f0_re[u] = 1/2(a_re + b_re)
+        // f0_im[u] = 1/2(a_im + b_im)
+        f0[u] = fpr_half(t_re);
+        f0[u + qn] = fpr_half(t_im);
+
+        
+        // FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+
+        // t_re = a_re - b_re
+        // t_im = a_im - b_im
+        t_re = fpr_sub(a_re, b_re);
+        t_im = fpr_sub(a_im, b_im);
+
+
+        // FPC_MUL(t_re, t_im, t_re, t_im,
+        //         fpr_gm_tab[((u + hn) << 1) + 0],
+        //         fpr_neg(fpr_gm_tab[((u + hn) << 1) + 1]));
+        fpr fpct_a_re, fpct_a_im;
+        fpr fpct_s_re, fpct_s_im;
+        fpr fpct_d_re, fpct_d_im;
+        fpct_a_re = (t_re);
+        fpct_a_im = (t_im);
+
+        bla = ((u + hn) << 1) + 0;
+        blo = ((u + hn) << 1) + 1;
+        fpct_s_re = (fpr_gm_tab[bla]);
+        fpct_s_im = (fpr_gm_tab[blo]);
+
+        // (a_im - b_im)*s_im + (a_re - b_re)*s_re
+        // (a_im - b_im)*s_re - (a_re - b_re)*s_im
+        t_re = fpr_add(fpr_mul(fpct_a_im, fpct_s_im), fpr_mul(fpct_a_re, fpct_s_re));
+        t_im = fpr_sub(fpr_mul(fpct_a_im, fpct_s_re), fpr_mul(fpct_a_re, fpct_s_im));
+        
+        // printf(" t_re[%3d] = f[%3d] - f[%3d]\n", u, x_re, y_re);
+        // printf(" t_im[%3d] = f[%3d] - f[%3d]\n", u + qn, x_im, y_im);
+        
+        printf("f0_re[%3d] = f[%3d] + f[%3d]\n", u, x_re, y_re);
+        printf("f0_im[%3d] = f[%3d] + f[%3d]\n", u + qn, x_im, y_im);
+
+        printf("f1_re[%3d] = (f[%3d] - f[%3d])*%3d + (f[%3d] - f[%3d])*%3d\n", u,      x_im, y_im, blo, x_re, y_re, bla);
+        printf("f1_im[%3d] = (f[%3d] - f[%3d])*%3d - (f[%3d] - f[%3d])*%3d\n\n", u + qn, x_im, y_im, bla, x_re, y_re, blo);
+
+        f1[u] = fpr_half(t_re);
+        f1[u + qn] = fpr_half(t_im);
+#else 
+
+        FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
+        f0[u] = fpr_half(t_re);
+        f0[u + qn] = fpr_half(t_im);
+
+        FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        FPC_MUL(t_re, t_im, t_re, t_im,
+                fpr_gm_tab[((u + hn) << 1) + 0],
+                fpr_neg(fpr_gm_tab[((u + hn) << 1) + 1]));
+        f1[u] = fpr_half(t_re);
+        f1[u + qn] = fpr_half(t_im);
+#endif 
+    }
+}
+
+void
+PQCLEAN_FALCON512_CLEAN_poly_split_fft_original(
+    fpr *f0, fpr *f1,
+    const fpr *f, unsigned logn) {
+    /*
+     * The FFT representation we use is in bit-reversed order
+     * (element i contains f(w^(rev(i))), where rev() is the
+     * bit-reversal function over the ring degree. This changes
+     * indexes with regards to the Falcon specification.
+     */
+    size_t n, hn, qn, u;
+
+    n = (size_t)1 << logn;
+    hn = n >> 1;
+    qn = hn >> 1;
+
+    /*
+     * We process complex values by pairs. For logn = 1, there is only
+     * one complex value (the other one is the implicit conjugate),
+     * so we add the two lines below because the loop will be
+     * skipped.
+     */
+    f0[0] = f[0];
+    f1[0] = f[hn];
 
     for (u = 0; u < qn; u ++) {
         fpr a_re, a_im, b_re, b_im;
@@ -885,7 +991,7 @@ PQCLEAN_FALCON512_CLEAN_poly_merge_fft(
      */
     f[0] = f0[0];
     f[hn] = f1[0];
-    printf("qn: %d\n", qn);
+    // printf("qn: %d\n", qn);
 
     for (u = 0; u < qn; u ++) {
         fpr a_re, a_im, b_re, b_im;
