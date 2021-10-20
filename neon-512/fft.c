@@ -338,6 +338,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f)
         vstorex4(&f[j + hn + 8], y_im);
     }
 
+    // Level 5
     for (int i = 0; i < FALCON_N / 2; i += 1 << 6)
     {
         vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> 4]);
@@ -508,6 +509,7 @@ void PQCLEAN_FALCON512_NEON_iFFT(fpr *f)
     div_n = vdupq_n_f64(fpr_p2_tab[FALCON_LOGN]);
     vfmul(s_re_im.val[2], s_re_im.val[2], div_n);
 
+    // Level 6
     for (int j = 0; j < 64; j += 4)
     {
         // Level 6:
