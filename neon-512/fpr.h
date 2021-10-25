@@ -2,6 +2,7 @@
 #define PQCLEAN_FALCON512_NEON_FPR_H
 
 #include <math.h>
+#include <stdint.h>
 
 /*
  * We wrap the native 'double' type into a structure so that the C compiler
