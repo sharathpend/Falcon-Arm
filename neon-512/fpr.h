@@ -240,11 +240,5 @@ fpr_expm_p63(fpr x, fpr ccs)
 	return (uint64_t)(y * fpr_ptwo63);
 }
 
-extern const fpr fpr_gm_tab[];
-
-extern const fpr fpr_p2_tab[];
-
-// Precompute for splitFFT
-extern const fpr fpr_gm_tab_half[];
 
 #endif
