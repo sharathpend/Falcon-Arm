@@ -212,4 +212,12 @@ vfpr_expm_p63(fprx2 x, fprx2 ccs)
     return vcvtq_u64_f64(y);
 }
 
+extern const fpr fpr_gm_tab[];
+
+extern const fpr fpr_p2_tab[];
+
+// Precompute for splitFFT
+extern const fpr fpr_gm_tab_half[];
+
+
 #endif
