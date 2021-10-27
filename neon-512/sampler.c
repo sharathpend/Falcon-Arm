@@ -1,4 +1,3 @@
-#include "macro.h"
 #include "inner.h"
 #include "sampler.h"
 
