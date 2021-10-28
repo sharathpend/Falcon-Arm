@@ -80,7 +80,7 @@ vfpr_neg(fprx2 x)
 static inline fprx2
 vfpr_half(fprx2 x)
 {
-    return vmulq_f64(x, vdupq_n_f64(fprx2_onehalf));
+    return vmulq_n_f64(x, fprx2_onehalf);
 }
 
 static inline fprx2
@@ -206,7 +206,7 @@ vfpr_expm_p63(fprx2 x, fprx2 ccs)
     y = vfmsq_f64(neon_exp[2].val[3], y, x);
     y = vfmsq_f64(vdupq_n_f64(fprx2_one), y, x);
 
-    z = vmulq_f64(vdupq_n_f64(fprx2_ptwo63), ccs);
+    z = vmulq_n_f64(ccs, fprx2_ptwo63);
     y = vmulq_f64(y, z);
 
     return vcvtq_u64_f64(y);
