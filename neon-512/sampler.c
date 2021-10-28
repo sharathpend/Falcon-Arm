@@ -11,6 +11,7 @@
  * Sample an integer value along a half-gaussian distribution centered
  * on zero and standard deviation 1.8205, with a precision of 72 bits.
  */
+inline
 int PQCLEAN_FALCON512_NEON_gaussian0_sampler(prng *p)
 {
     static const uint32_t dist[] = {
@@ -55,7 +56,6 @@ int PQCLEAN_FALCON512_NEON_gaussian0_sampler(prng *p)
     uint32x4_t x0, x1, x2, cc0, cc1, cc2, zz;
     uint32x2x3_t wh;
     uint32x2_t cc0h, cc1h, cc2h, zzh;
-    int z;
     x0 = vdupq_n_u32(v0);
     x1 = vdupq_n_u32(v1);
     x2 = vdupq_n_u32(v2);
@@ -119,14 +119,13 @@ int PQCLEAN_FALCON512_NEON_gaussian0_sampler(prng *p)
 /*
  * Sample a bit with probability exp(-x) for some x >= 0.
  */
-static int
-BerExp(prng *p, fpr x, fpr ccs)
+static inline 
+int BerExp(prng *p, fpr x, fpr ccs)
 {
     int s, i;
     fpr r;
     uint32_t sw, w;
     uint64_t z;
-    float64x2_t vx, vs, vr, vsw, vz, vw, vccs;
 
     /*
      * Reduce x modulo log(2): x = s*log(2) + r, with s an integer,
