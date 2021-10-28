@@ -7,3 +7,4 @@ neon-512/test_fpr
 neon-512/test_log2
 neon-512/test_sampler
 *.asm
+neon-512/test_log1
