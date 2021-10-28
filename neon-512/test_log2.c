@@ -75,8 +75,8 @@ void sampling_original(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fp
     prints("23", w2, w3);
 #endif
 #if FAKE_GAUSS
-    w2 = gauss(x0, sigma);
-    w3 = gauss(x1, sigma);
+    w2 = fpr_of(gauss(x0, sigma));
+    w3 = fpr_of(gauss(x1, sigma));
 #else
     w2 = fpr_of(samp(samp_ctx, x0, sigma));
     w3 = fpr_of(samp(samp_ctx, x1, sigma));
@@ -91,8 +91,8 @@ void sampling_original(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fp
     x1 = fpr_add(c_im, w1);
     sigma = tree1[2];
 #if FAKE_GAUSS
-    w0 = gauss(x0, sigma);
-    w1 = gauss(x1, sigma);
+    w0 = fpr_of(gauss(x0, sigma));
+    w1 = fpr_of(gauss(x1, sigma));
 #else
     w0 = fpr_of(samp(samp_ctx, x0, sigma));
     w1 = fpr_of(samp(samp_ctx, x1, sigma));
@@ -166,8 +166,8 @@ void sampling_original(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fp
     x1 = w3;
     sigma = tree0[3];
 #if FAKE_GAUSS
-    w2 = y0 = gauss(x0, sigma);
-    w3 = y1 = gauss(x1, sigma);
+    w2 = y0 = fpr_of(gauss(x0, sigma));
+    w3 = y1 = fpr_of(gauss(x1, sigma));
 #else
     w2 = y0 = fpr_of(samp(samp_ctx, x0, sigma));
     w3 = y1 = fpr_of(samp(samp_ctx, x1, sigma));
@@ -184,8 +184,8 @@ void sampling_original(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fp
     x1 = fpr_add(c_im, w1);
     sigma = tree0[2];
 #if FAKE_GAUSS
-    w0 = gauss(x0, sigma);
-    w1 = gauss(x1, sigma);
+    w0 = fpr_of(gauss(x0, sigma));
+    w1 = fpr_of(gauss(x1, sigma));
 #else
     w0 = fpr_of(samp(samp_ctx, x0, sigma));
     w1 = fpr_of(samp(samp_ctx, x1, sigma));
@@ -248,8 +248,8 @@ void sampling_neon(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fpr *t
     s_w2 = gauss_test(s_x0, sigma);
     s_w3 = gauss_test(s_x1, sigma);
 #else
-    s_w2 = fpr_of(samp(samp_ctx, s_x0, sigma));
-    s_w3 = fpr_of(samp(samp_ctx, s_x1, sigma));
+    s_w2 = samp(samp_ctx, s_x0, sigma);
+    s_w3 = samp(samp_ctx, s_x1, sigma);
 #endif
     scvt = vsetq_lane_s64(s_w2, scvt, 0);
     scvt = vsetq_lane_s64(s_w3, scvt, 1);
@@ -273,8 +273,8 @@ void sampling_neon(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fpr *t
     s_w0 = gauss_test(s_x0, sigma);
     s_w1 = gauss_test(s_x1, sigma);
 #else
-    s_w0 = fpr_of(samp(samp_ctx, s_x0, sigma));
-    s_w1 = fpr_of(samp(samp_ctx, s_x1, sigma));
+    s_w0 = samp(samp_ctx, s_x0, sigma);
+    s_w1 = samp(samp_ctx, s_x1, sigma);
 #endif
     scvt = vsetq_lane_s64(s_w0, scvt, 0);
     scvt = vsetq_lane_s64(s_w1, scvt, 1);
@@ -355,8 +355,8 @@ void sampling_neon(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fpr *t
     s_w2 = gauss_test(s_x0, sigma);
     s_w3 = gauss_test(s_x1, sigma);
 #else
-    s_w2 = fpr_of(samp(samp_ctx, s_x0, sigma));
-    s_w3 = fpr_of(samp(samp_ctx, s_x1, sigma));
+    s_w2 = samp(samp_ctx, s_x0, sigma);
+    s_w3 = samp(samp_ctx, s_x1, sigma);
 #endif
     scvt = vsetq_lane_s64(s_w2, scvt, 0);
     scvt = vsetq_lane_s64(s_w3, scvt, 1);
@@ -378,8 +378,8 @@ void sampling_neon(samplerZ samp, void *samp_ctx, fpr *z0, fpr *z1, const fpr *t
     s_w0 = gauss_test(s_x0, sigma);
     s_w1 = gauss_test(s_x1, sigma);
 #else
-    s_w0 = fpr_of(samp(samp_ctx, s_x0, sigma));
-    s_w1 = fpr_of(samp(samp_ctx, s_x1, sigma));
+    s_w0 = samp(samp_ctx, s_x0, sigma);
+    s_w1 = samp(samp_ctx, s_x1, sigma);
 #endif
 
     scvt = vsetq_lane_s64(s_w0, scvt, 0);
