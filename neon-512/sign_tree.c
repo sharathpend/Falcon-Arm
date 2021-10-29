@@ -1,6 +1,7 @@
 #include "inner.h"
 #include "sign.h"
 #include "macro.h"
+#include "vfpr.h"
 /*
  * Falcon signature generation.
  *
@@ -381,30 +382,34 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
              const fpr *expanded_key,
              const uint16_t *hm,
              unsigned logn, fpr *tmp) {
-    size_t n, u;
+
     fpr *t0, *t1, *tx, *ty;
     const fpr *b00, *b01, *b10, *b11, *tree;
     fpr ni;
     uint32_t sqn, ng;
     int16_t *s1tmp, *s2tmp;
 
-    n = MKN(logn);
     t0 = tmp;
-    t1 = t0 + n;
+    t1 = t0 + FALCON_N;
     b00 = expanded_key + skoff_b00(logn);
     b01 = expanded_key + skoff_b01(logn);
     b10 = expanded_key + skoff_b10(logn);
     b11 = expanded_key + skoff_b11(logn);
     tree = expanded_key + skoff_tree(logn);
 
+    uint64x2x4_t tmp_u64;
+    float64x2x4_t tmp_fpr;
+
     /*
      * Set the target vector to [hm, 0] (hm is the hashed message).
      */
-    for (u = 0; u < n; u ++) {
-        t0[u] = fpr_of(hm[u]);
-        /* This is implicit.
-        t1[u] = fpr_zero;
-        */
+    for (size_t u = 0; u < FALCON_N; u +=8) {
+        tmp_u64 = vld1q_u64_x4(&hm[u]);
+        tmp_fpr.val[0] = vfpr_of(tmp_u64.val[0]);
+        tmp_fpr.val[1] = vfpr_of(tmp_u64.val[1]);
+        tmp_fpr.val[2] = vfpr_of(tmp_u64.val[2]);
+        tmp_fpr.val[3] = vfpr_of(tmp_u64.val[3]);
+        vst1q_f64_x4(&t0[u], tmp_fpr);
     }
 
     /*
@@ -416,7 +421,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     PQCLEAN_FALCON512_NEON_FFT(t0, false);
     ni = fpr_inverse_of_q;
     // t1 = t0
-    memcpy(t1, t0, n * sizeof * t0);
+    memcpy(t1, t0, FALCON_N * sizeof * t0);
     // t1 = t1 * b01 
     // t1 = t1 * (-ni)
     // PQCLEAN_FALCON512_NEON_poly_mul_fft(t1, b01, logn);
@@ -428,30 +433,30 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     // PQCLEAN_FALCON512_NEON_poly_mulconst(t0, ni, logn);
     PQCLEAN_FALCON512_NEON_poly_mul_fftconst(t0, t0, b11, ni);
 
-    tx = t1 + n;
-    ty = tx + n;
+    tx = t1 + FALCON_N;
+    ty = tx + FALCON_N;
 
     /*
      * Apply sampling. Output is written back in [tx, ty].
      */
-    ffSampling_fft(samp, samp_ctx, tx, ty, tree, t0, t1, logn, ty + n);
+    ffSampling_fft(samp, samp_ctx, tx, ty, tree, t0, t1, logn, ty + FALCON_N);
 
     /*
      * Get the lattice point corresponding to that tiny vector.
      */
-    memcpy(t0, tx, n * sizeof * tx);
-    memcpy(t1, ty, n * sizeof * ty);
+    memcpy(t0, tx, FALCON_N * sizeof * tx);
+    memcpy(t1, ty, FALCON_N * sizeof * ty);
     // tx = tx * b00
     // ty = ty * b10 
     // tx = tx + ty 
-    // PQCLEAN_FALCON512_NEON_poly_mul_fft(tx, b00, logn);
+    
     // PQCLEAN_FALCON512_NEON_poly_mul_fft(ty, b10, logn);
     // PQCLEAN_FALCON512_NEON_poly_add(tx, ty, logn);
     // tx = tx * b00 
     // tx = tx + ty * b10 = tx * b00 + ty * b10
     PQCLEAN_FALCON512_NEON_poly_mul_fft(tx, tx, b00);
     PQCLEAN_FALCON512_NEON_poly_mul_fft_add(tx, tx, ty, b10);
-    memcpy(ty, t0, n * sizeof * t0);
+    memcpy(ty, t0, FALCON_N * sizeof * t0);
     
     // ty = ty * b01 
     // t1 = t1 * b11
@@ -462,7 +467,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     PQCLEAN_FALCON512_NEON_poly_mul_fft(ty, ty, b01);
     PQCLEAN_FALCON512_NEON_poly_mul_fft_add(t1, ty, t1, b11);
 
-    memcpy(t0, tx, n * sizeof * tx);
+    memcpy(t0, tx, FALCON_N * sizeof * tx);
     // t0 = iFFT(t0)
     // t1 = iFFT(t1)
     PQCLEAN_FALCON512_NEON_iFFT(t0);
@@ -474,7 +479,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     s1tmp = (int16_t *)tx;
     sqn = 0;
     ng = 0;
-    for (u = 0; u < n; u ++) {
+    for (size_t u = 0; u < FALCON_N; u ++) {
         int32_t z;
 
         z = (int32_t)hm[u] - (int32_t)fpr_rint(t0[u]);
@@ -494,12 +499,12 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
      * hm[] for the next iteration.
      */
     s2tmp = (int16_t *)tmp;
-    for (u = 0; u < n; u ++) {
+    for (size_t u = 0; u < FALCON_N; u ++) {
         s2tmp[u] = (int16_t) - fpr_rint(t1[u]);
     }
     if (PQCLEAN_FALCON512_NEON_is_short_half(sqn, s2tmp, logn)) {
-        memcpy(s2, s2tmp, n * sizeof * s2);
-        memcpy(tmp, s1tmp, n * sizeof * s1tmp);
+        memcpy(s2, s2tmp, FALCON_N * sizeof * s2);
+        memcpy(tmp, s1tmp, FALCON_N * sizeof * s1tmp);
         return 1;
     }
     return 0;
