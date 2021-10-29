@@ -1,4 +1,5 @@
 #include "inner.h"
+#include "vfpr.h"
 
 // TODO: extend iFFT and FFT to support FALCON1024
 void PQCLEAN_FALCON512_NEON_iFFT(fpr *f)
