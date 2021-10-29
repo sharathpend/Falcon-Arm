@@ -489,6 +489,99 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     }
     sqn |= -(ng >> 31);
 
+    /* // Total SIMD register: 16
+    float64x2x4_t t0tmp[4]; // 16
+    int64x2x4_t tmps64[4];
+    int32x4x2_t tmps32[4];
+    int16x8x4_t tmps16;
+    int32x4x4_t z[2];
+    uint32x4x4_t sqn[2];
+    uint32x4_t sqn_sum[2];
+    uint32x4_t ng;
+
+    for (size_t u = 0; u < FALCON_N; u +=32) {
+        t0tmp[0] = vld1q_f64_x4(&t0[u]);
+        t0tmp[1] = vld1q_f64_x4(&t0[u+8]);
+        t0tmp[2] = vld1q_f64_x4(&t0[u+16]);
+        t0tmp[3] = vld1q_f64_x4(&t0[u+24]);
+        tmps16 = vld1q_s16_x4(&hm[u]);
+
+
+        tmps64[0].val[0] = vfpr_rint(t0tmp[0].val[0]);
+        tmps64[0].val[1] = vfpr_rint(t0tmp[0].val[1]);
+        tmps64[0].val[2] = vfpr_rint(t0tmp[0].val[2]);
+        tmps64[0].val[3] = vfpr_rint(t0tmp[0].val[3]);
+
+        tmps64[1].val[0] = vfpr_rint(t0tmp[1].val[0]);
+        tmps64[1].val[1] = vfpr_rint(t0tmp[1].val[1]);
+        tmps64[1].val[2] = vfpr_rint(t0tmp[1].val[2]);
+        tmps64[1].val[3] = vfpr_rint(t0tmp[1].val[3]);
+
+        tmps64[2].val[0] = vfpr_rint(t0tmp[2].val[0]);
+        tmps64[2].val[1] = vfpr_rint(t0tmp[2].val[1]);
+        tmps64[2].val[2] = vfpr_rint(t0tmp[2].val[2]);
+        tmps64[2].val[3] = vfpr_rint(t0tmp[2].val[3]);
+
+        tmps64[3].val[0] = vfpr_rint(t0tmp[3].val[0]);
+        tmps64[3].val[1] = vfpr_rint(t0tmp[3].val[1]);
+        tmps64[3].val[2] = vfpr_rint(t0tmp[3].val[2]);
+        tmps64[3].val[3] = vfpr_rint(t0tmp[3].val[3]);
+
+        tmps32[0].val[0] = vmovn_s64(tmps64[0].val[0]);
+        tmps32[0].val[1] = vmovn_s64(tmps64[0].val[2]);
+        tmps32[0].val[0] = vmovn_high_s64(tmps32[0].val[0], tmps64[0].val[1]);
+        tmps32[0].val[1] = vmovn_high_s64(tmps32[0].val[1], tmps64[0].val[3]);
+
+        tmps32[1].val[0] = vmovn_s64(tmps64[1].val[0]);
+        tmps32[1].val[1] = vmovn_s64(tmps64[1].val[2]);
+        tmps32[1].val[0] = vmovn_high_s64(tmps32[1].val[0], tmps64[1].val[1]);
+        tmps32[1].val[1] = vmovn_high_s64(tmps32[1].val[1], tmps64[1].val[3]);
+
+        tmps32[2].val[0] = vmovn_s64(tmps64[2].val[0]);
+        tmps32[2].val[1] = vmovn_s64(tmps64[2].val[2]);
+        tmps32[2].val[0] = vmovn_high_s64(tmps32[2].val[0], tmps64[2].val[1]);
+        tmps32[2].val[1] = vmovn_high_s64(tmps32[2].val[1], tmps64[2].val[3]);
+
+        tmps32[3].val[0] = vmovn_s64(tmps64[3].val[0]);
+        tmps32[3].val[1] = vmovn_s64(tmps64[3].val[2]);
+        tmps32[3].val[0] = vmovn_high_s64(tmps32[3].val[0], tmps64[3].val[1]);
+        tmps32[3].val[1] = vmovn_high_s64(tmps32[3].val[1], tmps64[3].val[3]);
+
+        z[0].val[0] = vsubw_s16(tmps32[0].val[0], vget_low_s16(tmps16.val[0]));
+        z[0].val[1] = vsubw_s16(tmps32[1].val[0], vget_low_s16(tmps16.val[1]));
+        z[0].val[2] = vsubw_s16(tmps32[2].val[0], vget_low_s16(tmps16.val[2]));
+        z[0].val[3] = vsubw_s16(tmps32[3].val[0], vget_low_s16(tmps16.val[3]));
+
+        z[1].val[0] = vsubw_high_s16(tmps32[0].val[1], tmps16.val[0]);
+        z[1].val[1] = vsubw_high_s16(tmps32[1].val[1], tmps16.val[1]);
+        z[1].val[2] = vsubw_high_s16(tmps32[2].val[1], tmps16.val[2]);
+        z[1].val[3] = vsubw_high_s16(tmps32[3].val[1], tmps16.val[3]);
+
+        sqn[0].val[0] = vmulq_s32(z[0].val[0], z[0].val[0]);
+        sqn[0].val[1] = vmulq_s32(z[0].val[1], z[0].val[1]);
+        sqn[0].val[2] = vmulq_s32(z[0].val[2], z[0].val[2]);
+        sqn[0].val[3] = vmulq_s32(z[0].val[3], z[0].val[3]);
+
+        sqn[1].val[0] = vmulq_s32(z[1].val[0], z[1].val[0]);
+        sqn[1].val[1] = vmulq_s32(z[1].val[1], z[1].val[1]);
+        sqn[1].val[2] = vmulq_s32(z[1].val[2], z[1].val[2]);
+        sqn[1].val[3] = vmulq_s32(z[1].val[3], z[1].val[3]);
+
+        sqn_sum[0] = vaddq_s32(sqn_sum[0], sqn[0].val[0]);
+        sqn_sum[0] = vaddq_s32(sqn_sum[0], sqn[0].val[1]);
+        sqn_sum[0] = vaddq_s32(sqn_sum[0], sqn[0].val[2]);
+        sqn_sum[0] = vaddq_s32(sqn_sum[0], sqn[0].val[3]);
+
+        sqn_sum[1] = vaddq_s32(sqn_sum[1], sqn[1].val[0]);
+        sqn_sum[1] = vaddq_s32(sqn_sum[1], sqn[1].val[1]);
+        sqn_sum[1] = vaddq_s32(sqn_sum[1], sqn[1].val[2]);
+        sqn_sum[1] = vaddq_s32(sqn_sum[1], sqn[1].val[3]);
+
+        ng = vpaddq_s32(sqn_sum[0], sqn_sum[1]);
+    }
+ */
+    ///////////
+
     /*
      * With "normal" degrees (e.g. 512 or 1024), it is very
      * improbable that the computed vector is not short enough;
@@ -502,6 +595,70 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     for (size_t u = 0; u < FALCON_N; u ++) {
         s2tmp[u] = (int16_t) - fpr_rint(t1[u]);
     }
+    /* 
+    float64x2x4_t t1tmp[4]; // 16
+    int64x2x4_t s2tmps64[4];
+    int32x4x2_t s2tmps32[4];
+    int16x8x4_t s2tmps16;
+    for (size_t u = 0; u < FALCON_N; u+= 32)
+    {
+        t1tmp[0] = vld1q_f64_x4(&t1[u + 0]);
+        t1tmp[1] = vld1q_f64_x4(&t1[u + 8]);
+        t1tmp[2] = vld1q_f64_x4(&t1[u + 16]);
+        t1tmp[3] = vld1q_f64_x4(&t1[u + 24]);
+
+        s2tmps64[0].val[0] = vfpr_rint(t1tmp[0].val[0]);
+        s2tmps64[0].val[1] = vfpr_rint(t1tmp[0].val[1]);
+        s2tmps64[0].val[2] = vfpr_rint(t1tmp[0].val[2]);
+        s2tmps64[0].val[3] = vfpr_rint(t1tmp[0].val[3]);
+
+        s2tmps64[1].val[0] = vfpr_rint(t1tmp[1].val[0]);
+        s2tmps64[1].val[1] = vfpr_rint(t1tmp[1].val[1]);
+        s2tmps64[1].val[2] = vfpr_rint(t1tmp[1].val[2]);
+        s2tmps64[1].val[3] = vfpr_rint(t1tmp[1].val[3]);
+
+        s2tmps64[2].val[0] = vfpr_rint(t1tmp[2].val[0]);
+        s2tmps64[2].val[1] = vfpr_rint(t1tmp[2].val[1]);
+        s2tmps64[2].val[2] = vfpr_rint(t1tmp[2].val[2]);
+        s2tmps64[2].val[3] = vfpr_rint(t1tmp[2].val[3]);
+
+        s2tmps64[3].val[0] = vfpr_rint(t1tmp[3].val[0]);
+        s2tmps64[3].val[1] = vfpr_rint(t1tmp[3].val[1]);
+        s2tmps64[3].val[2] = vfpr_rint(t1tmp[3].val[2]);
+        s2tmps64[3].val[3] = vfpr_rint(t1tmp[3].val[3]);
+
+        s2tmps32[0].val[0] = vmovn_s64(s2tmps64[0].val[0]);
+        s2tmps32[0].val[1] = vmovn_s64(s2tmps64[0].val[2]);
+        s2tmps32[0].val[0] = vmovn_high_s64(s2tmps32[0].val[0], s2tmps64[0].val[1]);
+        s2tmps32[0].val[1] = vmovn_high_s64(s2tmps32[0].val[1], s2tmps64[0].val[3]);
+
+        s2tmps32[1].val[0] = vmovn_s64(s2tmps64[1].val[0]);
+        s2tmps32[1].val[1] = vmovn_s64(s2tmps64[1].val[2]);
+        s2tmps32[1].val[0] = vmovn_high_s64(s2tmps32[1].val[0], s2tmps64[1].val[1]);
+        s2tmps32[1].val[1] = vmovn_high_s64(s2tmps32[1].val[1], s2tmps64[1].val[3]);
+
+        s2tmps32[2].val[0] = vmovn_s64(s2tmps64[2].val[0]);
+        s2tmps32[2].val[1] = vmovn_s64(s2tmps64[2].val[2]);
+        s2tmps32[2].val[0] = vmovn_high_s64(s2tmps32[2].val[0], s2tmps64[2].val[1]);
+        s2tmps32[2].val[1] = vmovn_high_s64(s2tmps32[2].val[1], s2tmps64[2].val[3]);
+
+        s2tmps32[3].val[0] = vmovn_s64(s2tmps64[3].val[0]);
+        s2tmps32[3].val[1] = vmovn_s64(s2tmps64[3].val[2]);
+        s2tmps32[3].val[0] = vmovn_high_s64(s2tmps32[3].val[0], s2tmps64[3].val[1]);
+        s2tmps32[3].val[1] = vmovn_high_s64(s2tmps32[3].val[1], s2tmps64[3].val[3]);
+
+        s2tmps16.val[0] = vmovn_s32(s2tmps32[0].val[0]);
+        s2tmps16.val[1] = vmovn_s32(s2tmps32[1].val[0]);
+        s2tmps16.val[2] = vmovn_s32(s2tmps32[2].val[0]);
+        s2tmps16.val[3] = vmovn_s32(s2tmps32[3].val[0]);
+        s2tmps16.val[0] = vmovn_high_s32(s2tmps16.val[0], s2tmps32[0].val[1]);
+        s2tmps16.val[1] = vmovn_high_s32(s2tmps16.val[1], s2tmps32[1].val[1]);
+        s2tmps16.val[2] = vmovn_high_s32(s2tmps16.val[2], s2tmps32[2].val[1]);
+        s2tmps16.val[3] = vmovn_high_s32(s2tmps16.val[3], s2tmps32[3].val[1]);
+        
+        vst1q_s16_x4(&s2tmp[u], s2tmps16);
+    } */
+
     if (PQCLEAN_FALCON512_NEON_is_short_half(sqn, s2tmp, logn)) {
         memcpy(s2, s2tmp, FALCON_N * sizeof * s2);
         memcpy(tmp, s1tmp, FALCON_N * sizeof * s1tmp);
