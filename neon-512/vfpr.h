@@ -2,6 +2,7 @@
 #define PQCLEAN_FALCON512_NEON_VFPR_H
 
 #include <arm_neon.h>
+#include "inner.h"
 
 typedef double fpr;
 typedef float64x2_t fprx2;
