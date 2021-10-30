@@ -1,10 +1,11 @@
 *.json
 *.txt
+*.asm
+*.o
 ref-fft
 avx2_fft
 neon-fft
 neon-512/test_fpr
 neon-512/test_log2
 neon-512/test_sampler
-*.asm
 neon-512/test_log1
