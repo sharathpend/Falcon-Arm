@@ -77,7 +77,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <arm_neon.h>
 
 
 /*
