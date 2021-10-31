@@ -385,5 +385,8 @@ extern const fpr fpr_gm_tab[];
 #define fpr_p2_tab   Zf(fpr_p2_tab)
 extern const fpr fpr_p2_tab[];
 
+#define fpr_gm_tab_half   Zf(fpr_gm_tab_half)
+extern const fpr fpr_gm_tab_half[];
+
 /* ====================================================================== */
 
