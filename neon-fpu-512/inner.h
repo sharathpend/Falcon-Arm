@@ -78,7 +78,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arm_neon.h>
-
+#include "macro.h"
 
 /*
  * "Naming" macro used to apply a consistent prefix over all global
