@@ -344,7 +344,7 @@ Zf(is_short)(
     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[1]);
     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
 
-    uint32x2_t tmp, sx2, ngx2;
+    uint32x2_t sx2, ngx2;
     // Collapse s_lox4 down to x2
     sx2 = vadd_u32(vget_low_u32(s_lo.val[0]), vget_high_u32(s_lo.val[0]));
     // Collapse ngx4 downto x2
@@ -430,7 +430,7 @@ Zf(is_short_half)(
     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[1]);
     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
 
-    uint32x2_t tmp, sx2, ngx2;
+    uint32x2_t sx2, ngx2;
     uint32_t s;
     // Collapse s_lox4 down to x2
     sx2 = vadd_u32(vget_low_u32(s_lo.val[0]), vget_high_u32(s_lo.val[0]));
