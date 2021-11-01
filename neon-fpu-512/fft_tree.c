@@ -17,7 +17,7 @@ static void Zf(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsigne
     const unsigned int hn = n >> 1;
     const unsigned int qn = n >> 2;
     int u1, u2;
-    for (int u = 0; u < qn; u += 8)
+    for (unsigned u = 0; u < qn; u += 8)
     {
         u1 = u << 1;
         u2 = u1 + n;
@@ -179,13 +179,13 @@ Zf(poly_merge_fft)(
     switch (logn)
     {
     case 3:
-        PQCLEAN_FALCON512_NEON_mergeFFT_log3(f, f0, f1);
+        Zf(poly_mergeFFT_log3)(f, f0, f1);
         break;
     case 4:
-        PQCLEAN_FALCON512_NEON_mergeFFT_log4(f, f0, f1);
+        Zf(poly_mergeFFT_log4)(f, f0, f1);
         break;
     default:
-        PQCLEAN_FALCON512_NEON_mergeFFT_log5(f, f0, f1, logn);
+        Zf(poly_mergeFFT_log5)(f, f0, f1, logn);
     }
 }
 
@@ -278,7 +278,7 @@ void Zf(poly_splitFFT_log5)(fpr *restrict f0, fpr *restrict f1, const fpr *f, un
     const unsigned int hn = n >> 1;
     const unsigned int qn = n >> 2;
     unsigned int u1, u2;
-    for (int u = 0; u < qn; u += 8)
+    for (unsigned u = 0; u < qn; u += 8)
     {
         u1 = u << 1;
         u2 = u1 + hn;
@@ -375,14 +375,14 @@ Zf(poly_split_fft)(
     switch (logn)
     {
     case 3:
-        PQCLEAN_FALCON512_NEON_poly_splitFFT_log3(f0, f1, f);
+        Zf(poly_splitFFT_log3)(f0, f1, f);
         break;
 
     case 4:
-        PQCLEAN_FALCON512_NEON_poly_splitFFT_log4(f0, f1, f);
+        Zf(poly_splitFFT_log4)(f0, f1, f);
         break;
 
     default:
-        PQCLEAN_FALCON512_NEON_poly_splitFFT_log5(f0, f1, f, logn);
+        Zf(poly_splitFFT_log5)(f0, f1, f, logn);
     }
 }
