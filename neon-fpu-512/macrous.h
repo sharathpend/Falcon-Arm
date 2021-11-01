@@ -1,5 +1,5 @@
-#ifndef MACRO_H
-#define MACRO_H
+#ifndef MACROUS_H
+#define MACROUS_H
 
 #include <arm_neon.h>
 
@@ -8,6 +8,7 @@
 #define vmull_hi(c, a, b) c = vmull_high_s16(a, b);
 
 #define vmulla_lo(d, c, a, b) d = vmlal_u16(c, (uint16x4_t)vget_low_s16(a), (uint16x4_t)vget_low_s16(b));
+
 #define vmulla_hi(d, c, a, b) d = vmlal_high_u16(c, (uint16x8_t)a, (uint16x8_t)b);
 
 #define vadd(c, a, b) c = vaddq_u32(a, b);
