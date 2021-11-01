@@ -8,13 +8,14 @@
 
 .POSIX:
 
-CC = c99
-CFLAGS = -W -Wall -O2
+# CC = c99
+CC = clang
+CFLAGS = -W -Wall -O2 -Wextra -Wpedantic`1
 LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ1 = build/codec.o build/common.o build/fft.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/shake.o build/sign.o build/vrfy.o
+OBJ1 = build/codec.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o
 
 OBJ2 = build/PQCgenKAT_sign.o build/katrng.o
 
@@ -58,6 +59,15 @@ build/shake.o: shake.c $(HEAD1)
 
 build/sign.o: sign.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/sign.o sign.c
+
+build/poly.o: poly.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o build/poly.o poly.c
+
+build/sign_sampler.o: sign_sampler.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o build/sign_sampler.o sign_sampler.c
+
+build/fft_tree.o: fft_tree.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o build/fft_tree.o fft_tree.c
 
 build/vrfy.o: vrfy.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/vrfy.o vrfy.c
