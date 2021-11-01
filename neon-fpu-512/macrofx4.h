@@ -81,4 +81,10 @@
     c.val[2] = vdivq_f64(vdupq_n_f64(1.0), a.val[2]); \
     c.val[3] = vdivq_f64(vdupq_n_f64(1.0), a.val[3]);
 
+#define vfcvtx4(c, a)                   \
+    c.val[0] = vcvtq_f64_s64(a.val[0]); \
+    c.val[1] = vcvtq_f64_s64(a.val[1]); \
+    c.val[2] = vcvtq_f64_s64(a.val[2]); \
+    c.val[3] = vcvtq_f64_s64(a.val[3]);
+
 #endif
