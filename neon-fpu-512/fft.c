@@ -30,689 +30,1288 @@
  */
 
 #include "inner.h"
+#include "macrof.h"
+#include "macrofx4.h"
 
-/*
- * Rules for complex number macros:
- * --------------------------------
- *
- * Operand order is: destination, source1, source2...
- *
- * Each operand is a real and an imaginary part.
- *
- * All overlaps are allowed.
- */
+#if FALCON_N == 512
 
-/*
- * Addition of two complex numbers (d = a + b).
- */
-#define FPC_ADD(d_re, d_im, a_re, a_im, b_re, b_im)   do { \
-		fpr fpct_re, fpct_im; \
-		fpct_re = fpr_add(a_re, b_re); \
-		fpct_im = fpr_add(a_im, b_im); \
-		(d_re) = fpct_re; \
-		(d_im) = fpct_im; \
-	} while (0)
-
-/*
- * Subtraction of two complex numbers (d = a - b).
- */
-#define FPC_SUB(d_re, d_im, a_re, a_im, b_re, b_im)   do { \
-		fpr fpct_re, fpct_im; \
-		fpct_re = fpr_sub(a_re, b_re); \
-		fpct_im = fpr_sub(a_im, b_im); \
-		(d_re) = fpct_re; \
-		(d_im) = fpct_im; \
-	} while (0)
-
-/*
- * Multplication of two complex numbers (d = a * b).
- */
-#define FPC_MUL(d_re, d_im, a_re, a_im, b_re, b_im)   do { \
-		fpr fpct_a_re, fpct_a_im; \
-		fpr fpct_b_re, fpct_b_im; \
-		fpr fpct_d_re, fpct_d_im; \
-		fpct_a_re = (a_re); \
-		fpct_a_im = (a_im); \
-		fpct_b_re = (b_re); \
-		fpct_b_im = (b_im); \
-		fpct_d_re = fpr_sub( \
-			fpr_mul(fpct_a_re, fpct_b_re), \
-			fpr_mul(fpct_a_im, fpct_b_im)); \
-		fpct_d_im = fpr_add( \
-			fpr_mul(fpct_a_re, fpct_b_im), \
-			fpr_mul(fpct_a_im, fpct_b_re)); \
-		(d_re) = fpct_d_re; \
-		(d_im) = fpct_d_im; \
-	} while (0)
-
-/*
- * Squaring of a complex number (d = a * a).
- */
-#define FPC_SQR(d_re, d_im, a_re, a_im)   do { \
-		fpr fpct_a_re, fpct_a_im; \
-		fpr fpct_d_re, fpct_d_im; \
-		fpct_a_re = (a_re); \
-		fpct_a_im = (a_im); \
-		fpct_d_re = fpr_sub(fpr_sqr(fpct_a_re), fpr_sqr(fpct_a_im)); \
-		fpct_d_im = fpr_double(fpr_mul(fpct_a_re, fpct_a_im)); \
-		(d_re) = fpct_d_re; \
-		(d_im) = fpct_d_im; \
-	} while (0)
-
-/*
- * Inversion of a complex number (d = 1 / a).
- */
-#define FPC_INV(d_re, d_im, a_re, a_im)   do { \
-		fpr fpct_a_re, fpct_a_im; \
-		fpr fpct_d_re, fpct_d_im; \
-		fpr fpct_m; \
-		fpct_a_re = (a_re); \
-		fpct_a_im = (a_im); \
-		fpct_m = fpr_add(fpr_sqr(fpct_a_re), fpr_sqr(fpct_a_im)); \
-		fpct_m = fpr_inv(fpct_m); \
-		fpct_d_re = fpr_mul(fpct_a_re, fpct_m); \
-		fpct_d_im = fpr_mul(fpr_neg(fpct_a_im), fpct_m); \
-		(d_re) = fpct_d_re; \
-		(d_im) = fpct_d_im; \
-	} while (0)
-
-/*
- * Division of complex numbers (d = a / b).
- */
-#define FPC_DIV(d_re, d_im, a_re, a_im, b_re, b_im)   do { \
-		fpr fpct_a_re, fpct_a_im; \
-		fpr fpct_b_re, fpct_b_im; \
-		fpr fpct_d_re, fpct_d_im; \
-		fpr fpct_m; \
-		fpct_a_re = (a_re); \
-		fpct_a_im = (a_im); \
-		fpct_b_re = (b_re); \
-		fpct_b_im = (b_im); \
-		fpct_m = fpr_add(fpr_sqr(fpct_b_re), fpr_sqr(fpct_b_im)); \
-		fpct_m = fpr_inv(fpct_m); \
-		fpct_b_re = fpr_mul(fpct_b_re, fpct_m); \
-		fpct_b_im = fpr_mul(fpr_neg(fpct_b_im), fpct_m); \
-		fpct_d_re = fpr_sub( \
-			fpr_mul(fpct_a_re, fpct_b_re), \
-			fpr_mul(fpct_a_im, fpct_b_im)); \
-		fpct_d_im = fpr_add( \
-			fpr_mul(fpct_a_re, fpct_b_im), \
-			fpr_mul(fpct_a_im, fpct_b_re)); \
-		(d_re) = fpct_d_re; \
-		(d_im) = fpct_d_im; \
-	} while (0)
-
-/*
- * Let w = exp(i*pi/N); w is a primitive 2N-th root of 1. We define the
- * values w_j = w^(2j+1) for all j from 0 to N-1: these are the roots
- * of X^N+1 in the field of complex numbers. A crucial property is that
- * w_{N-1-j} = conj(w_j) = 1/w_j for all j.
- *
- * FFT representation of a polynomial f (taken modulo X^N+1) is the
- * set of values f(w_j). Since f is real, conj(f(w_j)) = f(conj(w_j)),
- * thus f(w_{N-1-j}) = conj(f(w_j)). We thus store only half the values,
- * for j = 0 to N/2-1; the other half can be recomputed easily when (if)
- * needed. A consequence is that FFT representation has the same size
- * as normal representation: N/2 complex numbers use N real numbers (each
- * complex number is the combination of a real and an imaginary part).
- *
- * We use a specific ordering which makes computations easier. Let rev()
- * be the bit-reversal function over log(N) bits. For j in 0..N/2-1, we
- * store the real and imaginary parts of f(w_j) in slots:
- *
- *    Re(f(w_j)) -> slot rev(j)/2
- *    Im(f(w_j)) -> slot rev(j)/2+N/2
- *
- * (Note that rev(j) is even for j < N/2.)
- */
-
-/* see inner.h */
-void
-Zf(FFT)(fpr *f, unsigned logn)
+void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
 {
-	/*
-	 * FFT algorithm in bit-reversal order uses the following
-	 * iterative algorithm:
-	 *
-	 *   t = N
-	 *   for m = 1; m < N; m *= 2:
-	 *       ht = t/2
-	 *       for i1 = 0; i1 < m; i1 ++:
-	 *           j1 = i1 * t
-	 *           s = GM[m + i1]
-	 *           for j = j1; j < (j1 + ht); j ++:
-	 *               x = f[j]
-	 *               y = s * f[j + ht]
-	 *               f[j] = x + y
-	 *               f[j + ht] = x - y
-	 *       t = ht
-	 *
-	 * GM[k] contains w^rev(k) for primitive root w = exp(i*pi/N).
-	 *
-	 * In the description above, f[] is supposed to contain complex
-	 * numbers. In our in-memory representation, the real and
-	 * imaginary parts of f[k] are in array slots k and k+N/2.
-	 *
-	 * We only keep the first half of the complex numbers. We can
-	 * see that after the first iteration, the first and second halves
-	 * of the array of complex numbers have separate lives, so we
-	 * simply ignore the second part.
-	 */
+    // Total: 32 = 16 + 8 + 8 register
+    float64x2x4_t s_re_im, tmp;               // 8
+    float64x2x4_t x_re, x_im, y_re, y_im;     // 16
+    float64x2x4_t x1_re, x1_im, y1_re, y1_im; // 16
+    float64x2x2_t s_tmp;                      // 2
+    // Level 4, 5, 6, 7
+    float64x2x2_t x_tmp, y_tmp;
+    const unsigned int hn = FALCON_N >> 1;
 
-	unsigned u;
-	size_t t, n, hn, m;
+    for (int l = 8; l > 4; l -= 2)
+    {
+        int distance = 1 << (l - 2);
+        for (int i = 0; i < FALCON_N / 2; i += 1 << l)
+        {
+            vload(s_re_im.val[0], &fpr_gm_tab[(FALCON_N + i) >> (l - 1)]);
+            vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> (l - 2)]);
+            s_re_im.val[1] = s_tmp.val[0];
+            s_re_im.val[2] = s_tmp.val[1];
 
-	/*
-	 * First iteration: compute f[j] + i * f[j+N/2] for all j < N/2
-	 * (because GM[1] = w^rev(1) = w^(N/2) = i).
-	 * In our chosen representation, this is a no-op: everything is
-	 * already where it should be.
-	 */
+            for (int j = i; j < i + distance; j += 4)
+            {
+                // Level 7
+                // x1_re: 0->3, 64->67
+                // x1_im: 256->259, 320 -> 323
+                // y_re: 128->131, 192->195
+                // y_im: 384->387, 448 -> 451
+                vloadx2(x_tmp, &f[j]);
+                x1_re.val[0] = x_tmp.val[0];
+                x1_re.val[1] = x_tmp.val[1];
+                vloadx2(x_tmp, &f[j + distance]);
+                x1_re.val[2] = x_tmp.val[0];
+                x1_re.val[3] = x_tmp.val[1];
 
-	/*
-	 * Subsequent iterations are truncated to use only the first
-	 * half of values.
-	 */
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	t = hn;
-	for (u = 1, m = 2; u < logn; u ++, m <<= 1) {
-		size_t ht, hm, i1, j1;
+                vloadx2(y_tmp, &f[j + 2 * distance]);
+                y1_re.val[0] = y_tmp.val[0];
+                y1_re.val[1] = y_tmp.val[1];
+                vloadx2(y_tmp, &f[j + 3 * distance]);
+                y1_re.val[2] = y_tmp.val[0];
+                y1_re.val[3] = y_tmp.val[1];
 
-		ht = t >> 1;
-		hm = m >> 1;
-		for (i1 = 0, j1 = 0; i1 < hm; i1 ++, j1 += t) {
-			size_t j, j2;
+                vloadx2(x_tmp, &f[j + hn]);
+                x1_im.val[0] = x_tmp.val[0];
+                x1_im.val[1] = x_tmp.val[1];
+                vloadx2(x_tmp, &f[j + hn + distance]);
+                x1_im.val[2] = x_tmp.val[0];
+                x1_im.val[3] = x_tmp.val[1];
 
-			j2 = j1 + ht;
-			fpr s_re, s_im;
+                vloadx2(y_tmp, &f[j + hn + 2 * distance]);
+                y1_im.val[0] = y_tmp.val[0];
+                y1_im.val[1] = y_tmp.val[1];
+                vloadx2(y_tmp, &f[j + hn + 3 * distance]);
+                y1_im.val[2] = y_tmp.val[0];
+                y1_im.val[3] = y_tmp.val[1];
 
-			s_re = fpr_gm_tab[((m + i1) << 1) + 0];
-			s_im = fpr_gm_tab[((m + i1) << 1) + 1];
-			for (j = j1; j < j2; j ++) {
-				fpr x_re, x_im, y_re, y_im;
+                vfmul_lane(y_re.val[0], y1_re.val[0], s_re_im.val[0], 0);
+                vfmul_lane(y_re.val[1], y1_re.val[1], s_re_im.val[0], 0);
+                vfmul_lane(y_re.val[2], y1_re.val[2], s_re_im.val[0], 0);
+                vfmul_lane(y_re.val[3], y1_re.val[3], s_re_im.val[0], 0);
 
-				x_re = f[j];
-				x_im = f[j + hn];
-				y_re = f[j + ht];
-				y_im = f[j + ht + hn];
-				FPC_MUL(y_re, y_im, y_re, y_im, s_re, s_im);
-				FPC_ADD(f[j], f[j + hn],
-					x_re, x_im, y_re, y_im);
-				FPC_SUB(f[j + ht], f[j + ht + hn],
-					x_re, x_im, y_re, y_im);
-			}
-		}
-		t = ht;
-	}
+                vfms_lane(y_re.val[0], y_re.val[0], y1_im.val[0], s_re_im.val[0], 1);
+                vfms_lane(y_re.val[1], y_re.val[1], y1_im.val[1], s_re_im.val[0], 1);
+                vfms_lane(y_re.val[2], y_re.val[2], y1_im.val[2], s_re_im.val[0], 1);
+                vfms_lane(y_re.val[3], y_re.val[3], y1_im.val[3], s_re_im.val[0], 1);
+
+                vfmul_lane(y_im.val[0], y1_re.val[0], s_re_im.val[0], 1);
+                vfmul_lane(y_im.val[1], y1_re.val[1], s_re_im.val[0], 1);
+                vfmul_lane(y_im.val[2], y1_re.val[2], s_re_im.val[0], 1);
+                vfmul_lane(y_im.val[3], y1_re.val[3], s_re_im.val[0], 1);
+
+                vfma_lane(y_im.val[0], y_im.val[0], y1_im.val[0], s_re_im.val[0], 0);
+                vfma_lane(y_im.val[1], y_im.val[1], y1_im.val[1], s_re_im.val[0], 0);
+                vfma_lane(y_im.val[2], y_im.val[2], y1_im.val[2], s_re_im.val[0], 0);
+                vfma_lane(y_im.val[3], y_im.val[3], y1_im.val[3], s_re_im.val[0], 0);
+
+                vfaddx4(x_re, x1_re, y_re);
+                vfaddx4(x_im, x1_im, y_im);
+
+                vfsubx4(y_re, x1_re, y_re);
+                vfsubx4(y_im, x1_im, y_im);
+
+                // Level 6
+                // x_re: 0->3, 64->67
+                // y_re: 128->131, 192 -> 195
+                // x_im: 256->259, 320 -> 323
+                // y_im: 384->387, 448 -> 451
+
+                vfmul_lane(y1_re.val[0], x_re.val[2], s_re_im.val[1], 0);
+                vfmul_lane(y1_re.val[1], x_re.val[3], s_re_im.val[1], 0);
+                vfmul_lane(y1_re.val[2], y_re.val[2], s_re_im.val[2], 0);
+                vfmul_lane(y1_re.val[3], y_re.val[3], s_re_im.val[2], 0);
+
+                vfms_lane(y1_re.val[0], y1_re.val[0], x_im.val[2], s_re_im.val[1], 1);
+                vfms_lane(y1_re.val[1], y1_re.val[1], x_im.val[3], s_re_im.val[1], 1);
+                vfms_lane(y1_re.val[2], y1_re.val[2], y_im.val[2], s_re_im.val[2], 1);
+                vfms_lane(y1_re.val[3], y1_re.val[3], y_im.val[3], s_re_im.val[2], 1);
+
+                vfmul_lane(y1_im.val[0], x_re.val[2], s_re_im.val[1], 1);
+                vfmul_lane(y1_im.val[1], x_re.val[3], s_re_im.val[1], 1);
+                vfmul_lane(y1_im.val[2], y_re.val[2], s_re_im.val[2], 1);
+                vfmul_lane(y1_im.val[3], y_re.val[3], s_re_im.val[2], 1);
+
+                vfma_lane(y1_im.val[0], y1_im.val[0], x_im.val[2], s_re_im.val[1], 0);
+                vfma_lane(y1_im.val[1], y1_im.val[1], x_im.val[3], s_re_im.val[1], 0);
+                vfma_lane(y1_im.val[2], y1_im.val[2], y_im.val[2], s_re_im.val[2], 0);
+                vfma_lane(y1_im.val[3], y1_im.val[3], y_im.val[3], s_re_im.val[2], 0);
+
+                vfadd(x1_re.val[0], x_re.val[0], y1_re.val[0]);
+                vfadd(x1_re.val[1], x_re.val[1], y1_re.val[1]);
+                vfadd(x1_re.val[2], y_re.val[0], y1_re.val[2]);
+                vfadd(x1_re.val[3], y_re.val[1], y1_re.val[3]);
+
+                vfadd(x1_im.val[0], x_im.val[0], y1_im.val[0]);
+                vfadd(x1_im.val[1], x_im.val[1], y1_im.val[1]);
+                vfadd(x1_im.val[2], y_im.val[0], y1_im.val[2]);
+                vfadd(x1_im.val[3], y_im.val[1], y1_im.val[3]);
+
+                vfsub(y1_re.val[0], x_re.val[0], y1_re.val[0]);
+                vfsub(y1_re.val[1], x_re.val[1], y1_re.val[1]);
+                vfsub(y1_re.val[2], y_re.val[0], y1_re.val[2]);
+                vfsub(y1_re.val[3], y_re.val[1], y1_re.val[3]);
+
+                vfsub(y1_im.val[0], x_im.val[0], y1_im.val[0]);
+                vfsub(y1_im.val[1], x_im.val[1], y1_im.val[1]);
+                vfsub(y1_im.val[2], y_im.val[0], y1_im.val[2]);
+                vfsub(y1_im.val[3], y_im.val[1], y1_im.val[3]);
+
+                // Level 6
+                // x1_re: 0->3, 128 -> 131
+                // y1_re: 64->67, 192 -> 195
+                // x1_im: 256 -> 259, 384->387
+                // y1_im: 320->323, 448 -> 451
+
+                // Store
+                x_tmp.val[0] = x1_re.val[0];
+                x_tmp.val[1] = x1_re.val[1];
+                vstorex2(&f[j], x_tmp);
+                y_tmp.val[0] = y1_re.val[0];
+                y_tmp.val[1] = y1_re.val[1];
+                vstorex2(&f[j + distance], y_tmp);
+
+                x_tmp.val[0] = x1_re.val[2];
+                x_tmp.val[1] = x1_re.val[3];
+                vstorex2(&f[j + 2 * distance], x_tmp);
+                y_tmp.val[0] = y1_re.val[2];
+                y_tmp.val[1] = y1_re.val[3];
+                vstorex2(&f[j + 3 * distance], y_tmp);
+
+                x_tmp.val[0] = x1_im.val[0];
+                x_tmp.val[1] = x1_im.val[1];
+                vstorex2(&f[j + hn], x_tmp);
+                y_tmp.val[0] = y1_im.val[0];
+                y_tmp.val[1] = y1_im.val[1];
+                vstorex2(&f[j + hn + distance], y_tmp);
+
+                x_tmp.val[0] = x1_im.val[2];
+                x_tmp.val[1] = x1_im.val[3];
+                vstorex2(&f[j + hn + 2 * distance], x_tmp);
+                y_tmp.val[0] = y1_im.val[2];
+                y_tmp.val[1] = y1_im.val[3];
+                vstorex2(&f[j + hn + 3 * distance], y_tmp);
+            }
+        }
+    }
+    // End level 7, 6, 5, 4 loop
+
+    // Level 3, 2, 1, 0
+    for (int j = 0; j < FALCON_N / 2; j += 16)
+    {
+        // Level 3
+        // x_re: 0->7
+        // y_re: 8->15
+        // x_im: 256->263
+        // y_im: 264->271
+
+        vloadx4(x_re, &f[j]);
+        vloadx4(y_re, &f[j + 8]);
+        vloadx4(x_im, &f[j + hn]);
+        vloadx4(y_im, &f[j + hn + 8]);
+
+        vload(s_re_im.val[0], &fpr_gm_tab[(FALCON_N + j) >> 3]);
+
+        vfmul_lane(y1_re.val[0], y_re.val[0], s_re_im.val[0], 0);
+        vfmul_lane(y1_re.val[1], y_re.val[1], s_re_im.val[0], 0);
+        vfmul_lane(y1_re.val[2], y_re.val[2], s_re_im.val[0], 0);
+        vfmul_lane(y1_re.val[3], y_re.val[3], s_re_im.val[0], 0);
+
+        vfms_lane(y1_re.val[0], y1_re.val[0], y_im.val[0], s_re_im.val[0], 1);
+        vfms_lane(y1_re.val[1], y1_re.val[1], y_im.val[1], s_re_im.val[0], 1);
+        vfms_lane(y1_re.val[2], y1_re.val[2], y_im.val[2], s_re_im.val[0], 1);
+        vfms_lane(y1_re.val[3], y1_re.val[3], y_im.val[3], s_re_im.val[0], 1);
+
+        vfmul_lane(y1_im.val[0], y_re.val[0], s_re_im.val[0], 1);
+        vfmul_lane(y1_im.val[1], y_re.val[1], s_re_im.val[0], 1);
+        vfmul_lane(y1_im.val[2], y_re.val[2], s_re_im.val[0], 1);
+        vfmul_lane(y1_im.val[3], y_re.val[3], s_re_im.val[0], 1);
+
+        vfma_lane(y1_im.val[0], y1_im.val[0], y_im.val[0], s_re_im.val[0], 0);
+        vfma_lane(y1_im.val[1], y1_im.val[1], y_im.val[1], s_re_im.val[0], 0);
+        vfma_lane(y1_im.val[2], y1_im.val[2], y_im.val[2], s_re_im.val[0], 0);
+        vfma_lane(y1_im.val[3], y1_im.val[3], y_im.val[3], s_re_im.val[0], 0);
+
+        vfaddx4(x1_re, x_re, y1_re);
+        vfaddx4(x1_im, x_im, y1_im);
+
+        vfsubx4(y1_re, x_re, y1_re);
+        vfsubx4(y1_im, x_im, y1_im);
+
+        // Level 2
+        // x_re: 0->7
+        // y_re: 8->15
+        // x_im: 256->263
+        // y_im: 264->271
+        vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 2]);
+        s_re_im.val[0] = s_tmp.val[0];
+        s_re_im.val[1] = s_tmp.val[1];
+
+        vfmul_lane(y_re.val[0], x1_re.val[2], s_re_im.val[0], 0);
+        vfmul_lane(y_re.val[1], x1_re.val[3], s_re_im.val[0], 0);
+        vfmul_lane(y_re.val[2], y1_re.val[2], s_re_im.val[1], 0);
+        vfmul_lane(y_re.val[3], y1_re.val[3], s_re_im.val[1], 0);
+
+        vfms_lane(y_re.val[0], y_re.val[0], x1_im.val[2], s_re_im.val[0], 1);
+        vfms_lane(y_re.val[1], y_re.val[1], x1_im.val[3], s_re_im.val[0], 1);
+        vfms_lane(y_re.val[2], y_re.val[2], y1_im.val[2], s_re_im.val[1], 1);
+        vfms_lane(y_re.val[3], y_re.val[3], y1_im.val[3], s_re_im.val[1], 1);
+
+        vfmul_lane(y_im.val[0], x1_re.val[2], s_re_im.val[0], 1);
+        vfmul_lane(y_im.val[1], x1_re.val[3], s_re_im.val[0], 1);
+        vfmul_lane(y_im.val[2], y1_re.val[2], s_re_im.val[1], 1);
+        vfmul_lane(y_im.val[3], y1_re.val[3], s_re_im.val[1], 1);
+
+        vfma_lane(y_im.val[0], y_im.val[0], x1_im.val[2], s_re_im.val[0], 0);
+        vfma_lane(y_im.val[1], y_im.val[1], x1_im.val[3], s_re_im.val[0], 0);
+        vfma_lane(y_im.val[2], y_im.val[2], y1_im.val[2], s_re_im.val[1], 0);
+        vfma_lane(y_im.val[3], y_im.val[3], y1_im.val[3], s_re_im.val[1], 0);
+
+        vfadd(x_re.val[0], x1_re.val[0], y_re.val[0]);
+        vfadd(x_re.val[1], x1_re.val[1], y_re.val[1]);
+        vfadd(x_re.val[2], y1_re.val[0], y_re.val[2]);
+        vfadd(x_re.val[3], y1_re.val[1], y_re.val[3]);
+
+        vfadd(x_im.val[0], x1_im.val[0], y_im.val[0]);
+        vfadd(x_im.val[1], x1_im.val[1], y_im.val[1]);
+        vfadd(x_im.val[2], y1_im.val[0], y_im.val[2]);
+        vfadd(x_im.val[3], y1_im.val[1], y_im.val[3]);
+
+        vfsub(y_re.val[0], x1_re.val[0], y_re.val[0]);
+        vfsub(y_re.val[1], x1_re.val[1], y_re.val[1]);
+        vfsub(y_re.val[2], y1_re.val[0], y_re.val[2]);
+        vfsub(y_re.val[3], y1_re.val[1], y_re.val[3]);
+
+        vfsub(y_im.val[0], x1_im.val[0], y_im.val[0]);
+        vfsub(y_im.val[1], x1_im.val[1], y_im.val[1]);
+        vfsub(y_im.val[2], y1_im.val[0], y_im.val[2]);
+        vfsub(y_im.val[3], y1_im.val[1], y_im.val[3]);
+
+        // Level 1
+        // x_re: 0->3, 8->11
+        // y_re: 4->7, 12->15
+        // x_im: 256->259, 264->267
+        // y_im: 260->263, 268->271
+        vloadx4(s_re_im, &fpr_gm_tab[(FALCON_N + j) >> 1]);
+
+        vfmul_lane(y1_re.val[0], x_re.val[1], s_re_im.val[0], 0);
+        vfmul_lane(y1_re.val[1], y_re.val[1], s_re_im.val[1], 0);
+        vfmul_lane(y1_re.val[2], x_re.val[3], s_re_im.val[2], 0);
+        vfmul_lane(y1_re.val[3], y_re.val[3], s_re_im.val[3], 0);
+
+        vfms_lane(y1_re.val[0], y1_re.val[0], x_im.val[1], s_re_im.val[0], 1);
+        vfms_lane(y1_re.val[1], y1_re.val[1], y_im.val[1], s_re_im.val[1], 1);
+        vfms_lane(y1_re.val[2], y1_re.val[2], x_im.val[3], s_re_im.val[2], 1);
+        vfms_lane(y1_re.val[3], y1_re.val[3], y_im.val[3], s_re_im.val[3], 1);
+
+        vfmul_lane(y1_im.val[0], x_re.val[1], s_re_im.val[0], 1);
+        vfmul_lane(y1_im.val[1], y_re.val[1], s_re_im.val[1], 1);
+        vfmul_lane(y1_im.val[2], x_re.val[3], s_re_im.val[2], 1);
+        vfmul_lane(y1_im.val[3], y_re.val[3], s_re_im.val[3], 1);
+
+        vfma_lane(y1_im.val[0], y1_im.val[0], x_im.val[1], s_re_im.val[0], 0);
+        vfma_lane(y1_im.val[1], y1_im.val[1], y_im.val[1], s_re_im.val[1], 0);
+        vfma_lane(y1_im.val[2], y1_im.val[2], x_im.val[3], s_re_im.val[2], 0);
+        vfma_lane(y1_im.val[3], y1_im.val[3], y_im.val[3], s_re_im.val[3], 0);
+
+        vfadd(x1_re.val[0], x_re.val[0], y1_re.val[0]);
+        vfadd(x1_re.val[1], y_re.val[0], y1_re.val[1]);
+        vfadd(x1_re.val[2], x_re.val[2], y1_re.val[2]);
+        vfadd(x1_re.val[3], y_re.val[2], y1_re.val[3]);
+
+        vfadd(x1_im.val[0], x_im.val[0], y1_im.val[0]);
+        vfadd(x1_im.val[1], y_im.val[0], y1_im.val[1]);
+        vfadd(x1_im.val[2], x_im.val[2], y1_im.val[2]);
+        vfadd(x1_im.val[3], y_im.val[2], y1_im.val[3]);
+
+        vfsub(y1_re.val[0], x_re.val[0], y1_re.val[0]);
+        vfsub(y1_re.val[1], y_re.val[0], y1_re.val[1]);
+        vfsub(y1_re.val[2], x_re.val[2], y1_re.val[2]);
+        vfsub(y1_re.val[3], y_re.val[2], y1_re.val[3]);
+
+        vfsub(y1_im.val[0], x_im.val[0], y1_im.val[0]);
+        vfsub(y1_im.val[1], y_im.val[0], y1_im.val[1]);
+        vfsub(y1_im.val[2], x_im.val[2], y1_im.val[2]);
+        vfsub(y1_im.val[3], y_im.val[2], y1_im.val[3]);
+
+        // Level 0
+        // Before Transpose
+        // x_re: 0,1 | 4,5 | 8,9   | 12,13
+        // y_re: 2,3 | 6,7 | 10,11 | 14,15
+        // x_im: 256,257 | 260,261 | 264,265 | 268,269
+        // y_im: 258,259 | 262,263 | 266,267 | 270,271
+        transpose(x1_re, x1_re, tmp, 0, 1, 0);
+        transpose(x1_re, x1_re, tmp, 2, 3, 1);
+        transpose(y1_re, y1_re, tmp, 0, 1, 2);
+        transpose(y1_re, y1_re, tmp, 2, 3, 3);
+
+        transpose(x1_im, x1_im, tmp, 0, 1, 0);
+        transpose(x1_im, x1_im, tmp, 2, 3, 1);
+        transpose(y1_im, y1_im, tmp, 0, 1, 2);
+        transpose(y1_im, y1_im, tmp, 2, 3, 3);
+        // After Transpose
+        // x_re: 0,4 | 1,5 | 8,12  | 9,13
+        // y_re: 2,6 | 3,7 | 10,14 | 11,15
+        // x_im: 256,260 | 257,261 | 264,268 | 265,269
+        // y_im: 258,262 | 259,263 | 266,270 | 267,271
+        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j]);
+
+        vfmul(y_re.val[0], x1_re.val[1], s_re_im.val[0]);
+        vfmul(y_re.val[1], y1_re.val[1], s_re_im.val[2]);
+        vfms(y_re.val[0], y_re.val[0], x1_im.val[1], s_re_im.val[1]);
+        vfms(y_re.val[1], y_re.val[1], y1_im.val[1], s_re_im.val[3]);
+
+        vfmul(y_im.val[0], x1_re.val[1], s_re_im.val[1]);
+        vfmul(y_im.val[1], y1_re.val[1], s_re_im.val[3]);
+        vfma(y_im.val[0], y_im.val[0], x1_im.val[1], s_re_im.val[0]);
+        vfma(y_im.val[1], y_im.val[1], y1_im.val[1], s_re_im.val[2]);
+
+        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j + 8]);
+
+        vfmul(y_re.val[2], x1_re.val[3], s_re_im.val[0]);
+        vfmul(y_re.val[3], y1_re.val[3], s_re_im.val[2]);
+        vfms(y_re.val[2], y_re.val[2], x1_im.val[3], s_re_im.val[1]);
+        vfms(y_re.val[3], y_re.val[3], y1_im.val[3], s_re_im.val[3]);
+
+        vfmul(y_im.val[2], x1_re.val[3], s_re_im.val[1]);
+        vfmul(y_im.val[3], y1_re.val[3], s_re_im.val[3]);
+        vfma(y_im.val[2], y_im.val[2], x1_im.val[3], s_re_im.val[0]);
+        vfma(y_im.val[3], y_im.val[3], y1_im.val[3], s_re_im.val[2]);
+
+        vfadd(x_re.val[0], x1_re.val[0], y_re.val[0]);
+        vfadd(x_re.val[1], y1_re.val[0], y_re.val[1]);
+        vfadd(x_re.val[2], x1_re.val[2], y_re.val[2]);
+        vfadd(x_re.val[3], y1_re.val[2], y_re.val[3]);
+
+        vfadd(x_im.val[0], x1_im.val[0], y_im.val[0]);
+        vfadd(x_im.val[1], y1_im.val[0], y_im.val[1]);
+        vfadd(x_im.val[2], x1_im.val[2], y_im.val[2]);
+        vfadd(x_im.val[3], y1_im.val[2], y_im.val[3]);
+
+        // Constant propagation will optimize this loop
+        if (negate_true)
+        {
+            vfsub(y_re.val[0], y_re.val[0], x1_re.val[0]);
+            vfsub(y_re.val[1], y_re.val[1], y1_re.val[0]);
+
+            vfsub(y_re.val[2], y_re.val[2], x1_re.val[2]);
+            vfsub(y_re.val[3], y_re.val[3], y1_re.val[2]);
+
+            vfsub(y_im.val[0], y_im.val[0], x1_im.val[0]);
+            vfsub(y_im.val[1], y_im.val[1], y1_im.val[0]);
+
+            vfsub(y_im.val[2], y_im.val[2], x1_im.val[2]);
+            vfsub(y_im.val[3], y_im.val[3], y1_im.val[2]);
+
+            vfneg(x_re.val[0], x_re.val[0]);
+            vfneg(x_re.val[1], x_re.val[1]);
+            vfneg(x_re.val[2], x_re.val[2]);
+            vfneg(x_re.val[3], x_re.val[3]);
+
+            vfneg(x_im.val[0], x_im.val[0]);
+            vfneg(x_im.val[1], x_im.val[1]);
+            vfneg(x_im.val[2], x_im.val[2]);
+            vfneg(x_im.val[3], x_im.val[3]);
+        }
+        else
+        {
+            vfsub(y_re.val[0], x1_re.val[0], y_re.val[0]);
+            vfsub(y_re.val[1], y1_re.val[0], y_re.val[1]);
+
+            vfsub(y_re.val[2], x1_re.val[2], y_re.val[2]);
+            vfsub(y_re.val[3], y1_re.val[2], y_re.val[3]);
+
+            vfsub(y_im.val[0], x1_im.val[0], y_im.val[0]);
+            vfsub(y_im.val[1], y1_im.val[0], y_im.val[1]);
+
+            vfsub(y_im.val[2], x1_im.val[2], y_im.val[2]);
+            vfsub(y_im.val[3], y1_im.val[2], y_im.val[3]);
+        }
+
+        // x_re: 0,4 | 2,6 | 8,12 | 10,14
+        // y_re: 1,5 | 3,7 | 9,13 | 11,15
+        // x_im: 256,260 | 258,262 | 264,268 | 266,270
+        // y_im: 257,261 | 259,263 | 265,269 | 267,271
+        x1_re.val[0] = x_re.val[0];
+        x1_re.val[1] = y_re.val[0];
+        x1_re.val[2] = x_re.val[1];
+        x1_re.val[3] = y_re.val[1];
+
+        y1_re.val[0] = x_re.val[2];
+        y1_re.val[1] = y_re.val[2];
+        y1_re.val[2] = x_re.val[3];
+        y1_re.val[3] = y_re.val[3];
+
+        x1_im.val[0] = x_im.val[0];
+        x1_im.val[1] = y_im.val[0];
+        x1_im.val[2] = x_im.val[1];
+        x1_im.val[3] = y_im.val[1];
+
+        y1_im.val[0] = x_im.val[2];
+        y1_im.val[1] = y_im.val[2];
+        y1_im.val[2] = x_im.val[3];
+        y1_im.val[3] = y_im.val[3];
+
+        vstore4(&f[j], x1_re);
+        vstore4(&f[j + 8], y1_re);
+        vstore4(&f[j + hn], x1_im);
+        vstore4(&f[j + hn + 8], y1_im);
+    }
+    // End function
 }
+#else
+#error "TODO Falcon-1024"
+#endif
 
-/* see inner.h */
-void
-Zf(iFFT)(fpr *f, unsigned logn)
+#if FALCON_N == 512
+void Zf(iFFT)(fpr *f, unsigned logn)
 {
-	/*
-	 * Inverse FFT algorithm in bit-reversal order uses the following
-	 * iterative algorithm:
-	 *
-	 *   t = 1
-	 *   for m = N; m > 1; m /= 2:
-	 *       hm = m/2
-	 *       dt = t*2
-	 *       for i1 = 0; i1 < hm; i1 ++:
-	 *           j1 = i1 * dt
-	 *           s = iGM[hm + i1]
-	 *           for j = j1; j < (j1 + t); j ++:
-	 *               x = f[j]
-	 *               y = f[j + t]
-	 *               f[j] = x + y
-	 *               f[j + t] = s * (x - y)
-	 *       t = dt
-	 *   for i1 = 0; i1 < N; i1 ++:
-	 *       f[i1] = f[i1] / N
-	 *
-	 * iGM[k] contains (1/w)^rev(k) for primitive root w = exp(i*pi/N)
-	 * (actually, iGM[k] = 1/GM[k] = conj(GM[k])).
-	 *
-	 * In the main loop (not counting the final division loop), in
-	 * all iterations except the last, the first and second half of f[]
-	 * (as an array of complex numbers) are separate. In our chosen
-	 * representation, we do not keep the second half.
-	 *
-	 * The last iteration recombines the recomputed half with the
-	 * implicit half, and should yield only real numbers since the
-	 * target polynomial is real; moreover, s = i at that step.
-	 * Thus, when considering x and y:
-	 *    y = conj(x) since the final f[j] must be real
-	 *    Therefore, f[j] is filled with 2*Re(x), and f[j + t] is
-	 *    filled with 2*Im(x).
-	 * But we already have Re(x) and Im(x) in array slots j and j+t
-	 * in our chosen representation. That last iteration is thus a
-	 * simple doubling of the values in all the array.
-	 *
-	 * We make the last iteration a no-op by tweaking the final
-	 * division into a division by N/2, not N.
-	 */
-	size_t u, n, hn, t, m;
+    // Total: 32 = 16 + 8 + 8 register
+    float64x2x4_t s_re_im, tmp;           // 8
+    float64x2x4_t x_re, x_im, y_re, y_im; // 16
+    float64x2x4_t v_re, v_im;             // 8
+    float64x2x2_t s_tmp;                  // 2
+    // Level 4, 5
+    float64x2x2_t x_tmp, y_tmp;
+    // Level 6, 7
+    float64x2_t div_n;
 
-	n = (size_t)1 << logn;
-	t = 1;
-	m = n;
-	hn = n >> 1;
-	for (u = logn; u > 1; u --) {
-		size_t hm, dt, i1, j1;
+    const unsigned int hn = FALCON_N >> 1;
 
-		hm = m >> 1;
-		dt = t << 1;
-		for (i1 = 0, j1 = 0; j1 < hn; i1 ++, j1 += dt) {
-			size_t j, j2;
+    // Level 0, 1, 2, 3
+    for (int j = 0; j < FALCON_N / 2; j += 16)
+    {
+        // Level 0
+        // x_re = 0, 4 | 2, 6 | 8, 12 | 10, 14
+        // y_re = 1, 5 | 3, 7 | 9, 13 | 11, 15
+        // x_im = 256, 260 | 258, 262 | 264, 268 | 266, 270
+        // y_im = 257, 261 | 259, 263 | 265, 269 | 267, 271
 
-			j2 = j1 + t;
-			fpr s_re, s_im;
+        // This assignment is free
+        vload4(tmp, &f[j]);
+        x_re.val[0] = tmp.val[0];
+        x_re.val[1] = tmp.val[2];
+        y_re.val[0] = tmp.val[1];
+        y_re.val[1] = tmp.val[3];
 
-			s_re = fpr_gm_tab[((hm + i1) << 1) + 0];
-			s_im = fpr_neg(fpr_gm_tab[((hm + i1) << 1) + 1]);
-			for (j = j1; j < j2; j ++) {
-				fpr x_re, x_im, y_re, y_im;
+        vload4(tmp, &f[j + 8]);
+        x_re.val[2] = tmp.val[0];
+        x_re.val[3] = tmp.val[2];
+        y_re.val[2] = tmp.val[1];
+        y_re.val[3] = tmp.val[3];
 
-				x_re = f[j];
-				x_im = f[j + hn];
-				y_re = f[j + t];
-				y_im = f[j + t + hn];
-				FPC_ADD(f[j], f[j + hn],
-					x_re, x_im, y_re, y_im);
-				FPC_SUB(x_re, x_im, x_re, x_im, y_re, y_im);
-				FPC_MUL(f[j + t], f[j + t + hn],
-					x_re, x_im, s_re, s_im);
-			}
-		}
-		t = dt;
-		m = hm;
-	}
+        vload4(tmp, &f[j + hn]);
+        x_im.val[0] = tmp.val[0];
+        x_im.val[1] = tmp.val[2];
+        y_im.val[0] = tmp.val[1];
+        y_im.val[1] = tmp.val[3];
 
-	/*
-	 * Last iteration is a no-op, provided that we divide by N/2
-	 * instead of N. We need to make a special case for logn = 0.
-	 */
-	if (logn > 0) {
-		fpr ni;
+        vload4(tmp, &f[j + hn + 8]);
+        x_im.val[2] = tmp.val[0];
+        x_im.val[3] = tmp.val[2];
+        y_im.val[2] = tmp.val[1];
+        y_im.val[3] = tmp.val[3];
 
-		ni = fpr_p2_tab[logn];
-		for (u = 0; u < n; u ++) {
-			f[u] = fpr_mul(f[u], ni);
-		}
-	}
+        ////////
+        // x - y
+        ////////
+
+        //  1,5 <= 0,4  -  1,5 |   3,7 <=   2,6 -  3,7
+        // 9,13 <= 8,12 - 9,13 | 11,15 <= 10,14 - 11,15
+        vfsubx4(v_re, x_re, y_re);
+
+        // 257,261 <= 256,260 - 257,261 | 259,263 <= 258,262 - 259,263
+        // 265,269 <= 264,268 - 265,269 | 267,271 <= 266,270 - 267,271
+        vfsubx4(v_im, x_im, y_im);
+
+        ////////
+        // x + y
+        ////////
+
+        // x_re: 0,4 | 2,6 | 8,12 | 10,14
+        // 0,4  <= 0,4  +  1,5 |   2,6 <=   2,6 +   3,7
+        // 8,12 <= 8,12 + 9,13 | 10,14 <= 10,14 + 11,15
+        vfaddx4(x_re, x_re, y_re);
+
+        // x_im: 256,260 | 258,262 | 264,268 | 266,270
+        // 256,260 <= 256,260 + 257,261 | 258,262 <= 258,262 + 259,263
+        // 264,268 <= 264,268 + 265,269 | 266,270 <= 266,270 + 267,271
+        vfaddx4(x_im, x_im, y_im);
+
+        // s * (x - y) = s*v = (s_re + i*s_im)(v_re + i*v_im)
+        // y_re:  v_re*s_re + v_im*s_im
+        // y_im: -v_re*s_im + v_im*s_re
+
+        // s_re_im = 512 -> 519
+        // s_re: 512 -> 518, step 2
+        // s_im: 513 -> 519, step 2
+        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j]);
+
+        // y_re: 1,5 | 3,7 | 9,13 | 11,15
+        // y_re = v_im*s_im + v_re*s_re
+        vfmul(tmp.val[0], v_im.val[0], s_re_im.val[1]);
+        vfmul(tmp.val[1], v_im.val[1], s_re_im.val[3]);
+        vfma(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0]);
+        vfma(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2]);
+
+        vfmul(tmp.val[0], v_im.val[0], s_re_im.val[0]);
+        vfmul(tmp.val[1], v_im.val[1], s_re_im.val[2]);
+        vfms(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[1]);
+        vfms(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[3]);
+
+        // y_im: 257,261 | 259,263 | 265,269 | 267,271
+        // y_im = v_im*s_re - v_re*s_im
+        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j + 8]);
+
+        vfmul(tmp.val[2], v_im.val[2], s_re_im.val[1]);
+        vfmul(tmp.val[3], v_im.val[3], s_re_im.val[3]);
+        vfma(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[0]);
+        vfma(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2]);
+
+        vfmul(tmp.val[2], v_im.val[2], s_re_im.val[0]);
+        vfmul(tmp.val[3], v_im.val[3], s_re_im.val[2]);
+        vfms(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1]);
+        vfms(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[3]);
+
+        // Level 1
+        // x_re = 0,4 | 2,6 | 8,12 | 10,14
+        // y_re = 1,5 | 3,7 | 9,13 | 11,15
+        // x_im = 256,260 | 258,262 | 264,268 | 266,270
+        // y_im = 257,261 | 259,263 | 265,269 | 267,271
+
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 1]);
+        s_re_im.val[0] = s_tmp.val[0];
+        s_re_im.val[1] = s_tmp.val[1];
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j + 8) >> 1]);
+        s_re_im.val[2] = s_tmp.val[0];
+        s_re_im.val[3] = s_tmp.val[1];
+
+        ////////
+        // x - y
+        ////////
+
+        // 0,4 - 2,6 | 8,12 - 10,14
+        // 1,5 - 3,7 | 9,13 - 11,15
+        vfsubx4_swap(v_re, x_re, y_re, 0, 1, 2, 3);
+        // 256,260 - 258,262 | 264,268 - 266,270
+        // 257,261 - 259,263 | 265,269 - 267,271
+        vfsubx4_swap(v_im, x_im, y_im, 0, 1, 2, 3);
+
+        ////////
+        // x + y
+        ////////
+
+        // x_re: 0,4 | 8,12 | 1,5 | 9,13
+        // 0,4 <= 0,4 + 2,6 | 8,12 <= 8,12 + 10,14
+        // 1,5 <= 1,5 + 3,7 | 9,13 <= 9,13 + 11,15
+        vfaddx4_swap(x_re, x_re, y_re, 0, 1, 2, 3);
+
+        // x_im: 256, 260 | 264, 268 | 257, 261 | 265, 269
+        // 256,260 <= 256,260 + 258,262 | 264,268 <= 264,268 + 266,270
+        // 257,261 <= 257,261 + 259,263 | 265,269 <= 265,269 + 267,271
+        vfaddx4_swap(x_im, x_im, y_im, 0, 1, 2, 3);
+
+        // Calculate y
+        // v_im*s_im
+        vfmul(tmp.val[0], v_im.val[0], s_re_im.val[1]);
+        vfmul(tmp.val[1], v_im.val[1], s_re_im.val[3]);
+        vfmul(tmp.val[2], v_im.val[2], s_re_im.val[1]);
+        vfmul(tmp.val[3], v_im.val[3], s_re_im.val[3]);
+
+        // v_im*s_im + v_re*s_re
+        // y_re: 2,6 | 10,14 | 3,7 | 11,15
+        vfma(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0]);
+        vfma(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2]);
+        vfma(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[0]);
+        vfma(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2]);
+
+        // v_im*s_re
+        vfmul(tmp.val[0], v_im.val[0], s_re_im.val[0]);
+        vfmul(tmp.val[1], v_im.val[1], s_re_im.val[2]);
+        vfmul(tmp.val[2], v_im.val[2], s_re_im.val[0]);
+        vfmul(tmp.val[3], v_im.val[3], s_re_im.val[2]);
+
+        // v_im*s_re - v_re*s_im
+        // y_im: 258,262 | 266,270 | 259,263 | 267,271
+        vfms(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[1]);
+        vfms(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[3]);
+        vfms(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1]);
+        vfms(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[3]);
+
+        // Level 2
+        // Before Transpose
+        // x_re = 0,4 | 8,12 | 1,5 | 9,13
+        // y_re = 2,6 | 10,14 | 3,7 | 11,15
+        // x_im = 256,260 | 264,268 | 257,261 | 265,269
+        // y_im = 258,262 | 266,270 | 259,263 | 267,271
+
+        transpose(x_re, x_re, tmp, 0, 2, 0);
+        transpose(x_re, x_re, tmp, 1, 3, 1);
+        transpose(y_re, y_re, tmp, 0, 2, 2);
+        transpose(y_re, y_re, tmp, 1, 3, 3);
+
+        transpose(x_im, x_im, tmp, 0, 2, 0);
+        transpose(x_im, x_im, tmp, 1, 3, 1);
+        transpose(y_im, y_im, tmp, 0, 2, 2);
+        transpose(y_im, y_im, tmp, 1, 3, 3);
+
+        // After Transpose
+        // x_re = 0,1 | 8,9 | 4,5 | 12,13
+        // y_re = 2,3 | 10,11 | 6,7 | 14,15
+        // x_im = 256,257 | 264,265 | 260,261 | 268,269
+        // y_im = 258,259 | 266,267 | 262,263 | 270,271
+
+        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 2]);
+        s_re_im.val[0] = s_tmp.val[0];
+        s_re_im.val[1] = s_tmp.val[1];
+
+        ////////
+        // x - y
+        ////////
+
+        // 0,1 - 4,5   | 2,3 - 6,7
+        // 8,9 - 12,13 | 10,11 - 14,15
+        vfsub(v_re.val[0], x_re.val[0], x_re.val[2]);
+        vfsub(v_re.val[2], x_re.val[1], x_re.val[3]);
+        vfsub(v_re.val[1], y_re.val[0], y_re.val[2]);
+        vfsub(v_re.val[3], y_re.val[1], y_re.val[3]);
+
+        // 256,257 - 260,261 | 258,259 - 262,263
+        // 264,265 - 268,269 | 266,267 - 270,271
+        vfsub(v_im.val[0], x_im.val[0], x_im.val[2]);
+        vfsub(v_im.val[2], x_im.val[1], x_im.val[3]);
+        vfsub(v_im.val[1], y_im.val[0], y_im.val[2]);
+        vfsub(v_im.val[3], y_im.val[1], y_im.val[3]);
+
+        ////////
+        // x + y
+        ////////
+
+        // x_re: 0,1 | 2,3 |  8,9 | 10,11
+        // 0,1 <= 0,1 + 4,5  | 2,3 <= 2,3 + 6,7
+        // 8,9 <= 8,9 + 12,13| 10,11 <= 10,11 + 14,15
+        vfadd(x_re.val[0], x_re.val[0], x_re.val[2]);
+        vfadd(x_re.val[2], x_re.val[1], x_re.val[3]);
+        vfadd(x_re.val[1], y_re.val[0], y_re.val[2]);
+        vfadd(x_re.val[3], y_re.val[1], y_re.val[3]);
+
+        // x_im: 256,257 | 258,259 | 264,265 | 266,267
+        // 256,257 <= 256,257 + 260,261 | 258,259 <= 258,259 + 262,263
+        // 264,265 <= 264,265 + 268,269 | 266,267 <= 266,267 + 270,271
+        vfadd(x_im.val[0], x_im.val[0], x_im.val[2]);
+        vfadd(x_im.val[2], x_im.val[1], x_im.val[3]);
+        vfadd(x_im.val[1], y_im.val[0], y_im.val[2]);
+        vfadd(x_im.val[3], y_im.val[1], y_im.val[3]);
+
+        // Calculate y
+        // v_im*s_im
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[1], 0);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[1], 0);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[1], 1);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[1], 1);
+
+        // v_im*s_im + v_re*s_re
+        // y_re: 4,5 | 6,7 | 12,13 | 14,15
+        vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
+        vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 0);
+        vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[0], 1);
+        vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[0], 1);
+
+        // v_im*s_re
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 0);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 0);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[0], 1);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[0], 1);
+
+        // v_im*s_re - v_re*s_im
+        // y_im: 260,261 |  262,263 | 268,269 | 270,271
+        vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[1], 0);
+        vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[1], 0);
+        vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1], 1);
+        vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[1], 1);
+
+        // Level 3
+        // x_re: 0,1 | 2,3 | 8,9 | 10,11
+        // y_re: 4,5 | 6,7 | 12,13 | 14,15
+        // x_im: 256,257 | 258,259 | 264,265 | 266,267
+        // y_im: 260,261 | 262,263 | 268,269 | 270,271
+
+        // Load s_re_im
+        vload(s_re_im.val[0], &fpr_gm_tab[(FALCON_N + j) >> 3]);
+        ////////
+        // x - y
+        ////////
+
+        // 0,1 -   8,9 | 2,3 - 10,11
+        // 4,5 - 12,13 | 6,7 - 14,15
+        vfsubx4_swap(v_re, x_re, y_re, 0, 2, 1, 3);
+
+        // 256,257 - 264,265 | 258,259 - 266,267
+        // 260,261 - 268,269 | 262,263 - 270,271
+        vfsubx4_swap(v_im, x_im, y_im, 0, 2, 1, 3);
+
+        ////////
+        // x + y
+        ////////
+
+        // x_re: 0,1 | 2,3 | 4,5 | 6,7
+        // 0,1 <= 0,1 +   8,9 | 2,3 <= 2,3 + 10,11
+        // 4,5 <= 4,5 + 12,13 | 6,7 <= 6,7 + 14,15
+        vfaddx4_swap(x_re, x_re, y_re, 0, 2, 1, 3);
+
+        // x_im: 256,257 | 258,259 | 260,261 | 262,263
+        // 256,257 <= 256,257 + 264,265 | 258,259 <= 258,259 + 266,267
+        // 260,261 <= 260,261 + 268,269 | 262,263 <= 262,263 + 270,271
+        vfaddx4_swap(x_im, x_im, y_im, 0, 2, 1, 3);
+
+        // Calculate y
+        // v_im*s_im
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 1);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 1);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[0], 1);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[0], 1);
+
+        // v_im*s_im + v_re*s_re
+        // y_re: 8,9 | 10,11 | 12,13 | 14,15
+        vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
+        vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 0);
+        vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[0], 0);
+        vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[0], 0);
+
+        // v_im*s_re
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 0);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 0);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[0], 0);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[0], 0);
+
+        // v_im*s_re - v_re*s_im
+        // y_im: 264,265 | 266,267 | 268,269 | 270,271
+        vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
+        vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 1);
+        vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[0], 1);
+        vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[0], 1);
+
+        // x_re: 0,1 | 2,3 | 4,5 | 6,7
+        // y_re: 8,9 | 10,11 | 12,13 | 14,15
+        // x_im: 256,257 | 258,259 | 260,261 | 262,263
+        // y_im: 264,265 | 266,267 | 268,269 | 270,271
+        vstorex4(&f[j], x_re);
+        vstorex4(&f[j + 8], y_re);
+        vstorex4(&f[j + hn], x_im);
+        vstorex4(&f[j + hn + 8], y_im);
+    }
+
+    // Level 4,5
+    for (int i = 0; i < FALCON_N / 2; i += 1 << 6)
+    {
+        vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> 4]);
+        s_re_im.val[0] = s_tmp.val[0];
+        s_re_im.val[1] = s_tmp.val[1];
+        vload(s_re_im.val[2], &fpr_gm_tab[(FALCON_N + i) >> 5]);
+
+        for (int j = i; j < i + 16; j += 4)
+        {
+            // Layer 4
+            // x_re: 0 ->3, 32->35
+            // y_re: 16 -> 19, 48 -> 51
+            // x_im: 256 -> 259, 288-> 291
+            // y_im: 272 -> 275, 304 -> 307
+            vloadx2(x_tmp, &f[j]);
+            x_re.val[0] = x_tmp.val[0];
+            x_re.val[1] = x_tmp.val[1];
+            vloadx2(y_tmp, &f[j + 16]);
+            y_re.val[0] = y_tmp.val[0];
+            y_re.val[1] = y_tmp.val[1];
+
+            vloadx2(x_tmp, &f[j + 32]);
+            x_re.val[2] = x_tmp.val[0];
+            x_re.val[3] = x_tmp.val[1];
+            vloadx2(y_tmp, &f[j + 48]);
+            y_re.val[2] = y_tmp.val[0];
+            y_re.val[3] = y_tmp.val[1];
+
+            vloadx2(x_tmp, &f[j + hn]);
+            x_im.val[0] = x_tmp.val[0];
+            x_im.val[1] = x_tmp.val[1];
+            vloadx2(y_tmp, &f[j + hn + 16]);
+            y_im.val[0] = y_tmp.val[0];
+            y_im.val[1] = y_tmp.val[1];
+
+            vloadx2(x_tmp, &f[j + hn + 32]);
+            x_im.val[2] = x_tmp.val[0];
+            x_im.val[3] = x_tmp.val[1];
+            vloadx2(y_tmp, &f[j + hn + 48]);
+            y_im.val[2] = y_tmp.val[0];
+            y_im.val[3] = y_tmp.val[1];
+
+            ////////
+            // x - y
+            ////////
+            vfsubx4(v_re, x_re, y_re);
+            vfsubx4(v_im, x_im, y_im);
+
+            ////////
+            // x + y
+            ////////
+            // x_re: 0->3, 32->35
+            // x_im: 256->259, 288->291
+            vfaddx4(x_re, x_re, y_re);
+            vfaddx4(x_im, x_im, y_im);
+
+            // Calculate y
+            // v_im*s_im
+            vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 1);
+            vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 1);
+            vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[1], 1);
+            vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[1], 1);
+
+            // v_im*s_im + v_re*s_re
+            // y_re: 16->19, 48->51
+            vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
+            vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 0);
+            vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1], 0);
+            vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[1], 0);
+
+            // v_im*s_re
+            vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 0);
+            vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 0);
+            vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[1], 0);
+            vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[1], 0);
+
+            // v_im*s_re - v_re*s_im
+            // y_im: 272->275, 304->307
+            vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
+            vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 1);
+            vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1], 1);
+            vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[1], 1);
+
+            // Level 5:
+            // x_re: 0->3, 32->35
+            // y_re: 16->19, 48->51
+            // x_im: 256->259, 288->291
+            // y_im: 272->275, 304->307
+
+            ////////
+            // x - y
+            ////////
+            vfsubx4_swap(v_re, x_re, y_re, 0, 2, 1, 3);
+            vfsubx4_swap(v_im, x_im, y_im, 0, 2, 1, 3);
+
+            ////////
+            // x + y
+            ////////
+            // x_re: 0->3, 16->19
+            // x_im: 256->259, 272-> 275
+            vfaddx4_swap(x_re, x_re, y_re, 0, 2, 1, 3);
+            vfaddx4_swap(x_im, x_im, y_im, 0, 2, 1, 3);
+
+            // Calculate y
+            // v_im*s_im
+            vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[2], 1);
+            vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[2], 1);
+            vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[2], 1);
+            vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[2], 1);
+
+            // v_im*s_im + v_re*s_re
+            // y_re: 32->35, 48->51
+            vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[2], 0);
+            vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2], 0);
+            vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[2], 0);
+            vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2], 0);
+
+            // v_im*s_re
+            vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[2], 0);
+            vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[2], 0);
+            vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[2], 0);
+            vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[2], 0);
+
+            // v_im*s_re - v_re*s_im
+            // y_im: 288->291, 304->307
+            vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[2], 1);
+            vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2], 1);
+            vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[2], 1);
+            vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2], 1);
+
+            // Store
+            x_tmp.val[0] = x_re.val[0];
+            x_tmp.val[1] = x_re.val[1];
+            vstorex2(&f[j], x_tmp);
+            x_tmp.val[0] = x_re.val[2];
+            x_tmp.val[1] = x_re.val[3];
+            vstorex2(&f[j + 16], x_tmp);
+
+            y_tmp.val[0] = y_re.val[0];
+            y_tmp.val[1] = y_re.val[1];
+            vstorex2(&f[j + 32], y_tmp);
+            y_tmp.val[0] = y_re.val[2];
+            y_tmp.val[1] = y_re.val[3];
+            vstorex2(&f[j + 48], y_tmp);
+
+            x_tmp.val[0] = x_im.val[0];
+            x_tmp.val[1] = x_im.val[1];
+            vstorex2(&f[j + hn], x_tmp);
+            x_tmp.val[0] = x_im.val[2];
+            x_tmp.val[1] = x_im.val[3];
+            vstorex2(&f[j + hn + 16], x_tmp);
+
+            y_tmp.val[0] = y_im.val[0];
+            y_tmp.val[1] = y_im.val[1];
+            vstorex2(&f[j + hn + 32], y_tmp);
+            y_tmp.val[0] = y_im.val[2];
+            y_tmp.val[1] = y_im.val[3];
+            vstorex2(&f[j + hn + 48], y_tmp);
+        }
+    }
+
+    vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N) >> 6]);
+    s_re_im.val[0] = s_tmp.val[0];
+    s_re_im.val[1] = s_tmp.val[1];
+
+    vload(s_re_im.val[2], &fpr_gm_tab[(FALCON_N) >> 7]);
+
+    div_n = vdupq_n_f64(fpr_p2_tab[FALCON_LOGN]);
+    vfmul(s_re_im.val[2], s_re_im.val[2], div_n);
+
+    // Level 6, 7
+    for (int j = 0; j < 64; j += 4)
+    {
+        // Level 6:
+        vloadx2(x_tmp, &f[j]);
+        x_re.val[0] = x_tmp.val[0];
+        x_re.val[1] = x_tmp.val[1];
+        vloadx2(y_tmp, &f[j + 64]);
+        y_re.val[0] = y_tmp.val[0];
+        y_re.val[1] = y_tmp.val[1];
+
+        vloadx2(x_tmp, &f[j + 128]);
+        x_re.val[2] = x_tmp.val[0];
+        x_re.val[3] = x_tmp.val[1];
+        vloadx2(y_tmp, &f[j + 192]);
+        y_re.val[2] = y_tmp.val[0];
+        y_re.val[3] = y_tmp.val[1];
+
+        vloadx2(x_tmp, &f[j + hn]);
+        x_im.val[0] = x_tmp.val[0];
+        x_im.val[1] = x_tmp.val[1];
+        vloadx2(y_tmp, &f[j + hn + 64]);
+        y_im.val[0] = y_tmp.val[0];
+        y_im.val[1] = y_tmp.val[1];
+
+        vloadx2(x_tmp, &f[j + hn + 128]);
+        x_im.val[2] = x_tmp.val[0];
+        x_im.val[3] = x_tmp.val[1];
+        vloadx2(y_tmp, &f[j + hn + 192]);
+        y_im.val[2] = y_tmp.val[0];
+        y_im.val[3] = y_tmp.val[1];
+
+        ////////
+        // x - y
+        ////////
+        vfsubx4(v_re, x_re, y_re);
+        vfsubx4(v_im, x_im, y_im);
+
+        ////////
+        // x + y
+        ////////
+        vfaddx4(x_re, x_re, y_re);
+        vfaddx4(x_im, x_im, y_im);
+
+        // Calculate y
+        // v_im*s_im
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 1);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 1);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[1], 1);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[1], 1);
+
+        // v_im*s_im + v_re*s_re
+        vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
+        vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 0);
+        vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1], 0);
+        vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[1], 0);
+
+        // v_im*s_re
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 0);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 0);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[1], 0);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[1], 0);
+
+        // v_im*s_re - v_re*s_im
+        vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
+        vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 1);
+        vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1], 1);
+        vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[1], 1);
+
+        // Level 7:
+        ////////
+        // x - y
+        ////////
+        vfsubx4_swap(v_re, x_re, y_re, 0, 2, 1, 3);
+        vfsubx4_swap(v_im, x_im, y_im, 0, 2, 1, 3);
+
+        ////////
+        // x + y
+        ////////
+        vfaddx4_swap(x_re, x_re, y_re, 0, 2, 1, 3);
+        vfaddx4_swap(x_im, x_im, y_im, 0, 2, 1, 3);
+
+        // Calculate y
+        // v_im*s_im
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[2], 1);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[2], 1);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[2], 1);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[2], 1);
+
+        // v_im*s_im + v_re*s_re
+        vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[2], 0);
+        vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2], 0);
+        vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[2], 0);
+        vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2], 0);
+
+        // v_im*s_re
+        vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[2], 0);
+        vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[2], 0);
+        vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[2], 0);
+        vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[2], 0);
+
+        // v_im*s_re - v_re*s_im
+        vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[2], 1);
+        vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2], 1);
+        vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[2], 1);
+        vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2], 1);
+
+        // Divide by N at the end
+        vfmul(x_re.val[0], x_re.val[0], div_n);
+        vfmul(x_re.val[1], x_re.val[1], div_n);
+        vfmul(x_re.val[2], x_re.val[2], div_n);
+        vfmul(x_re.val[3], x_re.val[3], div_n);
+
+        vfmul(x_im.val[0], x_im.val[0], div_n);
+        vfmul(x_im.val[1], x_im.val[1], div_n);
+        vfmul(x_im.val[2], x_im.val[2], div_n);
+        vfmul(x_im.val[3], x_im.val[3], div_n);
+
+        // Store
+        x_tmp.val[0] = x_re.val[0];
+        x_tmp.val[1] = x_re.val[1];
+        vstorex2(&f[j], x_tmp);
+        x_tmp.val[0] = x_re.val[2];
+        x_tmp.val[1] = x_re.val[3];
+        vstorex2(&f[j + 64], x_tmp);
+
+        y_tmp.val[0] = y_re.val[0];
+        y_tmp.val[1] = y_re.val[1];
+        vstorex2(&f[j + 128], y_tmp);
+        y_tmp.val[0] = y_re.val[2];
+        y_tmp.val[1] = y_re.val[3];
+        vstorex2(&f[j + 192], y_tmp);
+
+        x_tmp.val[0] = x_im.val[0];
+        x_tmp.val[1] = x_im.val[1];
+        vstorex2(&f[j + hn], x_tmp);
+        x_tmp.val[0] = x_im.val[2];
+        x_tmp.val[1] = x_im.val[3];
+        vstorex2(&f[j + hn + 64], x_tmp);
+
+        y_tmp.val[0] = y_im.val[0];
+        y_tmp.val[1] = y_im.val[1];
+        vstorex2(&f[j + hn + 128], y_tmp);
+        y_tmp.val[0] = y_im.val[2];
+        y_tmp.val[1] = y_im.val[3];
+        vstorex2(&f[j + hn + 192], y_tmp);
+    }
+    // End function
+
+    // Optional, combine two level 4-5, 6-7 loop,
+    // but the compiler generate overhead loop, so I discard
+    /* 
+    int distance;
+    const unsigned int LAST_L = 6; // Last level
+    for (int l = 4; l < 8; l += 2)
+    {
+        distance = 1 << l;
+
+        for (int i = 0; i < FALCON_N/2; i += 1 << (l+2) )
+        {
+            vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> l]);
+            s_re_im.val[0] = s_tmp.val[0];
+            s_re_im.val[1] = s_tmp.val[1];
+            vload(s_re_im.val[2], &fpr_gm_tab[(FALCON_N + i) >> (l+1)]);
+
+            if (l == LAST_L)
+            {
+                vfmul(s_re_im.val[2], s_re_im.val[2], div_n);
+            }
+            
+            for (int j = i; j < i + distance; j += 4)
+            {
+                vloadx2(x_tmp, &f[j]);
+                x_re.val[0] = x_tmp.val[0];
+                x_re.val[1] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + distance]);
+                y_re.val[0] = y_tmp.val[0];
+                y_re.val[1] = y_tmp.val[1];
+
+                vloadx2(x_tmp, &f[j + 2*distance]);
+                x_re.val[2] = x_tmp.val[0];
+                x_re.val[3] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + 3*distance]);
+                y_re.val[2] = y_tmp.val[0];
+                y_re.val[3] = y_tmp.val[1];
+
+                vloadx2(x_tmp, &f[j + hn]);
+                x_im.val[0] = x_tmp.val[0];
+                x_im.val[1] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + hn + distance]);
+                y_im.val[0] = y_tmp.val[0];
+                y_im.val[1] = y_tmp.val[1];
+
+                vloadx2(x_tmp, &f[j + hn + 2*distance]);
+                x_im.val[2] = x_tmp.val[0];
+                x_im.val[3] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + hn + 3*distance]);
+                y_im.val[2] = y_tmp.val[0];
+                y_im.val[3] = y_tmp.val[1];
+
+                ////////
+                // x - y
+                ////////
+                vfsubx4(v_re, x_re, y_re);
+                vfsubx4(v_im, x_im, y_im);
+
+                ////////
+                // x + y
+                ////////
+                // x_re: 0->3, 32->35
+                // x_im: 256->259, 288->291
+                vfaddx4(x_re, x_re, y_re);
+                vfaddx4(x_im, x_im, y_im);
+
+                // Calculate y
+                // v_im*s_im
+                vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 1);
+                vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 1);
+                vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[1], 1);
+                vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[1], 1);
+
+                // v_im*s_im + v_re*s_re
+                // y_re: 16->19, 48->51
+                vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 0);
+                vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 0);
+                vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1], 0);
+                vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[1], 0);
+
+                // v_im*s_re
+                vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[0], 0);
+                vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[0], 0);
+                vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[1], 0);
+                vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[1], 0);
+
+                // v_im*s_re - v_re*s_im
+                // y_im: 272->275, 304->307
+                vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[0], 1);
+                vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[0], 1);
+                vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[1], 1);
+                vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[1], 1);
+
+                // Layer 6:
+                // x_re: 0->3, 32->35
+                // y_re: 16->19, 48->51
+                // x_im: 256->259, 288->291
+                // y_im: 272->275, 304->307
+
+                ////////
+                // x - y
+                ////////
+                vfsubx4_swap(v_re, x_re, y_re, 0, 2, 1, 3);
+                vfsubx4_swap(v_im, x_im, y_im, 0, 2, 1, 3);
+
+                ////////
+                // x + y
+                ////////
+                // x_re: 0->3, 16->19
+                // x_im: 256->259, 272-> 275
+                vfaddx4_swap(x_re, x_re, y_re, 0, 2, 1, 3);
+                vfaddx4_swap(x_im, x_im, y_im, 0, 2, 1, 3);
+
+                // Calculate y
+                // v_im*s_im
+                vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[2], 1);
+                vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[2], 1);
+                vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[2], 1);
+                vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[2], 1);
+
+                // v_im*s_im + v_re*s_re
+                // y_re: 32->35, 48->51
+                vfma_lane(y_re.val[0], tmp.val[0], v_re.val[0], s_re_im.val[2], 0);
+                vfma_lane(y_re.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2], 0);
+                vfma_lane(y_re.val[2], tmp.val[2], v_re.val[2], s_re_im.val[2], 0);
+                vfma_lane(y_re.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2], 0);
+
+                // v_im*s_re
+                vfmul_lane(tmp.val[0], v_im.val[0], s_re_im.val[2], 0);
+                vfmul_lane(tmp.val[1], v_im.val[1], s_re_im.val[2], 0);
+                vfmul_lane(tmp.val[2], v_im.val[2], s_re_im.val[2], 0);
+                vfmul_lane(tmp.val[3], v_im.val[3], s_re_im.val[2], 0);
+
+                // v_im*s_re - v_re*s_im
+                // y_im: 288->291, 304->307
+                vfms_lane(y_im.val[0], tmp.val[0], v_re.val[0], s_re_im.val[2], 1);
+                vfms_lane(y_im.val[1], tmp.val[1], v_re.val[1], s_re_im.val[2], 1);
+                vfms_lane(y_im.val[2], tmp.val[2], v_re.val[2], s_re_im.val[2], 1);
+                vfms_lane(y_im.val[3], tmp.val[3], v_re.val[3], s_re_im.val[2], 1);
+
+                if (l == LAST_L)
+                {
+                    vfmul(x_re.val[0], x_re.val[0], div_n);
+                    vfmul(x_re.val[1], x_re.val[1], div_n);
+                    vfmul(x_re.val[2], x_re.val[2], div_n);
+                    vfmul(x_re.val[3], x_re.val[3], div_n);
+
+                    vfmul(x_im.val[0], x_im.val[0], div_n);
+                    vfmul(x_im.val[1], x_im.val[1], div_n);
+                    vfmul(x_im.val[2], x_im.val[2], div_n);
+                    vfmul(x_im.val[3], x_im.val[3], div_n);
+                }
+
+                // Store
+                x_tmp.val[0] = x_re.val[0];
+                x_tmp.val[1] = x_re.val[1];
+                vstorex2(&f[j], x_tmp);
+                x_tmp.val[0] = x_re.val[2];
+                x_tmp.val[1] = x_re.val[3];
+                vstorex2(&f[j + distance], x_tmp);
+
+                y_tmp.val[0] = y_re.val[0];
+                y_tmp.val[1] = y_re.val[1];
+                vstorex2(&f[j + 2*distance], y_tmp);
+                y_tmp.val[0] = y_re.val[2];
+                y_tmp.val[1] = y_re.val[3];
+                vstorex2(&f[j + 3*distance], y_tmp);
+
+                x_tmp.val[0] = x_im.val[0];
+                x_tmp.val[1] = x_im.val[1];
+                vstorex2(&f[j + hn], x_tmp);
+                x_tmp.val[0] = x_im.val[2];
+                x_tmp.val[1] = x_im.val[3];
+                vstorex2(&f[j + hn + distance], x_tmp);
+
+                y_tmp.val[0] = y_im.val[0];
+                y_tmp.val[1] = y_im.val[1];
+                vstorex2(&f[j + hn + 2*distance], y_tmp);
+                y_tmp.val[0] = y_im.val[2];
+                y_tmp.val[1] = y_im.val[3];
+                vstorex2(&f[j + hn + 3*distance], y_tmp);
+            }
+        }
+
+    } */
 }
-
-/* see inner.h */
-void
-Zf(poly_add)(
-	fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, u;
-
-	n = (size_t)1 << logn;
-	for (u = 0; u < n; u ++) {
-		a[u] = fpr_add(a[u], b[u]);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_sub)(
-	fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, u;
-
-	n = (size_t)1 << logn;
-	for (u = 0; u < n; u ++) {
-		a[u] = fpr_sub(a[u], b[u]);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_neg)(fpr *a, unsigned logn)
-{
-	size_t n, u;
-
-	n = (size_t)1 << logn;
-	for (u = 0; u < n; u ++) {
-		a[u] = fpr_neg(a[u]);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_adj_fft)(fpr *a, unsigned logn)
-{
-	size_t n, u;
-
-	n = (size_t)1 << logn;
-	for (u = (n >> 1); u < n; u ++) {
-		a[u] = fpr_neg(a[u]);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_mul_fft)(
-	fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr a_re, a_im, b_re, b_im;
-
-		a_re = a[u];
-		a_im = a[u + hn];
-		b_re = b[u];
-		b_im = b[u + hn];
-		FPC_MUL(a[u], a[u + hn], a_re, a_im, b_re, b_im);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_muladj_fft)(
-	fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr a_re, a_im, b_re, b_im;
-
-		a_re = a[u];
-		a_im = a[u + hn];
-		b_re = b[u];
-		b_im = fpr_neg(b[u + hn]);
-		FPC_MUL(a[u], a[u + hn], a_re, a_im, b_re, b_im);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_mulselfadj_fft)(fpr *a, unsigned logn)
-{
-	/*
-	 * Since each coefficient is multiplied with its own conjugate,
-	 * the result contains only real values.
-	 */
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr a_re, a_im;
-
-		a_re = a[u];
-		a_im = a[u + hn];
-		a[u] = fpr_add(fpr_sqr(a_re), fpr_sqr(a_im));
-		a[u + hn] = fpr_zero;
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_mulconst)(fpr *a, fpr x, unsigned logn)
-{
-	size_t n, u;
-
-	n = (size_t)1 << logn;
-	for (u = 0; u < n; u ++) {
-		a[u] = fpr_mul(a[u], x);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_div_fft)(
-	fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr a_re, a_im, b_re, b_im;
-
-		a_re = a[u];
-		a_im = a[u + hn];
-		b_re = b[u];
-		b_im = b[u + hn];
-		FPC_DIV(a[u], a[u + hn], a_re, a_im, b_re, b_im);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_invnorm2_fft)(fpr *restrict d,
-	const fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr a_re, a_im;
-		fpr b_re, b_im;
-
-		a_re = a[u];
-		a_im = a[u + hn];
-		b_re = b[u];
-		b_im = b[u + hn];
-		d[u] = fpr_inv(fpr_add(
-			fpr_add(fpr_sqr(a_re), fpr_sqr(a_im)),
-			fpr_add(fpr_sqr(b_re), fpr_sqr(b_im))));
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_add_muladj_fft)(fpr *restrict d,
-	const fpr *restrict F, const fpr *restrict G,
-	const fpr *restrict f, const fpr *restrict g, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr F_re, F_im, G_re, G_im;
-		fpr f_re, f_im, g_re, g_im;
-		fpr a_re, a_im, b_re, b_im;
-
-		F_re = F[u];
-		F_im = F[u + hn];
-		G_re = G[u];
-		G_im = G[u + hn];
-		f_re = f[u];
-		f_im = f[u + hn];
-		g_re = g[u];
-		g_im = g[u + hn];
-
-		FPC_MUL(a_re, a_im, F_re, F_im, f_re, fpr_neg(f_im));
-		FPC_MUL(b_re, b_im, G_re, G_im, g_re, fpr_neg(g_im));
-		d[u] = fpr_add(a_re, b_re);
-		d[u + hn] = fpr_add(a_im, b_im);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_mul_autoadj_fft)(
-	fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		a[u] = fpr_mul(a[u], b[u]);
-		a[u + hn] = fpr_mul(a[u + hn], b[u]);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_div_autoadj_fft)(
-	fpr *restrict a, const fpr *restrict b, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr ib;
-
-		ib = fpr_inv(b[u]);
-		a[u] = fpr_mul(a[u], ib);
-		a[u + hn] = fpr_mul(a[u + hn], ib);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_LDL_fft)(
-	const fpr *restrict g00,
-	fpr *restrict g01, fpr *restrict g11, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr g00_re, g00_im, g01_re, g01_im, g11_re, g11_im;
-		fpr mu_re, mu_im;
-
-		g00_re = g00[u];
-		g00_im = g00[u + hn];
-		g01_re = g01[u];
-		g01_im = g01[u + hn];
-		g11_re = g11[u];
-		g11_im = g11[u + hn];
-		FPC_DIV(mu_re, mu_im, g01_re, g01_im, g00_re, g00_im);
-		FPC_MUL(g01_re, g01_im, mu_re, mu_im, g01_re, fpr_neg(g01_im));
-		FPC_SUB(g11[u], g11[u + hn], g11_re, g11_im, g01_re, g01_im);
-		g01[u] = mu_re;
-		g01[u + hn] = fpr_neg(mu_im);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_LDLmv_fft)(
-	fpr *restrict d11, fpr *restrict l10,
-	const fpr *restrict g00, const fpr *restrict g01,
-	const fpr *restrict g11, unsigned logn)
-{
-	size_t n, hn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	for (u = 0; u < hn; u ++) {
-		fpr g00_re, g00_im, g01_re, g01_im, g11_re, g11_im;
-		fpr mu_re, mu_im;
-
-		g00_re = g00[u];
-		g00_im = g00[u + hn];
-		g01_re = g01[u];
-		g01_im = g01[u + hn];
-		g11_re = g11[u];
-		g11_im = g11[u + hn];
-		FPC_DIV(mu_re, mu_im, g01_re, g01_im, g00_re, g00_im);
-		FPC_MUL(g01_re, g01_im, mu_re, mu_im, g01_re, fpr_neg(g01_im));
-		FPC_SUB(d11[u], d11[u + hn], g11_re, g11_im, g01_re, g01_im);
-		l10[u] = mu_re;
-		l10[u + hn] = fpr_neg(mu_im);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_split_fft)(
-	fpr *restrict f0, fpr *restrict f1,
-	const fpr *restrict f, unsigned logn)
-{
-	/*
-	 * The FFT representation we use is in bit-reversed order
-	 * (element i contains f(w^(rev(i))), where rev() is the
-	 * bit-reversal function over the ring degree. This changes
-	 * indexes with regards to the Falcon specification.
-	 */
-	size_t n, hn, qn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	qn = hn >> 1;
-
-	/*
-	 * We process complex values by pairs. For logn = 1, there is only
-	 * one complex value (the other one is the implicit conjugate),
-	 * so we add the two lines below because the loop will be
-	 * skipped.
-	 */
-	f0[0] = f[0];
-	f1[0] = f[hn];
-
-	for (u = 0; u < qn; u ++) {
-		fpr a_re, a_im, b_re, b_im;
-		fpr t_re, t_im;
-
-		a_re = f[(u << 1) + 0];
-		a_im = f[(u << 1) + 0 + hn];
-		b_re = f[(u << 1) + 1];
-		b_im = f[(u << 1) + 1 + hn];
-
-		FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
-		f0[u] = fpr_half(t_re);
-		f0[u + qn] = fpr_half(t_im);
-
-		FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
-		FPC_MUL(t_re, t_im, t_re, t_im,
-			fpr_gm_tab[((u + hn) << 1) + 0],
-			fpr_neg(fpr_gm_tab[((u + hn) << 1) + 1]));
-		f1[u] = fpr_half(t_re);
-		f1[u + qn] = fpr_half(t_im);
-	}
-}
-
-/* see inner.h */
-void
-Zf(poly_merge_fft)(
-	fpr *restrict f,
-	const fpr *restrict f0, const fpr *restrict f1, unsigned logn)
-{
-	size_t n, hn, qn, u;
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-	qn = hn >> 1;
-
-	/*
-	 * An extra copy to handle the special case logn = 1.
-	 */
-	f[0] = f0[0];
-	f[hn] = f1[0];
-
-	for (u = 0; u < qn; u ++) {
-		fpr a_re, a_im, b_re, b_im;
-		fpr t_re, t_im;
-
-		a_re = f0[u];
-		a_im = f0[u + qn];
-		FPC_MUL(b_re, b_im, f1[u], f1[u + qn],
-			fpr_gm_tab[((u + hn) << 1) + 0],
-			fpr_gm_tab[((u + hn) << 1) + 1]);
-		FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
-		f[(u << 1) + 0] = t_re;
-		f[(u << 1) + 0 + hn] = t_im;
-		FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
-		f[(u << 1) + 1] = t_re;
-		f[(u << 1) + 1 + hn] = t_im;
-	}
-}
+#else
+#error "TODO: Falcon-1024"
+#endif
