@@ -10,7 +10,7 @@
 
 # CC = c99
 CC = clang
-CFLAGS = -W -Wall -O2 -Wextra -Wpedantic`1
+CFLAGS = -W -Wall -O2 -Wextra -Wpedantic
 LD = c99
 LDFLAGS = 
 LIBS = 
@@ -77,3 +77,4 @@ build/PQCgenKAT_sign.o: PQCgenKAT_sign.c $(HEAD2)
 
 build/katrng.o: katrng.c $(HEAD2)
 	$(CC) $(CFLAGS) -I . -c -o build/katrng.o katrng.c
+
