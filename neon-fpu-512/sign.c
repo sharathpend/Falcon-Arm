@@ -269,12 +269,10 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	/*
 	 * Compute the FFT for the key elements, and negate f and F.
 	 */
-	Zf(FFT)(rf, logn);
-	Zf(FFT)(rg, logn);
-	Zf(FFT)(rF, logn);
-	Zf(FFT)(rG, logn);
-	Zf(poly_neg)(rf, logn);
-	Zf(poly_neg)(rF, logn);
+	Zf(FFT)(rf, logn, true);
+	Zf(FFT)(rF, logn, true);
+    Zf(FFT)(rg, logn, false);
+	Zf(FFT)(rG, logn, false);
 
 	/*
 	 * The Gram matrix is G = B·B*. Formulas are:
@@ -291,23 +289,17 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	g11 = g01 + n;
 	gxx = g11 + n;
 
-	memcpy(g00, b00, n * sizeof *b00);
-	Zf(poly_mulselfadj_fft)(g00, logn);
-	memcpy(gxx, b01, n * sizeof *b01);
-	Zf(poly_mulselfadj_fft)(gxx, logn);
-	Zf(poly_add)(g00, gxx, logn);
+    Zf(poly_mulselfadj_fft)(g00, b00, logn);
+    Zf(poly_mulselfadj_fft)(gxx, b01, logn);
+    Zf(poly_add)(g00, g00, gxx, logn);
 
-	memcpy(g01, b00, n * sizeof *b00);
-	Zf(poly_muladj_fft)(g01, b10, logn);
-	memcpy(gxx, b01, n * sizeof *b01);
-	Zf(poly_muladj_fft)(gxx, b11, logn);
-	Zf(poly_add)(g01, gxx, logn);
+    Zf(poly_muladj_fft)(g01, b00, b10, logn);
+    Zf(poly_muladj_fft)(gxx, b01, b11, logn);
+    Zf(poly_add)(g01, g01, gxx, logn);
 
-	memcpy(g11, b10, n * sizeof *b10);
-	Zf(poly_mulselfadj_fft)(g11, logn);
-	memcpy(gxx, b11, n * sizeof *b11);
-	Zf(poly_mulselfadj_fft)(gxx, logn);
-	Zf(poly_add)(g11, gxx, logn);
+    Zf(poly_mulselfadj_fft)(g11, b10, logn);
+    Zf(poly_mulselfadj_fft)(gxx, b11, logn);
+    Zf(poly_add)(g11, g11, gxx, logn);
 
 	/*
 	 * Compute the Falcon tree.
@@ -399,11 +391,11 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 *
 	 * In the end, z1 is written over t1, and tb0 is in t0.
 	 */
-	memcpy(z1, t1, n * sizeof *t1);
-	Zf(poly_sub)(z1, tmp + (n << 1), logn);
-	memcpy(t1, tmp + (n << 1), n * sizeof *tmp);
-	Zf(poly_mul_fft)(tmp, z1, logn);
-	Zf(poly_add)(t0, tmp, logn);
+    Zf(poly_sub)(z1, t1, tmp + (n << 1), logn);
+    memcpy(t1, tmp + (n << 1), n * sizeof *tmp);
+    Zf(poly_mul_fft)(tmp, tmp, z1, logn);
+    Zf(poly_add)(t0, t0, tmp, logn);
+
 
 	/*
 	 * Second recursive invocation, on the split tb0 (currently in t0)
@@ -628,10 +620,9 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	/*
 	 * Compute tb0 = t0 + (t1 - z1) * L. Value tb0 ends up in tmp[].
 	 */
-	memcpy(tmp, t1, n * sizeof *t1);
-	Zf(poly_sub)(tmp, z1, logn);
-	Zf(poly_mul_fft)(tmp, tree, logn);
-	Zf(poly_add)(tmp, t0, logn);
+	Zf(poly_sub)(tmp, t1, z1, logn);
+	Zf(poly_mul_fft)(tmp, tmp, tree, logn);
+	Zf(poly_add)(tmp, tmp, t0, logn);
 
 	/*
 	 * Second recursive invocation.
@@ -688,13 +679,12 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 * Apply the lattice basis to obtain the real target
 	 * vector (after normalization with regards to modulus).
 	 */
-	Zf(FFT)(t0, logn);
+	Zf(FFT)(t0, logn, false);
 	ni = fpr_inverse_of_q;
-	memcpy(t1, t0, n * sizeof *t0);
-	Zf(poly_mul_fft)(t1, b01, logn);
-	Zf(poly_mulconst)(t1, fpr_neg(ni), logn);
-	Zf(poly_mul_fft)(t0, b11, logn);
-	Zf(poly_mulconst)(t0, ni, logn);
+	Zf(poly_mul_fft)(t1, t0, b01, logn);
+	Zf(poly_mulconst)(t1, t1, fpr_neg(ni), logn);
+	Zf(poly_mul_fft)(t0, t0, b11, logn);
+	Zf(poly_mulconst)(t0, t0, ni, logn);
 
 	tx = t1 + n;
 	ty = tx + n;
@@ -709,15 +699,14 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 	memcpy(t0, tx, n * sizeof *tx);
 	memcpy(t1, ty, n * sizeof *ty);
-	Zf(poly_mul_fft)(tx, b00, logn);
-	Zf(poly_mul_fft)(ty, b10, logn);
-	Zf(poly_add)(tx, ty, logn);
-	memcpy(ty, t0, n * sizeof *t0);
-	Zf(poly_mul_fft)(ty, b01, logn);
-
+	Zf(poly_mul_fft)(tx, tx, b00, logn);
+	Zf(poly_mul_fft)(ty, ty, b10, logn);
+	Zf(poly_add)(tx, tx, ty, logn);
+	Zf(poly_mul_fft)(ty, t0, b01, logn);
+    
 	memcpy(t0, tx, n * sizeof *tx);
-	Zf(poly_mul_fft)(t1, b11, logn);
-	Zf(poly_add)(t1, ty, logn);
+	Zf(poly_mul_fft)(t1, t1, b11, logn);
+	Zf(poly_add)(t1, t1, ty, logn);
 
 	Zf(iFFT)(t0, logn);
 	Zf(iFFT)(t1, logn);
@@ -794,12 +783,10 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	smallints_to_fpr(b00, g, logn);
 	smallints_to_fpr(b11, F, logn);
 	smallints_to_fpr(b10, G, logn);
-	Zf(FFT)(b01, logn);
-	Zf(FFT)(b00, logn);
-	Zf(FFT)(b11, logn);
-	Zf(FFT)(b10, logn);
-	Zf(poly_neg)(b01, logn);
-	Zf(poly_neg)(b11, logn);
+    Zf(FFT)(b01, logn, true);
+	Zf(FFT)(b11, logn, true);
+    Zf(FFT)(b00, logn, false);
+	Zf(FFT)(b10, logn, false);
 
 	/*
 	 * Compute the Gram matrix G = B·B*. Formulas are:
@@ -818,21 +805,19 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	t0 = b11 + n;
 	t1 = t0 + n;
 
-	memcpy(t0, b01, n * sizeof *b01);
-	Zf(poly_mulselfadj_fft)(t0, logn);    // t0 <- b01*adj(b01)
+	Zf(poly_mulselfadj_fft)(t0, b01, logn);    // t0 <- b01*adj(b01)
 
-	memcpy(t1, b00, n * sizeof *b00);
-	Zf(poly_muladj_fft)(t1, b10, logn);   // t1 <- b00*adj(b10)
-	Zf(poly_mulselfadj_fft)(b00, logn);   // b00 <- b00*adj(b00)
-	Zf(poly_add)(b00, t0, logn);      // b00 <- g00
+	Zf(poly_muladj_fft)(t1, b00, b10, logn);   // t1 <- b00*adj(b10)
+	Zf(poly_mulselfadj_fft)(b00, b00, logn);   // b00 <- b00*adj(b00)
+	Zf(poly_add)(b00, b00, t0, logn);      // b00 <- g00
+	
 	memcpy(t0, b01, n * sizeof *b01);
-	Zf(poly_muladj_fft)(b01, b11, logn);  // b01 <- b01*adj(b11)
-	Zf(poly_add)(b01, t1, logn);      // b01 <- g01
-
-	Zf(poly_mulselfadj_fft)(b10, logn);   // b10 <- b10*adj(b10)
-	memcpy(t1, b11, n * sizeof *b11);
-	Zf(poly_mulselfadj_fft)(t1, logn);    // t1 <- b11*adj(b11)
-	Zf(poly_add)(b10, t1, logn);      // b10 <- g11
+    Zf(poly_muladj_fft)(b01, b01, b11, logn);  // b01 <- b01*adj(b11)
+	Zf(poly_add)(b01, b01, t1, logn);      // b01 <- g01
+	
+    Zf(poly_mulselfadj_fft)(b10, b10, logn);   // b10 <- b10*adj(b10)
+	Zf(poly_mulselfadj_fft)(t1, b11, logn);    // t1 <- b11*adj(b11)
+	Zf(poly_add)(b10, b10, t1, logn);      // b10 <- g11
 
 	/*
 	 * We rename variables to make things clearer. The three elements
@@ -867,11 +852,11 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 	Zf(FFT)(t0, logn);
 	ni = fpr_inverse_of_q;
-	memcpy(t1, t0, n * sizeof *t0);
-	Zf(poly_mul_fft)(t1, b01, logn);
-	Zf(poly_mulconst)(t1, fpr_neg(ni), logn);
-	Zf(poly_mul_fft)(t0, b11, logn);
-	Zf(poly_mulconst)(t0, ni, logn);
+	// memcpy(t1, t0, n * sizeof *t0);
+	Zf(poly_mul_fft)(t1, t0, b01, logn);
+	Zf(poly_mulconst)(t1, t1, fpr_neg(ni), logn);
+	Zf(poly_mul_fft)(t0, t0, b11, logn);
+	Zf(poly_mulconst)(t0, t0, ni, logn);
 
 	/*
 	 * b01 and b11 can be discarded, so we move back (t0,t1).
@@ -906,29 +891,27 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	smallints_to_fpr(b00, g, logn);
 	smallints_to_fpr(b11, F, logn);
 	smallints_to_fpr(b10, G, logn);
-	Zf(FFT)(b01, logn);
-	Zf(FFT)(b00, logn);
-	Zf(FFT)(b11, logn);
-	Zf(FFT)(b10, logn);
-	Zf(poly_neg)(b01, logn);
-	Zf(poly_neg)(b11, logn);
+	Zf(FFT)(b01, logn, true);
+	Zf(FFT)(b11, logn, true);
+	Zf(FFT)(b00, logn, false);
+	Zf(FFT)(b10, logn, false);
 	tx = t1 + n;
 	ty = tx + n;
 
 	/*
 	 * Get the lattice point corresponding to that tiny vector.
 	 */
-	memcpy(tx, t0, n * sizeof *t0);
-	memcpy(ty, t1, n * sizeof *t1);
-	Zf(poly_mul_fft)(tx, b00, logn);
-	Zf(poly_mul_fft)(ty, b10, logn);
-	Zf(poly_add)(tx, ty, logn);
-	memcpy(ty, t0, n * sizeof *t0);
-	Zf(poly_mul_fft)(ty, b01, logn);
+
+
+	Zf(poly_mul_fft)(tx, t0, b00, logn);
+	Zf(poly_mul_fft)(ty, t1, b10, logn);
+	Zf(poly_add)(tx, tx, ty, logn);
+
+	Zf(poly_mul_fft)(ty, t0, b01, logn);
 
 	memcpy(t0, tx, n * sizeof *tx);
-	Zf(poly_mul_fft)(t1, b11, logn);
-	Zf(poly_add)(t1, ty, logn);
+	Zf(poly_mul_fft)(t1, t1, b11, logn);
+	Zf(poly_add)(t1, t1, ty, logn);
 	Zf(iFFT)(t0, logn);
 	Zf(iFFT)(t1, logn);
 
@@ -966,219 +949,6 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	return 0;
 }
 
-/*
- * Sample an integer value along a half-gaussian distribution centered
- * on zero and standard deviation 1.8205, with a precision of 72 bits.
- */
-int
-Zf(gaussian0_sampler)(prng *p)
-{
-
-	static const uint32_t dist[] = {
-		10745844u,  3068844u,  3741698u,
-		 5559083u,  1580863u,  8248194u,
-		 2260429u, 13669192u,  2736639u,
-		  708981u,  4421575u, 10046180u,
-		  169348u,  7122675u,  4136815u,
-		   30538u, 13063405u,  7650655u,
-		    4132u, 14505003u,  7826148u,
-		     417u, 16768101u, 11363290u,
-		      31u,  8444042u,  8086568u,
-		       1u, 12844466u,   265321u,
-		       0u,  1232676u, 13644283u,
-		       0u,    38047u,  9111839u,
-		       0u,      870u,  6138264u,
-		       0u,       14u, 12545723u,
-		       0u,        0u,  3104126u,
-		       0u,        0u,    28824u,
-		       0u,        0u,      198u,
-		       0u,        0u,        1u
-	};
-
-	uint32_t v0, v1, v2, hi;
-	uint64_t lo;
-	size_t u;
-	int z;
-
-	/*
-	 * Get a random 72-bit value, into three 24-bit limbs v0..v2.
-	 */
-	lo = prng_get_u64(p);
-	hi = prng_get_u8(p);
-	v0 = (uint32_t)lo & 0xFFFFFF;
-	v1 = (uint32_t)(lo >> 24) & 0xFFFFFF;
-	v2 = (uint32_t)(lo >> 48) | (hi << 16);
-
-	/*
-	 * Sampled value is z, such that v0..v2 is lower than the first
-	 * z elements of the table.
-	 */
-	z = 0;
-	for (u = 0; u < (sizeof dist) / sizeof(dist[0]); u += 3) {
-		uint32_t w0, w1, w2, cc;
-
-		w0 = dist[u + 2];
-		w1 = dist[u + 1];
-		w2 = dist[u + 0];
-		cc = (v0 - w0) >> 31;
-		cc = (v1 - w1 - cc) >> 31;
-		cc = (v2 - w2 - cc) >> 31;
-		z += (int)cc;
-	}
-	return z;
-
-}
-
-/*
- * Sample a bit with probability exp(-x) for some x >= 0.
- */
-static int
-BerExp(prng *p, fpr x, fpr ccs)
-{
-	int s, i;
-	fpr r;
-	uint32_t sw, w;
-	uint64_t z;
-
-	/*
-	 * Reduce x modulo log(2): x = s*log(2) + r, with s an integer,
-	 * and 0 <= r < log(2). Since x >= 0, we can use fpr_trunc().
-	 */
-	s = (int)fpr_trunc(fpr_mul(x, fpr_inv_log2));
-	r = fpr_sub(x, fpr_mul(fpr_of(s), fpr_log2));
-
-	/*
-	 * It may happen (quite rarely) that s >= 64; if sigma = 1.2
-	 * (the minimum value for sigma), r = 0 and b = 1, then we get
-	 * s >= 64 if the half-Gaussian produced a z >= 13, which happens
-	 * with probability about 0.000000000230383991, which is
-	 * approximatively equal to 2^(-32). In any case, if s >= 64,
-	 * then BerExp will be non-zero with probability less than
-	 * 2^(-64), so we can simply saturate s at 63.
-	 */
-	sw = (uint32_t)s;
-	sw ^= (sw ^ 63) & -((63 - sw) >> 31);
-	s = (int)sw;
-
-	/*
-	 * Compute exp(-r); we know that 0 <= r < log(2) at this point, so
-	 * we can use fpr_expm_p63(), which yields a result scaled to 2^63.
-	 * We scale it up to 2^64, then right-shift it by s bits because
-	 * we really want exp(-x) = 2^(-s)*exp(-r).
-	 *
-	 * The "-1" operation makes sure that the value fits on 64 bits
-	 * (i.e. if r = 0, we may get 2^64, and we prefer 2^64-1 in that
-	 * case). The bias is negligible since fpr_expm_p63() only computes
-	 * with 51 bits of precision or so.
-	 */
-	z = ((fpr_expm_p63(r, ccs) << 1) - 1) >> s;
-
-	/*
-	 * Sample a bit with probability exp(-x). Since x = s*log(2) + r,
-	 * exp(-x) = 2^-s * exp(-r), we compare lazily exp(-x) with the
-	 * PRNG output to limit its consumption, the sign of the difference
-	 * yields the expected result.
-	 */
-	i = 64;
-	do {
-		i -= 8;
-		w = prng_get_u8(p) - ((uint32_t)(z >> i) & 0xFF);
-	} while (!w && i > 0);
-	return (int)(w >> 31);
-}
-
-/*
- * The sampler produces a random integer that follows a discrete Gaussian
- * distribution, centered on mu, and with standard deviation sigma. The
- * provided parameter isigma is equal to 1/sigma.
- *
- * The value of sigma MUST lie between 1 and 2 (i.e. isigma lies between
- * 0.5 and 1); in Falcon, sigma should always be between 1.2 and 1.9.
- */
-int
-Zf(sampler)(void *ctx, fpr mu, fpr isigma)
-{
-	sampler_context *spc;
-	int s;
-	fpr r, dss, ccs;
-
-	spc = ctx;
-
-	/*
-	 * Center is mu. We compute mu = s + r where s is an integer
-	 * and 0 <= r < 1.
-	 */
-	s = (int)fpr_floor(mu);
-	r = fpr_sub(mu, fpr_of(s));
-
-	/*
-	 * dss = 1/(2*sigma^2) = 0.5*(isigma^2).
-	 */
-	dss = fpr_half(fpr_sqr(isigma));
-
-	/*
-	 * ccs = sigma_min / sigma = sigma_min * isigma.
-	 */
-	ccs = fpr_mul(isigma, spc->sigma_min);
-
-	/*
-	 * We now need to sample on center r.
-	 */
-	for (;;) {
-		int z0, z, b;
-		fpr x;
-
-		/*
-		 * Sample z for a Gaussian distribution. Then get a
-		 * random bit b to turn the sampling into a bimodal
-		 * distribution: if b = 1, we use z+1, otherwise we
-		 * use -z. We thus have two situations:
-		 *
-		 *  - b = 1: z >= 1 and sampled against a Gaussian
-		 *    centered on 1.
-		 *  - b = 0: z <= 0 and sampled against a Gaussian
-		 *    centered on 0.
-		 */
-		z0 = Zf(gaussian0_sampler)(&spc->p);
-		b = (int)prng_get_u8(&spc->p) & 1;
-		z = b + ((b << 1) - 1) * z0;
-
-		/*
-		 * Rejection sampling. We want a Gaussian centered on r;
-		 * but we sampled against a Gaussian centered on b (0 or
-		 * 1). But we know that z is always in the range where
-		 * our sampling distribution is greater than the Gaussian
-		 * distribution, so rejection works.
-		 *
-		 * We got z with distribution:
-		 *    G(z) = exp(-((z-b)^2)/(2*sigma0^2))
-		 * We target distribution:
-		 *    S(z) = exp(-((z-r)^2)/(2*sigma^2))
-		 * Rejection sampling works by keeping the value z with
-		 * probability S(z)/G(z), and starting again otherwise.
-		 * This requires S(z) <= G(z), which is the case here.
-		 * Thus, we simply need to keep our z with probability:
-		 *    P = exp(-x)
-		 * where:
-		 *    x = ((z-r)^2)/(2*sigma^2) - ((z-b)^2)/(2*sigma0^2)
-		 *
-		 * Here, we scale up the Bernouilli distribution, which
-		 * makes rejection more probable, but makes rejection
-		 * rate sufficiently decorrelated from the Gaussian
-		 * center and standard deviation that the whole sampler
-		 * can be said to be constant-time.
-		 */
-		x = fpr_mul(fpr_sqr(fpr_sub(fpr_of(z), r)), dss);
-		x = fpr_sub(x, fpr_mul(fpr_of(z0 * z0), fpr_inv_2sqrsigma0));
-		if (BerExp(&spc->p, x, ccs)) {
-			/*
-			 * Rejection sampling was centered on r, but the
-			 * actual center is mu = s + r.
-			 */
-			return s + z;
-		}
-	}
-}
 
 /* see inner.h */
 void
