@@ -3101,11 +3101,11 @@ solve_NTRU_intermediate(unsigned logn_top,
 	 * Compute 1/(f*adj(f)+g*adj(g)) in rt5. We also keep adj(f)
 	 * and adj(g) in rt3 and rt4, respectively.
 	 */
-	Zf(FFT)(rt3, logn);
-	Zf(FFT)(rt4, logn);
+	Zf(FFT)(rt3, logn, false);
+	Zf(FFT)(rt4, logn, false);
 	Zf(poly_invnorm2_fft)(rt5, rt3, rt4, logn);
-	Zf(poly_adj_fft)(rt3, logn);
-	Zf(poly_adj_fft)(rt4, logn);
+	Zf(poly_adj_fft)(rt3, rt3, logn);
+	Zf(poly_adj_fft)(rt4, rt4, logn);
 
 	/*
 	 * Reduce F and G repeatedly.
@@ -3161,12 +3161,12 @@ solve_NTRU_intermediate(unsigned logn_top,
 		/*
 		 * Compute (F*adj(f)+G*adj(g))/(f*adj(f)+g*adj(g)) in rt2.
 		 */
-		Zf(FFT)(rt1, logn);
-		Zf(FFT)(rt2, logn);
-		Zf(poly_mul_fft)(rt1, rt3, logn);
-		Zf(poly_mul_fft)(rt2, rt4, logn);
-		Zf(poly_add)(rt2, rt1, logn);
-		Zf(poly_mul_autoadj_fft)(rt2, rt5, logn);
+		Zf(FFT)(rt1, logn, false);
+		Zf(FFT)(rt2, logn, false);
+		Zf(poly_mul_fft)(rt1, rt1, rt3, logn);
+		Zf(poly_mul_fft)(rt2, rt2, rt4, logn);
+		Zf(poly_add)(rt2, rt2, rt1, logn);
+		Zf(poly_mul_autoadj_fft)(rt2, rt2, rt5, logn);
 		Zf(iFFT)(rt2, logn);
 
 		/*
@@ -3622,10 +3622,10 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 	 *   rt4 = g
 	 * in that order in RAM. We convert all of them to FFT.
 	 */
-	Zf(FFT)(rt1, logn);
-	Zf(FFT)(rt2, logn);
-	Zf(FFT)(rt3, logn);
-	Zf(FFT)(rt4, logn);
+	Zf(FFT)(rt1, logn, false);
+	Zf(FFT)(rt2, logn, false);
+	Zf(FFT)(rt3, logn, false);
+	Zf(FFT)(rt4, logn, false);
 
 	/*
 	 * Compute:
@@ -3642,7 +3642,7 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 	 * Compute:
 	 *   rt5 = (F*adj(f)+G*adj(g)) / (f*adj(f)+g*adj(g))
 	 */
-	Zf(poly_mul_autoadj_fft)(rt5, rt6, logn);
+	Zf(poly_mul_autoadj_fft)(rt5, rt5, rt6, logn);
 
 	/*
 	 * Compute k as the rounded version of rt5. Check that none of
@@ -3661,15 +3661,15 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 		}
 		rt5[u] = fpr_of(fpr_rint(z));
 	}
-	Zf(FFT)(rt5, logn);
+	Zf(FFT)(rt5, logn, false);
 
 	/*
 	 * Subtract k*f from F, and k*g from G.
 	 */
-	Zf(poly_mul_fft)(rt3, rt5, logn);
-	Zf(poly_mul_fft)(rt4, rt5, logn);
-	Zf(poly_sub)(rt1, rt3, logn);
-	Zf(poly_sub)(rt2, rt4, logn);
+	Zf(poly_mul_fft)(rt3, rt3, rt5, logn);
+	Zf(poly_mul_fft)(rt4, rt4, rt5, logn);
+	Zf(poly_sub)(rt1, rt1, rt3, logn);
+	Zf(poly_sub)(rt2, rt2, rt4, logn);
 	Zf(iFFT)(rt1, logn);
 	Zf(iFFT)(rt2, logn);
 
@@ -3891,7 +3891,7 @@ solve_NTRU_binary_depth0(unsigned logn,
 	for (u = 0; u < n; u ++) {
 		rt3[u] = fpr_of(((int32_t *)t2)[u]);
 	}
-	Zf(FFT)(rt3, logn);
+	Zf(FFT)(rt3, logn, false);
 	rt2 = align_fpr(tmp, t2);
 	memmove(rt2, rt3, hn * sizeof *rt3);
 
@@ -3902,13 +3902,13 @@ solve_NTRU_binary_depth0(unsigned logn,
 	for (u = 0; u < n; u ++) {
 		rt3[u] = fpr_of(((int32_t *)t1)[u]);
 	}
-	Zf(FFT)(rt3, logn);
+	Zf(FFT)(rt3, logn, false);
 
 	/*
 	 * Compute (F*adj(f)+G*adj(g))/(f*adj(f)+g*adj(g)) and get
 	 * its rounded normal representation in t1.
 	 */
-	Zf(poly_div_autoadj_fft)(rt3, rt2, logn);
+	Zf(poly_div_autoadj_fft)(rt3, rt3, rt2, logn);
 	Zf(iFFT)(rt3, logn);
 	for (u = 0; u < n; u ++) {
 		t1[u] = modp_set((int32_t)fpr_rint(rt3[u]), p);
@@ -4222,15 +4222,15 @@ Zf(keygen)(inner_shake256_context *rng,
 		rt3 = rt2 + n;
 		poly_small_to_fp(rt1, f, logn);
 		poly_small_to_fp(rt2, g, logn);
-		Zf(FFT)(rt1, logn);
-		Zf(FFT)(rt2, logn);
+		Zf(FFT)(rt1, logn, false);
+		Zf(FFT)(rt2, logn, false);
 		Zf(poly_invnorm2_fft)(rt3, rt1, rt2, logn);
-		Zf(poly_adj_fft)(rt1, logn);
-		Zf(poly_adj_fft)(rt2, logn);
-		Zf(poly_mulconst)(rt1, fpr_q, logn);
-		Zf(poly_mulconst)(rt2, fpr_q, logn);
-		Zf(poly_mul_autoadj_fft)(rt1, rt3, logn);
-		Zf(poly_mul_autoadj_fft)(rt2, rt3, logn);
+		Zf(poly_adj_fft)(rt1, rt1, logn);
+		Zf(poly_adj_fft)(rt2, rt2, logn);
+		Zf(poly_mulconst)(rt1, rt1, fpr_q, logn);
+		Zf(poly_mulconst)(rt2, rt2, fpr_q, logn);
+		Zf(poly_mul_autoadj_fft)(rt1, rt1, rt3, logn);
+		Zf(poly_mul_autoadj_fft)(rt2, rt2, rt3, logn);
 		Zf(iFFT)(rt1, logn);
 		Zf(iFFT)(rt2, logn);
 		bnorm = fpr_zero;
