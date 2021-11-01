@@ -30,6 +30,7 @@
  */
 
 #include "inner.h"
+#include "macrous.h"
 
 /* see inner.h */
 void
@@ -253,9 +254,7 @@ static const uint32_t l2bound[] = {
 };
 
 /* see inner.h */
-int
-Zf(is_short)(
-	const int16_t *s1, const int16_t *s2, unsigned logn)
+int Zf(is_short)(const int16_t *s1, const int16_t *s2, unsigned logn)
 {
 	/*
 	 * We use the l2-norm. Code below uses only 32-bit operations to
@@ -365,9 +364,7 @@ Zf(is_short)(
 }
 
 /* see inner.h */
-int
-Zf(is_short_half)(
-	uint32_t sqn, const int16_t *s2, unsigned logn)
+int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn)
 {
 	size_t n;
     uint32_t ng;
