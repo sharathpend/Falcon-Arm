@@ -76,9 +76,10 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <arm_neon.h>
-#include "macro.h"
+#include "params.h"
 
 /*
  * "Naming" macro used to apply a consistent prefix over all global
@@ -643,7 +644,8 @@ prng_get_u8(prng *p)
  *
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
-void Zf(FFT)(fpr *f, unsigned logn);
+// void Zf(FFT)(fpr *f, unsigned logn);
+void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true);
 
 /*
  * Compute the inverse FFT in-place: the source array should contain the
@@ -659,56 +661,63 @@ void Zf(iFFT)(fpr *f, unsigned logn);
  * Add polynomial b to polynomial a. a and b MUST NOT overlap. This
  * function works in both normal and FFT representations.
  */
-void Zf(poly_add)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+// void Zf(poly_add)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
 
 /*
  * Subtract polynomial b from polynomial a. a and b MUST NOT overlap. This
  * function works in both normal and FFT representations.
  */
-void Zf(poly_sub)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+// void Zf(poly_sub)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
 
 /*
  * Negate polynomial a. This function works in both normal and FFT
  * representations.
  */
-void Zf(poly_neg)(fpr *a, unsigned logn);
+// void Zf(poly_neg)(fpr *a, unsigned logn);
+void Zf(poly_neg)(fpr *c, const fpr *restrict a, unsigned logn);
 
 /*
  * Compute adjoint of polynomial a. This function works only in FFT
  * representation.
  */
-void Zf(poly_adj_fft)(fpr *a, unsigned logn);
+// void Zf(poly_adj_fft)(fpr *a, unsigned logn);
+void Zf(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn);
 
 /*
  * Multiply polynomial a with polynomial b. a and b MUST NOT overlap.
  * This function works only in FFT representation.
  */
-void Zf(poly_mul_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+// void Zf(poly_mul_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
 
 /*
  * Multiply polynomial a with the adjoint of polynomial b. a and b MUST NOT
  * overlap. This function works only in FFT representation.
  */
-void Zf(poly_muladj_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+// void Zf(poly_muladj_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_muladj_fft)(fpr *d, fpr *restrict a, const fpr *restrict b, unsigned logn);
 
 /*
  * Multiply polynomial with its own adjoint. This function works only in FFT
  * representation.
  */
-void Zf(poly_mulselfadj_fft)(fpr *a, unsigned logn);
+// void Zf(poly_mulselfadj_fft)(fpr *a, unsigned logn);
+void Zf(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn);
 
 /*
  * Multiply polynomial with a real constant. This function works in both
  * normal and FFT representations.
  */
-void Zf(poly_mulconst)(fpr *a, fpr x, unsigned logn);
-
+// void Zf(poly_mulconst)(fpr *a, fpr x, unsigned logn);
+void Zf(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn);
 /*
  * Divide polynomial a by polynomial b, modulo X^N+1 (FFT representation).
  * a and b MUST NOT overlap.
  */
-void Zf(poly_div_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
-
+// void Zf(poly_div_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_div_fft)(fpr *restrict c,const fpr *restrict a, const fpr *restrict b, unsigned logn);
 /*
  * Given f and g (in FFT representation), compute 1/(f*adj(f)+g*adj(g))
  * (also in FFT representation). Since the result is auto-adjoint, all its
@@ -735,8 +744,8 @@ void Zf(poly_add_muladj_fft)(fpr *restrict d,
  * FFT coefficients are real, and the array b contains only N/2 elements.
  * a and b MUST NOT overlap.
  */
-void Zf(poly_mul_autoadj_fft)(fpr *restrict a,
-	const fpr *restrict b, unsigned logn);
+// void Zf(poly_mul_autoadj_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
 
 /*
  * Divide polynomial a by polynomial b, where b is autoadjoint. Both
@@ -744,8 +753,9 @@ void Zf(poly_mul_autoadj_fft)(fpr *restrict a,
  * FFT coefficients are real, and the array b contains only N/2 elements.
  * a and b MUST NOT overlap.
  */
-void Zf(poly_div_autoadj_fft)(fpr *restrict a,
-	const fpr *restrict b, unsigned logn);
+// void Zf(poly_div_autoadj_fft)(fpr *restrict a,
+// 	const fpr *restrict b, unsigned logn);
+void Zf(poly_div_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
 
 /*
  * Perform an LDL decomposition of an auto-adjoint matrix G, in FFT
