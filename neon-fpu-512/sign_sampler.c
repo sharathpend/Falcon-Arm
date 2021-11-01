@@ -62,7 +62,6 @@ Zf(gaussian0_sampler)(prng *p)
 
 	uint32_t v0, v1, v2, hi;
 	uint64_t lo;
-	size_t u;
 	int z;
 
 	/*
