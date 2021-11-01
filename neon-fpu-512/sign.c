@@ -30,7 +30,9 @@
  */
 
 #include "inner.h"
-
+#include "macrofx4.h"
+#include "macrof.h"
+#include <arm_neon.h>
 /* =================================================================== */
 
 /*
@@ -170,7 +172,7 @@ ffLDL_binary_normalize(fpr *tree, unsigned orig_logn, unsigned logn)
 		 * the value mandated by the specification: this
 		 * saves a division both here and in the sampler.
 		 */
-		tree[0] = fpr_mul(fpr_sqrt(tree[0]), fpr_inv_sigma[orig_logn]);
+        tree[0] = fpr_mul(fpr_sqrt(tree[0]), fpr_inv_sigma);
 	} else {
 		ffLDL_binary_normalize(tree + n, orig_logn, logn - 1);
 		ffLDL_binary_normalize(tree + n + ffLDL_treesize(logn - 1),
@@ -187,12 +189,46 @@ ffLDL_binary_normalize(fpr *tree, unsigned orig_logn, unsigned logn)
 static void
 smallints_to_fpr(fpr *r, const int8_t *t, unsigned logn)
 {
-	size_t n, u;
+	const size_t n = MKN(logn);
+    float64x2x4_t neon_flo64, neon_fhi64;
+    int64x2x4_t neon_lo64, neon_hi64;
+    int32x4_t neon_lo32[2], neon_hi32[2];
+    int16x8_t neon_lo16, neon_hi16;
+    int8x16_t neon_8;
 
-	n = MKN(logn);
-	for (u = 0; u < n; u ++) {
-		r[u] = fpr_of(t[u]);
-	}
+    for (size_t i = 0; i < n; i += 16)
+    {
+        neon_8 = vld1q_s8(&t[i]);
+
+        // Extend from 8 to 16 bit
+        // x7 | x6 | x5 | x5 - x3 | x2 | x1 | x0
+        neon_lo16 = vshll_n_s8(vget_low_s8(neon_8), 0);
+        neon_hi16 = vshll_high_n_s8(neon_8, 0);
+
+        // Extend from 16 to 32 bit
+        // xxx3 | xxx2 | xxx1 | xxx0
+        neon_lo32[0] = vshll_n_s16(vget_low_s16(neon_lo16), 0);
+        neon_lo32[1] = vshll_high_n_s16(neon_lo16, 0);
+        neon_hi32[0] = vshll_n_s16(vget_low_s16(neon_hi16), 0);
+        neon_hi32[1] = vshll_high_n_s16(neon_hi16, 0);
+
+        // Extend from 32 to 64 bit
+        neon_lo64.val[0] = vshll_n_s32(vget_low_s32(neon_lo32[0]), 0);
+        neon_lo64.val[1] = vshll_high_n_s32(neon_lo32[0], 0);
+        neon_lo64.val[2] = vshll_n_s32(vget_low_s32(neon_lo32[1]), 0);
+        neon_lo64.val[3] = vshll_high_n_s32(neon_lo32[1], 0);
+
+        neon_hi64.val[0] = vshll_n_s32(vget_low_s32(neon_hi32[0]), 0);
+        neon_hi64.val[1] = vshll_high_n_s32(neon_hi32[0], 0);
+        neon_hi64.val[2] = vshll_n_s32(vget_low_s32(neon_hi32[1]), 0);
+        neon_hi64.val[3] = vshll_high_n_s32(neon_hi32[1], 0);
+
+        vfcvtx4(neon_flo64, neon_lo64);
+        vfcvtx4(neon_fhi64, neon_hi64);
+
+        vstorex4(&r[i], neon_flo64);
+        vstorex4(&r[i + 8], neon_fhi64);
+    }
 }
 
 /*
@@ -338,7 +374,7 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 		fpr leaf;
 
 		leaf = g00[0];
-		leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma[orig_logn]);
+		leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma);
 		t0[0] = fpr_of(samp(samp_ctx, t0[0], leaf));
 		t1[0] = fpr_of(samp(samp_ctx, t1[0], leaf));
 		return;
@@ -426,128 +462,195 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	 * When logn == 2, we inline the last two recursion levels.
 	 */
 	if (logn == 2) {
-		fpr x0, x1, y0, y1, w0, w1, w2, w3, sigma;
-		fpr a_re, a_im, b_re, b_im, c_re, c_im;
+        tree0 = tree + 4;
+        tree1 = tree + 8;
 
-		tree0 = tree + 4;
-		tree1 = tree + 8;
+        float64x2x2_t tmp;
+        float64x2_t a, b, c, c_re, c_im;
+        float64x2_t w01, w02, w13, w23, x01;
+        float64x2_t neon_i21, neon_1i2;
+        int64x2_t scvt;
+        double s_x0, s_x1, sigma;
+        int64_t s_w0, s_w1, s_w2, s_w3;
+        const double imagine[4] = {-1.0, 1.0, 1.0, -1.0};
 
-		/*
-		 * We split t1 into w*, then do the recursive invocation,
-		 * with output in w*. We finally merge back into z1.
-		 */
-		a_re = t1[0];
-		a_im = t1[2];
-		b_re = t1[1];
-		b_im = t1[3];
-		c_re = fpr_add(a_re, b_re);
-		c_im = fpr_add(a_im, b_im);
-		w0 = fpr_half(c_re);
-		w1 = fpr_half(c_im);
-		c_re = fpr_sub(a_re, b_re);
-		c_im = fpr_sub(a_im, b_im);
-		w2 = fpr_mul(fpr_add(c_re, c_im), fpr_invsqrt8);
-		w3 = fpr_mul(fpr_sub(c_im, c_re), fpr_invsqrt8);
+        scvt = vdupq_n_s64(0);
+        vload2(tmp, &t1[0]);
+        a = tmp.val[0]; // a_re, a_im
+        b = tmp.val[1]; // b_re, b_im
+        vloadx2(tmp, &imagine[0]);
+        neon_i21 = tmp.val[0];
+        neon_1i2 = tmp.val[1];
 
-		x0 = w2;
-		x1 = w3;
-		sigma = tree1[3];
-		w2 = fpr_of(samp(samp_ctx, x0, sigma));
-		w3 = fpr_of(samp(samp_ctx, x1, sigma));
-		a_re = fpr_sub(x0, w2);
-		a_im = fpr_sub(x1, w3);
-		b_re = tree1[0];
-		b_im = tree1[1];
-		c_re = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
-		c_im = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
-		x0 = fpr_add(c_re, w0);
-		x1 = fpr_add(c_im, w1);
-		sigma = tree1[2];
-		w0 = fpr_of(samp(samp_ctx, x0, sigma));
-		w1 = fpr_of(samp(samp_ctx, x1, sigma));
+        c = vaddq_f64(a, b);
+        w01 = vmulq_n_f64(c, 0.5);
 
-		a_re = w0;
-		a_im = w1;
-		b_re = w2;
-		b_im = w3;
-		c_re = fpr_mul(fpr_sub(b_re, b_im), fpr_invsqrt2);
-		c_im = fpr_mul(fpr_add(b_re, b_im), fpr_invsqrt2);
-		z1[0] = w0 = fpr_add(a_re, c_re);
-		z1[2] = w2 = fpr_add(a_im, c_im);
-		z1[1] = w1 = fpr_sub(a_re, c_re);
-		z1[3] = w3 = fpr_sub(a_im, c_im);
+        c = vsubq_f64(a, b);
+        c_im = vmulq_f64(c, neon_i21);
+        w23 = vpaddq_f64(c, c_im);
+        w23 = vmulq_n_f64(w23, fpr_invsqrt8);
 
-		/*
-		 * Compute tb0 = t0 + (t1 - z1) * L. Value tb0 ends up in w*.
-		 */
-		w0 = fpr_sub(t1[0], w0);
-		w1 = fpr_sub(t1[1], w1);
-		w2 = fpr_sub(t1[2], w2);
-		w3 = fpr_sub(t1[3], w3);
+        x01 = w23;
+        sigma = tree1[3];
+        s_x0 = vgetq_lane_f64(x01, 0);
+        s_x1 = vgetq_lane_f64(x01, 1);
+#if DEBUG
+        printv("w01", w01);
+        printv("w23", w23);
+#endif
+#if FAKE_GAUSS
+        s_w2 = gauss_test(s_x0, sigma);
+        s_w3 = gauss_test(s_x1, sigma);
+#else
+        s_w2 = samp(samp_ctx, s_x0, sigma);
+        s_w3 = samp(samp_ctx, s_x1, sigma);
+#endif
+        scvt = vsetq_lane_s64(s_w2, scvt, 0);
+        scvt = vsetq_lane_s64(s_w3, scvt, 1);
+        w23 = vcvtq_f64_s64(scvt);
 
-		a_re = w0;
-		a_im = w2;
-		b_re = tree[0];
-		b_im = tree[2];
-		w0 = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
-		w2 = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
-		a_re = w1;
-		a_im = w3;
-		b_re = tree[1];
-		b_im = tree[3];
-		w1 = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
-		w3 = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
+        a = vsubq_f64(x01, w23);
+        b = vld1q_f64(&tree1[0]);
 
-		w0 = fpr_add(w0, t0[0]);
-		w1 = fpr_add(w1, t0[1]);
-		w2 = fpr_add(w2, t0[2]);
-		w3 = fpr_add(w3, t0[3]);
+        c_re = vmulq_f64(a, b);
+        c_re = vmulq_f64(c_re, neon_1i2);
 
-		/*
-		 * Second recursive invocation.
-		 */
-		a_re = w0;
-		a_im = w2;
-		b_re = w1;
-		b_im = w3;
-		c_re = fpr_add(a_re, b_re);
-		c_im = fpr_add(a_im, b_im);
-		w0 = fpr_half(c_re);
-		w1 = fpr_half(c_im);
-		c_re = fpr_sub(a_re, b_re);
-		c_im = fpr_sub(a_im, b_im);
-		w2 = fpr_mul(fpr_add(c_re, c_im), fpr_invsqrt8);
-		w3 = fpr_mul(fpr_sub(c_im, c_re), fpr_invsqrt8);
+        b = vextq_f64(b, b, 1);
+        c_im = vmulq_f64(a, b);
+        c = vpaddq_f64(c_re, c_im);
+        x01 = vaddq_f64(c, w01);
 
-		x0 = w2;
-		x1 = w3;
-		sigma = tree0[3];
-		w2 = y0 = fpr_of(samp(samp_ctx, x0, sigma));
-		w3 = y1 = fpr_of(samp(samp_ctx, x1, sigma));
-		a_re = fpr_sub(x0, y0);
-		a_im = fpr_sub(x1, y1);
-		b_re = tree0[0];
-		b_im = tree0[1];
-		c_re = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
-		c_im = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
-		x0 = fpr_add(c_re, w0);
-		x1 = fpr_add(c_im, w1);
-		sigma = tree0[2];
-		w0 = fpr_of(samp(samp_ctx, x0, sigma));
-		w1 = fpr_of(samp(samp_ctx, x1, sigma));
+        sigma = tree1[2];
+        s_x0 = vgetq_lane_f64(x01, 0);
+        s_x1 = vgetq_lane_f64(x01, 1);
+#if FAKE_GAUSS
+        s_w0 = gauss_test(s_x0, sigma);
+        s_w1 = gauss_test(s_x1, sigma);
+#else
+        s_w0 = samp(samp_ctx, s_x0, sigma);
+        s_w1 = samp(samp_ctx, s_x1, sigma);
+#endif
+        scvt = vsetq_lane_s64(s_w0, scvt, 0);
+        scvt = vsetq_lane_s64(s_w1, scvt, 1);
+        w01 = vcvtq_f64_s64(scvt);
 
-		a_re = w0;
-		a_im = w1;
-		b_re = w2;
-		b_im = w3;
-		c_re = fpr_mul(fpr_sub(b_re, b_im), fpr_invsqrt2);
-		c_im = fpr_mul(fpr_add(b_re, b_im), fpr_invsqrt2);
-		z0[0] = fpr_add(a_re, c_re);
-		z0[2] = fpr_add(a_im, c_im);
-		z0[1] = fpr_sub(a_re, c_re);
-		z0[3] = fpr_sub(a_im, c_im);
+        a = w01;
+        b = w23;
+#if DEBUG
+        printv("w01", w01);
+        printv("w23", w23);
+#endif
+        c_re = vmulq_f64(b, neon_1i2);
+        c = vpaddq_f64(c_re, b);
+        c = vmulq_n_f64(c, fpr_invsqrt2);
 
-		return;
+        tmp.val[0] = vaddq_f64(a, c);
+        tmp.val[1] = vsubq_f64(a, c);
+
+        vst2q_f64(&z1[0], tmp);
+#if DEBUG
+        printv("z1-02", tmp.val[0]);
+        printv("z1-13", tmp.val[1]);
+#endif
+        w02 = tmp.val[0];
+        w13 = tmp.val[1];
+        tmp = vld2q_f64(&t1[0]);
+
+        w02 = vsubq_f64(tmp.val[0], w02);
+        w13 = vsubq_f64(tmp.val[1], w13);
+
+        tmp = vld2q_f64(&tree[0]);
+        a = w02;
+        b = tmp.val[0];
+
+        c_re = vmulq_f64(a, b);
+        c_re = vmulq_f64(c_re, neon_1i2);
+
+        b = vextq_f64(b, b, 1);
+        c_im = vmulq_f64(a, b);
+        w02 = vpaddq_f64(c_re, c_im);
+
+        a = w13;
+        b = tmp.val[1];
+
+        c_re = vmulq_f64(a, b);
+        c_re = vmulq_f64(c_re, neon_1i2);
+
+        b = vextq_f64(b, b, 1);
+        c_im = vmulq_f64(a, b);
+        w13 = vpaddq_f64(c_re, c_im);
+
+#if DEBUG
+        printv("w02", w02);
+        printv("w13", w13);
+#endif
+        tmp = vld2q_f64(&t0[0]);
+        w02 = vaddq_f64(w02, tmp.val[0]);
+        w13 = vaddq_f64(w13, tmp.val[1]);
+
+        /*
+        * Second recursive invocation.
+        */
+        a = w02;
+        b = w13;
+        c = vaddq_f64(a, b);
+        w01 = vmulq_n_f64(w01, 0.5);
+
+        c = vsubq_f64(a, b);
+        c_im = vmulq_f64(c, neon_i21);
+        w23 = vpaddq_f64(c, c_im);
+        w23 = vmulq_n_f64(w23, fpr_invsqrt8);
+
+        x01 = w23;
+        sigma = tree0[3];
+        s_x0 = vgetq_lane_f64(x01, 0);
+        s_x1 = vgetq_lane_f64(x01, 1);
+#if FAKE_GAUSS
+        s_w2 = gauss_test(s_x0, sigma);
+        s_w3 = gauss_test(s_x1, sigma);
+#else
+        s_w2 = samp(samp_ctx, s_x0, sigma);
+        s_w3 = samp(samp_ctx, s_x1, sigma);
+#endif
+        scvt = vsetq_lane_s64(s_w2, scvt, 0);
+        scvt = vsetq_lane_s64(s_w3, scvt, 1);
+        w23 = vcvtq_f64_s64(scvt);
+
+        a = vsubq_f64(x01, w23);
+        b = vld1q_f64(&tree0[0]);
+        c_re = vmulq_f64(a, b);
+        c_re = vmulq_f64(c_re, neon_1i2);
+        b = vextq_f64(b, b, 1);
+        c_im = vmulq_f64(a, b);
+        c = vpaddq_f64(c_re, c_im);
+        x01 = vaddq_f64(c, w01);
+        sigma = tree0[2];
+
+        s_x0 = vgetq_lane_f64(x01, 0);
+        s_x1 = vgetq_lane_f64(x01, 1);
+#if FAKE_GAUSS
+        s_w0 = gauss_test(s_x0, sigma);
+        s_w1 = gauss_test(s_x1, sigma);
+#else
+        s_w0 = samp(samp_ctx, s_x0, sigma);
+        s_w1 = samp(samp_ctx, s_x1, sigma);
+#endif
+
+        scvt = vsetq_lane_s64(s_w0, scvt, 0);
+        scvt = vsetq_lane_s64(s_w1, scvt, 1);
+        a = vcvtq_f64_s64(scvt);
+
+        c_im = w23;
+        c_re = vmulq_f64(w23, neon_1i2);
+        c = vpaddq_f64(c_re, c_im);
+        c = vmulq_n_f64(c, fpr_invsqrt2);
+
+        tmp.val[0] = vaddq_f64(a, c);
+        tmp.val[1] = vsubq_f64(a, c);
+
+        vst2q_f64(&z0[0], tmp);
+
+        return;
 	}
 
 	/*
@@ -556,27 +659,57 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	 * of course way too insecure to be of any use).
 	 */
 	if (logn == 1) {
-		fpr x0, x1, y0, y1, sigma;
-		fpr a_re, a_im, b_re, b_im, c_re, c_im;
+        fpr sigma;
+        float64x2_t x01, y01, a, b, c, c_re, c_im, neon_1i2;
+        fpr s_x0, s_x1;
+        int64x2_t scvt;
+        int64_t y0, y1;
+        const double imagine[2] = {1.0, -1.0};
+        scvt = vdupq_n_s64(0);
+        neon_1i2 = vld1q_f64(&imagine[0]);
+        x01 = vld1q_f64(&t1[0]);
+        sigma = tree[3];
+        s_x0 = vgetq_lane_f64(x01, 0);
+        s_x1 = vgetq_lane_f64(x01, 1);
+#if FAKE_GAUSS
+        y0 = gauss_test(s_x0, sigma);
+        y1 = gauss_test(s_x1, sigma);
+#else
+        y0 = samp(samp_ctx, s_x0, sigma);
+        y1 = samp(samp_ctx, s_x1, sigma);
+#endif
+        scvt = vsetq_lane_s64(y0, scvt, 0);
+        scvt = vsetq_lane_s64(y1, scvt, 1);
+        y01 = vcvtq_f64_s64(scvt);
+        vst1q_f64(&z1[0], y01);
 
-		x0 = t1[0];
-		x1 = t1[1];
-		sigma = tree[3];
-		z1[0] = y0 = fpr_of(samp(samp_ctx, x0, sigma));
-		z1[1] = y1 = fpr_of(samp(samp_ctx, x1, sigma));
-		a_re = fpr_sub(x0, y0);
-		a_im = fpr_sub(x1, y1);
-		b_re = tree[0];
-		b_im = tree[1];
-		c_re = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
-		c_im = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
-		x0 = fpr_add(c_re, t0[0]);
-		x1 = fpr_add(c_im, t0[1]);
-		sigma = tree[2];
-		z0[0] = fpr_of(samp(samp_ctx, x0, sigma));
-		z0[1] = fpr_of(samp(samp_ctx, x1, sigma));
+        a = vsubq_f64(x01, y01);
+        b = vld1q_f64(&tree[0]);
+        c_re = vmulq_f64(a, b);
+        c_re = vmulq_f64(c_re, neon_1i2);
 
-		return;
+        b = vextq_f64(b, b, 1);
+        c_im = vmulq_f64(a, b);
+        c = vpaddq_f64(c_re, c_im);
+        x01 = vld1q_f64(&t0[0]);
+        x01 = vaddq_f64(c, x01);
+        sigma = tree[2];
+
+        s_x0 = vgetq_lane_f64(x01, 0);
+        s_x1 = vgetq_lane_f64(x01, 1);
+#if FAKE_GAUSS
+        y0 = gauss_test(s_x0, sigma);
+        y1 = gauss_test(s_x1, sigma);
+#else
+        y0 = samp(samp_ctx, s_x0, sigma);
+        y1 = samp(samp_ctx, s_x1, sigma);
+#endif
+        scvt = vsetq_lane_s64(y0, scvt, 0);
+        scvt = vsetq_lane_s64(y1, scvt, 1);
+        y01 = vcvtq_f64_s64(scvt);
+        vst1q_f64(&z0[0], y01);
+
+        return;
 	}
 
 	/*
@@ -850,7 +983,7 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 * Apply the lattice basis to obtain the real target
 	 * vector (after normalization with regards to modulus).
 	 */
-	Zf(FFT)(t0, logn);
+	Zf(FFT)(t0, logn, false);
 	ni = fpr_inverse_of_q;
 	// memcpy(t1, t0, n * sizeof *t0);
 	Zf(poly_mul_fft)(t1, t0, b01, logn);
@@ -978,7 +1111,7 @@ Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
 		 * Normal sampling. We use a fast PRNG seeded from our
 		 * SHAKE context ('rng').
 		 */
-		spc.sigma_min = fpr_sigma_min[logn];
+		spc.sigma_min = fpr_sigma_min_9;
 		Zf(prng_init)(&spc.p, rng);
 		samp = Zf(sampler);
 		samp_ctx = &spc;
@@ -1023,7 +1156,15 @@ Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
 		 * Normal sampling. We use a fast PRNG seeded from our
 		 * SHAKE context ('rng').
 		 */
-		spc.sigma_min = fpr_sigma_min[logn];
+        // TODO: hardcode this
+        if (logn == 9)
+        {
+            spc.sigma_min = fpr_sigma_min_9;
+        }
+        else if (logn == 10)
+        {
+            spc.sigma_min = fpr_sigma_min_10;
+        }
 		Zf(prng_init)(&spc.p, rng);
 		samp = Zf(sampler);
 		samp_ctx = &spc;
