@@ -214,9 +214,9 @@ fpr_sqrt(fpr x)
 {
 
 #if defined __aarch64__ && __aarch64__
-	__asm__ ( "fsqrt   %d0, %d0" : "+w" (x.v) : : );
+	__asm__ ( "fsqrt   %d0, %d0" : "+w" (x) : : );
 #else
-	__asm__ ( "fsqrtd  %P0, %P0" : "+w" (x.v) : : );
+	__asm__ ( "fsqrtd  %P0, %P0" : "+w" (x) : : );
 #endif
 	return x;
 }
