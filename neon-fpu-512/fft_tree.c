@@ -1,4 +1,6 @@
 #include "inner.h"
+#include "macrof.h"
+#include "macrofx4.h"
 
 /* 
  * Minimum logn: 5
