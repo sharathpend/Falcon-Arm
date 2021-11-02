@@ -55,7 +55,19 @@ void print_farray(fpr *r, unsigned logn)
     const unsigned n = 1 << logn;
     for (unsigned i = 0; i < n; i++)
     {
-        printf("%.20f, ", r[i]);
+        // printf("[%3d]:%.20f\n", i, r[i]);
+        printf("[%3d]:%f\n", i, r[i]);
     }
     printf("\n");
+    fflush(stdout); 
+}
+
+void print_iarray(int8_t *a)
+{
+    for (int i =0; i < 512; i++)
+    {
+        printf("%d, ", a[i] & 0xff);
+    }
+    printf("\n");
+    fflush(stdout);
 }
