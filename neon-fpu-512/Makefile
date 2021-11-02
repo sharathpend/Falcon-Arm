@@ -15,7 +15,7 @@ LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ1 = build/codec.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o
+OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o
 
 OBJ2 = build/PQCgenKAT_sign.o build/katrng.o
 
@@ -62,6 +62,9 @@ build/sign.o: sign.c $(HEAD1)
 
 build/poly.o: poly.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/poly.o poly.c
+
+build/util.o: util.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o build/util.o util.c
 
 build/sign_sampler.o: sign_sampler.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/sign_sampler.o sign_sampler.c
