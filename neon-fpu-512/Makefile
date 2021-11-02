@@ -10,7 +10,7 @@
 
 # CC = c99
 CC = clang
-CFLAGS = -W -Wall -O2 -Wextra -Wpedantic
+CFLAGS = -W -Wall -O1 -Wextra -Wpedantic -g3
 LD = c99
 LDFLAGS = 
 LIBS = 
