@@ -78,8 +78,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <arm_neon.h>
-#include "params.h"
 
 /*
  * "Naming" macro used to apply a consistent prefix over all global
