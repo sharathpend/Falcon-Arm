@@ -30,6 +30,7 @@
  */
 
 #include "inner.h"
+#include <arm_neon.h>
 
 /*
  * Sample an integer value along a half-gaussian distribution centered
