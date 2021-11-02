@@ -39,19 +39,23 @@
 #define vswap(c, a) c = vextq_f64(a, a, 1);
 
 // d = c + a *b
-#define vfma(d, c, a, b) d = vfmaq_f64(c, a, b);
+// #define vfma(d, c, a, b) d = vfmaq_f64(c, a, b);
+#define vfma(d, c, a, b) d = vaddq_f64(c, vmulq_f64(a, b));
 
-// d = c - a * b
-#define vfms(d, c, a, b) d = vfmsq_f64(c, a, b);
+// // d = c - a * b
+// #define vfms(d, c, a, b) d = vfmsq_f64(c, a, b);
+#define vfms(d, c, a, b) d = vsubq_f64(c, vmulq_f64(a, b));
+
 // c = a * b[i]
-
 #define vfmul_lane(c, a, b, i) c = vmulq_laneq_f64(a, b, i);
-// d = c + a * b[i]
 
-#define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
+// d = c + a * b[i]
+// #define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
+#define vfma_lane(d, c, a, b, i) d = vaddq_f64(c, vmulq_laneq_f64(a, b, i));
 
 // d = c - a * b[i]
-#define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
+// #define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
+#define vfms_lane(d, c, a, b, i) d = vsubq_f64(c, vmulq_laneq_f64(a, b, i));
 
 // c = -a
 #define vfneg(c, a) c = vnegq_f64(a);
