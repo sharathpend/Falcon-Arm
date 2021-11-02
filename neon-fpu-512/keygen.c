@@ -30,6 +30,8 @@
  */
 
 #include "inner.h"
+#include "util.h"
+#include "stdio.h"
 
 #define MKN(logn)   ((size_t)1 << (logn))
 
@@ -2490,19 +2492,7 @@ align_u32(void *base, void *data)
 	return (uint32_t *)(cb + k);
 }
 
-/*
- * Convert a small vector to floating point.
- */
-static void
-poly_small_to_fp(fpr *x, const int8_t *f, unsigned logn)
-{
-	size_t n, u;
 
-	n = MKN(logn);
-	for (u = 0; u < n; u ++) {
-		x[u] = fpr_of(f[u]);
-	}
-}
 
 /*
  * Input: f,g of degree N = 2^logn; 'depth' is used only to get their
@@ -3971,6 +3961,10 @@ solve_NTRU(unsigned logn, int8_t *F, int8_t *G,
 
 	n = MKN(logn);
 
+    // print_iarray(f);
+    // print_iarray(g);
+    // print_iarray(F);
+
 	if (!solve_NTRU_deepest(logn, f, g, tmp)) {
 		return 0;
 	}
@@ -4111,6 +4105,8 @@ poly_small_mkgauss(RNG_CONTEXT *rng, int8_t *f, unsigned logn)
 	}
 }
 
+#define DEBUG 1
+
 /* see falcon.h */
 void
 Zf(keygen)(inner_shake256_context *rng,
@@ -4162,7 +4158,8 @@ Zf(keygen)(inner_shake256_context *rng,
 	 * We require that Res(f,phi) and Res(g,phi) are both odd (the
 	 * NTRU equation solver requires it).
 	 */
-	for (;;) {
+    for (;;) {
+	// for (int iii = 0; iii < 2; iii++) {
 		fpr *rt1, *rt2, *rt3;
 		fpr bnorm;
 		uint32_t normf, normg, norm;
@@ -4238,6 +4235,14 @@ Zf(keygen)(inner_shake256_context *rng,
 			bnorm = fpr_add(bnorm, fpr_sqr(rt1[u]));
 			bnorm = fpr_add(bnorm, fpr_sqr(rt2[u]));
 		}
+#if DEBUG
+        // print_farray(rt1, logn);
+        // print_farray(rt2, logn);
+        // print_farray(rt3, logn);
+        // printf("A\n");
+        // printf("bnorm: %f\n", bnorm);
+        break;
+#endif
 		if (!fpr_lt(bnorm, fpr_bnorm_max)) {
 			continue;
 		}
@@ -4254,6 +4259,7 @@ Zf(keygen)(inner_shake256_context *rng,
 			tmp2 = (uint16_t *)tmp;
 		}
 		if (!Zf(compute_public)(h2, f, g, logn, (uint8_t *)tmp2)) {
+            // printf("comp public\n");
 			continue;
 		}
 
@@ -4262,6 +4268,7 @@ Zf(keygen)(inner_shake256_context *rng,
 		 */
 		lim = (1 << (Zf(max_FG_bits)[logn] - 1)) - 1;
 		if (!solve_NTRU(logn, F, G, f, g, lim, (uint32_t *)tmp)) {
+            // printf("solve_NTRU\n");
 			continue;
 		}
 
