@@ -267,7 +267,7 @@ static inline void Zf(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1, co
     vstorex4(&f1[0], y);
 }
 
-void Zf(poly_splitFFT_log5)(fpr *restrict f0, fpr *restrict f1, const fpr *f, unsigned logn)
+static void Zf(poly_splitFFT_log5)(fpr *restrict f0, fpr *restrict f1, const fpr *f, unsigned logn)
 {
     // Max Total register: 16 + 8
     float64x2x2_t x_tmp[4], y_tmp[4], s_tmp[4]; // 0
