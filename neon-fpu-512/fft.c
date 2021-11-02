@@ -33,6 +33,8 @@
 #include "macrof.h"
 #include "macrofx4.h"
 
+#define FALCON_N 512
+
 #if FALCON_N == 512
 
 void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
@@ -50,14 +52,14 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
     for (int l = 8; l > 4; l -= 2)
     {
         int distance = 1 << (l - 2);
-        for (int i = 0; i < falcon_n / 2; i += 1 << l)
+        for (unsigned i = 0; i < falcon_n / 2; i += 1 << l)
         {
             vload(s_re_im.val[0], &fpr_gm_tab[(falcon_n + i) >> (l - 1)]);
             vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> (l - 2)]);
             s_re_im.val[1] = s_tmp.val[0];
             s_re_im.val[2] = s_tmp.val[1];
 
-            for (int j = i; j < i + distance; j += 4)
+            for (unsigned j = i; j < i + distance; j += 4)
             {
                 // Level 7
                 // x1_re: 0->3, 64->67
@@ -204,7 +206,7 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
     // End level 7, 6, 5, 4 loop
 
     // Level 3, 2, 1, 0
-    for (int j = 0; j < falcon_n / 2; j += 16)
+    for (unsigned j = 0; j < falcon_n / 2; j += 16)
     {
         // Level 3
         // x_re: 0->7
@@ -487,7 +489,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     const unsigned int hn = falcon_n >> 1;
 
     // Level 0, 1, 2, 3
-    for (int j = 0; j < falcon_n / 2; j += 16)
+    for (unsigned j = 0; j < falcon_n / 2; j += 16)
     {
         // Level 0
         // x_re = 0, 4 | 2, 6 | 8, 12 | 10, 14
@@ -810,14 +812,14 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     }
 
     // Level 4,5
-    for (int i = 0; i < falcon_n / 2; i += 1 << 6)
+    for (unsigned i = 0; i < falcon_n / 2; i += 1 << 6)
     {
         vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> 4]);
         s_re_im.val[0] = s_tmp.val[0];
         s_re_im.val[1] = s_tmp.val[1];
         vload(s_re_im.val[2], &fpr_gm_tab[(falcon_n + i) >> 5]);
 
-        for (int j = i; j < i + 16; j += 4)
+        for (unsigned j = i; j < i + 16; j += 4)
         {
             // Layer 4
             // x_re: 0 ->3, 32->35
