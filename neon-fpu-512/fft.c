@@ -44,15 +44,16 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
     float64x2x2_t s_tmp;                      // 2
     // Level 4, 5, 6, 7
     float64x2x2_t x_tmp, y_tmp;
-    const unsigned int hn = FALCON_N >> 1;
+    const unsigned int falcon_n = 1 << logn;
+    const unsigned int hn = falcon_n >> 1;
 
     for (int l = 8; l > 4; l -= 2)
     {
         int distance = 1 << (l - 2);
-        for (int i = 0; i < FALCON_N / 2; i += 1 << l)
+        for (int i = 0; i < falcon_n / 2; i += 1 << l)
         {
-            vload(s_re_im.val[0], &fpr_gm_tab[(FALCON_N + i) >> (l - 1)]);
-            vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> (l - 2)]);
+            vload(s_re_im.val[0], &fpr_gm_tab[(falcon_n + i) >> (l - 1)]);
+            vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> (l - 2)]);
             s_re_im.val[1] = s_tmp.val[0];
             s_re_im.val[2] = s_tmp.val[1];
 
@@ -203,7 +204,7 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
     // End level 7, 6, 5, 4 loop
 
     // Level 3, 2, 1, 0
-    for (int j = 0; j < FALCON_N / 2; j += 16)
+    for (int j = 0; j < falcon_n / 2; j += 16)
     {
         // Level 3
         // x_re: 0->7
@@ -216,7 +217,7 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
         vloadx4(x_im, &f[j + hn]);
         vloadx4(y_im, &f[j + hn + 8]);
 
-        vload(s_re_im.val[0], &fpr_gm_tab[(FALCON_N + j) >> 3]);
+        vload(s_re_im.val[0], &fpr_gm_tab[(falcon_n + j) >> 3]);
 
         vfmul_lane(y1_re.val[0], y_re.val[0], s_re_im.val[0], 0);
         vfmul_lane(y1_re.val[1], y_re.val[1], s_re_im.val[0], 0);
@@ -249,7 +250,7 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
         // y_re: 8->15
         // x_im: 256->263
         // y_im: 264->271
-        vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 2]);
+        vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + j) >> 2]);
         s_re_im.val[0] = s_tmp.val[0];
         s_re_im.val[1] = s_tmp.val[1];
 
@@ -298,7 +299,7 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
         // y_re: 4->7, 12->15
         // x_im: 256->259, 264->267
         // y_im: 260->263, 268->271
-        vloadx4(s_re_im, &fpr_gm_tab[(FALCON_N + j) >> 1]);
+        vloadx4(s_re_im, &fpr_gm_tab[(falcon_n + j) >> 1]);
 
         vfmul_lane(y1_re.val[0], x_re.val[1], s_re_im.val[0], 0);
         vfmul_lane(y1_re.val[1], y_re.val[1], s_re_im.val[1], 0);
@@ -360,7 +361,7 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
         // y_re: 2,6 | 3,7 | 10,14 | 11,15
         // x_im: 256,260 | 257,261 | 264,268 | 265,269
         // y_im: 258,262 | 259,263 | 266,270 | 267,271
-        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j]);
+        vload4(s_re_im, &fpr_gm_tab[falcon_n + j]);
 
         vfmul(y_re.val[0], x1_re.val[1], s_re_im.val[0]);
         vfmul(y_re.val[1], y1_re.val[1], s_re_im.val[2]);
@@ -372,7 +373,7 @@ void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true)
         vfma(y_im.val[0], y_im.val[0], x1_im.val[1], s_re_im.val[0]);
         vfma(y_im.val[1], y_im.val[1], y1_im.val[1], s_re_im.val[2]);
 
-        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j + 8]);
+        vload4(s_re_im, &fpr_gm_tab[falcon_n + j + 8]);
 
         vfmul(y_re.val[2], x1_re.val[3], s_re_im.val[0]);
         vfmul(y_re.val[3], y1_re.val[3], s_re_im.val[2]);
@@ -482,10 +483,11 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     // Level 6, 7
     float64x2_t div_n;
 
-    const unsigned int hn = FALCON_N >> 1;
+    const unsigned int falcon_n = 1 << logn;
+    const unsigned int hn = falcon_n >> 1;
 
     // Level 0, 1, 2, 3
-    for (int j = 0; j < FALCON_N / 2; j += 16)
+    for (int j = 0; j < falcon_n / 2; j += 16)
     {
         // Level 0
         // x_re = 0, 4 | 2, 6 | 8, 12 | 10, 14
@@ -551,7 +553,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
         // s_re_im = 512 -> 519
         // s_re: 512 -> 518, step 2
         // s_im: 513 -> 519, step 2
-        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j]);
+        vload4(s_re_im, &fpr_gm_tab[falcon_n + j]);
 
         // y_re: 1,5 | 3,7 | 9,13 | 11,15
         // y_re = v_im*s_im + v_re*s_re
@@ -567,7 +569,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
 
         // y_im: 257,261 | 259,263 | 265,269 | 267,271
         // y_im = v_im*s_re - v_re*s_im
-        vload4(s_re_im, &fpr_gm_tab[FALCON_N + j + 8]);
+        vload4(s_re_im, &fpr_gm_tab[falcon_n + j + 8]);
 
         vfmul(tmp.val[2], v_im.val[2], s_re_im.val[1]);
         vfmul(tmp.val[3], v_im.val[3], s_re_im.val[3]);
@@ -585,10 +587,10 @@ void Zf(iFFT)(fpr *f, unsigned logn)
         // x_im = 256,260 | 258,262 | 264,268 | 266,270
         // y_im = 257,261 | 259,263 | 265,269 | 267,271
 
-        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 1]);
+        vload2(s_tmp, &fpr_gm_tab[(falcon_n + j) >> 1]);
         s_re_im.val[0] = s_tmp.val[0];
         s_re_im.val[1] = s_tmp.val[1];
-        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j + 8) >> 1]);
+        vload2(s_tmp, &fpr_gm_tab[(falcon_n + j + 8) >> 1]);
         s_re_im.val[2] = s_tmp.val[0];
         s_re_im.val[3] = s_tmp.val[1];
 
@@ -667,7 +669,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
         // x_im = 256,257 | 264,265 | 260,261 | 268,269
         // y_im = 258,259 | 266,267 | 262,263 | 270,271
 
-        vload2(s_tmp, &fpr_gm_tab[(FALCON_N + j) >> 2]);
+        vload2(s_tmp, &fpr_gm_tab[(falcon_n + j) >> 2]);
         s_re_im.val[0] = s_tmp.val[0];
         s_re_im.val[1] = s_tmp.val[1];
 
@@ -743,7 +745,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
         // y_im: 260,261 | 262,263 | 268,269 | 270,271
 
         // Load s_re_im
-        vload(s_re_im.val[0], &fpr_gm_tab[(FALCON_N + j) >> 3]);
+        vload(s_re_im.val[0], &fpr_gm_tab[(falcon_n + j) >> 3]);
         ////////
         // x - y
         ////////
@@ -808,12 +810,12 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     }
 
     // Level 4,5
-    for (int i = 0; i < FALCON_N / 2; i += 1 << 6)
+    for (int i = 0; i < falcon_n / 2; i += 1 << 6)
     {
-        vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> 4]);
+        vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> 4]);
         s_re_im.val[0] = s_tmp.val[0];
         s_re_im.val[1] = s_tmp.val[1];
-        vload(s_re_im.val[2], &fpr_gm_tab[(FALCON_N + i) >> 5]);
+        vload(s_re_im.val[2], &fpr_gm_tab[(falcon_n + i) >> 5]);
 
         for (int j = i; j < i + 16; j += 4)
         {
@@ -969,13 +971,13 @@ void Zf(iFFT)(fpr *f, unsigned logn)
         }
     }
 
-    vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N) >> 6]);
+    vloadx2(s_tmp, &fpr_gm_tab[(falcon_n) >> 6]);
     s_re_im.val[0] = s_tmp.val[0];
     s_re_im.val[1] = s_tmp.val[1];
 
-    vload(s_re_im.val[2], &fpr_gm_tab[(FALCON_N) >> 7]);
+    vload(s_re_im.val[2], &fpr_gm_tab[(falcon_n) >> 7]);
 
-    div_n = vdupq_n_f64(fpr_p2_tab[FALCON_LOGN]);
+    div_n = vdupq_n_f64(fpr_p2_tab[logn]);
     vfmul(s_re_im.val[2], s_re_im.val[2], div_n);
 
     // Level 6, 7
@@ -1136,12 +1138,12 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     {
         distance = 1 << l;
 
-        for (int i = 0; i < FALCON_N/2; i += 1 << (l+2) )
+        for (int i = 0; i < falcon_n/2; i += 1 << (l+2) )
         {
-            vloadx2(s_tmp, &fpr_gm_tab[(FALCON_N + i) >> l]);
+            vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> l]);
             s_re_im.val[0] = s_tmp.val[0];
             s_re_im.val[1] = s_tmp.val[1];
-            vload(s_re_im.val[2], &fpr_gm_tab[(FALCON_N + i) >> (l+1)]);
+            vload(s_re_im.val[2], &fpr_gm_tab[(falcon_n + i) >> (l+1)]);
 
             if (l == LAST_L)
             {
