@@ -10,25 +10,29 @@
 
 # CC = c99
 CC = clang
-CFLAGS = -W -Wall -O1 -Wextra -Wpedantic -g3
+CFLAGS = -W -Wall -O2 -Wextra -Wpedantic -g3
 LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o
+OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o build/falcon.o 
 
 OBJ2 = build/PQCgenKAT_sign.o build/katrng.o
+OBJ3 = build/speed.o build/katrng.o
 
 HEAD1 = api.h fpr.h inner.h
 HEAD2 = api.h katrng.h
 
-all: build build/kat512fpu
+all: build build/kat512fpu build/speed
 
 build:
 	-mkdir build
 
 clean:
 	-rm -f build/kat512fpu $(OBJ1) $(OBJ2)
+
+build/speed: $(OBJ1) $(OBJ3)
+	$(LD) $(LDFLAGS) -o build/speed $(OBJ1) $(OBJ3) $(LIBS)
 
 build/kat512fpu: $(OBJ1) $(OBJ2)
 	$(LD) $(LDFLAGS) -o build/kat512fpu $(OBJ1) $(OBJ2) $(LIBS)
@@ -72,6 +76,9 @@ build/sign_sampler.o: sign_sampler.c $(HEAD1)
 build/fft_tree.o: fft_tree.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/fft_tree.o fft_tree.c
 
+build/falcon.o: falcon.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o build/falcon.o falcon.c
+
 build/vrfy.o: vrfy.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/vrfy.o vrfy.c
 
@@ -81,3 +88,5 @@ build/PQCgenKAT_sign.o: PQCgenKAT_sign.c $(HEAD2)
 build/katrng.o: katrng.c $(HEAD2)
 	$(CC) $(CFLAGS) -I . -c -o build/katrng.o katrng.c
 
+build/speed.o: speed.c $(HEAD2)
+	$(CC) $(CFLAGS) -c -o build/speed.o speed.c
