@@ -2,6 +2,8 @@
 *.txt
 *.asm
 *.o
+*.req
+*.rsp
 ref-fft
 avx2_fft
 neon-fft
@@ -10,3 +12,5 @@ neon-512/test_log2
 neon-512/test_sampler
 neon-512/test_log1
 ref-fpu-512/build/
+neon-fpu-512/build/*
+neon-fpu-512/test_common
