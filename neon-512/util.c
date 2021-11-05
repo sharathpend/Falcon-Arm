@@ -34,14 +34,15 @@ double fRand(double fMin, double fMax)
 int compare(fpr *gold, fpr *test, int bound, const char *string)
 {
     printf("%s: ", string);
-    fpr a, b;
+    fpr a, b, delta = 0.0;
     for (int i = 0; i < bound; i++)
     {
         a = gold[i];
         b = test[i];
-        if (a != b)
+        delta += fabs(a - b);
+        if (delta > 0.005)
         {
-            printf("Wrong [%d]: %lf != %lf, delta: %lf \n", i, a, b, a - b);
+            printf("Wrong [%d]: %.20f != %.20f, delta: %.20f \n", i, a, b, delta);
             return 1;
         }
     }
