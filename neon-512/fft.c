@@ -1632,7 +1632,7 @@ static void Zf(iFFT_logn1)(fpr *f, const unsigned logn, const unsigned last)
     }
 }
 
-static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned last)
+static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned last, unsigned adj)
 {
     // Total SIMD registers: 27 = 24 + 3 
     float64x2x4_t x_re, y_re, x_im, y_im, v1, v2; // 24
@@ -1643,11 +1643,11 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
     const unsigned hn = falcon_n >> 1;
 
     // TODO: modify this for loop
-    for (unsigned l = level; l < logn - 1; l += 2)
+    for (unsigned l = level-1; l < (logn - 1 - adj ) ; l += 2)
     {
         distance = 1 << l;
         last -= 1;
-        printf("loop %u, d = %u\n", l, distance);
+        printf("loop %u < %u , d = %u\n", l, (logn - 1 ), distance);
         for (unsigned i = 0; i < hn; i += 1 << (l + 2))
         {
             printf("hn loop %u - %u\n", (falcon_n + i) >> l, (falcon_n + i) >> (l+1));
@@ -1818,15 +1818,15 @@ void Zf(iFFT_logn)(fpr *f, const unsigned logn)
     case 9:
         Zf(iFFT_log5)(f, logn, 0);
         // Correct
-        Zf(iFFT_logn2)(f, logn, 4, 1);
+        Zf(iFFT_logn2)(f, logn, 5, 1, 0);
         break;
 
     default:
         // case 8:
         // case 10:
-        // Zf(iFFT_log5)(f, logn);
-        // Zf(iFFT_logn2)(f, logn, level);
-        // Zf(iFFT_logn1)(f, logn, 1);
+        Zf(iFFT_log5)(f, logn, 0);
+        Zf(iFFT_logn2)(f, logn, 5, 0, 1);
+        Zf(iFFT_logn1)(f, logn, 1);
         break;
     }
 }
