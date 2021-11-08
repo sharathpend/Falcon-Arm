@@ -1632,20 +1632,155 @@ static void Zf(iFFT_logn1)(fpr *f, const unsigned logn, const unsigned last)
     }
 }
 
-static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, const unsigned last)
+static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned last)
 {
+    // Total SIMD registers: 27 = 24 + 3 
+    float64x2x4_t x_re, y_re, x_im, y_im, v1, v2; // 24
+    float64x2x3_t s_re_im; // 3
+    float64x2x2_t x_tmp, y_tmp, s_tmp; // 6
     unsigned distance;
     const unsigned falcon_n = 1 << logn;
     const unsigned hn = falcon_n >> 1;
 
-    for (unsigned l = level; l < 8; l += 2)
+    // TODO: modify this for loop
+    for (unsigned l = level; l < logn - 1; l += 2)
     {
         distance = 1 << l;
+        last -= 1;
+        printf("loop %u, d = %u\n", l, distance);
         for (unsigned i = 0; i < hn; i += 1 << (l + 2))
         {
-            
+            printf("hn loop %u - %u\n", (falcon_n + i) >> l, (falcon_n + i) >> (l+1));
+            vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> l]);
+            s_re_im.val[0] = s_tmp.val[0];
+            s_re_im.val[1] = s_tmp.val[1];
+            vload(s_re_im.val[2], &fpr_gm_tab[(falcon_n + i) >> (l+1)]);
+            if (!last)
+            {
+                vfmuln(s_re_im.val[2], s_re_im.val[2], fpr_p2_tab[logn]);
+            }
+            for (unsigned j = i; j < i + distance; j += 4)
+            {
+                printf("%u, %u, %u, %u\n", j, j + distance, j + 2*distance, j + 3*distance);
+                vloadx2(x_tmp, &f[j]);
+                x_re.val[0] = x_tmp.val[0];
+                x_re.val[1] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + distance]);
+                y_re.val[0] = y_tmp.val[0];
+                y_re.val[1] = y_tmp.val[1];
+
+                vloadx2(x_tmp, &f[j + 2*distance]);
+                x_re.val[2] = x_tmp.val[0];
+                x_re.val[3] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + 3*distance]);
+                y_re.val[2] = y_tmp.val[0];
+                y_re.val[3] = y_tmp.val[1];
+
+                vloadx2(x_tmp, &f[j + hn]);
+                x_im.val[0] = x_tmp.val[0];
+                x_im.val[1] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + hn + distance]);
+                y_im.val[0] = y_tmp.val[0];
+                y_im.val[1] = y_tmp.val[1];
+
+                vloadx2(x_tmp, &f[j + hn + 2*distance]);
+                x_im.val[2] = x_tmp.val[0];
+                x_im.val[3] = x_tmp.val[1];
+                vloadx2(y_tmp, &f[j + hn + 3*distance]);
+                y_im.val[2] = y_tmp.val[0];
+                y_im.val[3] = y_tmp.val[1];
+
+                // x_re: 0,1 | 2,3 | 32,33 | 34,35
+                // y_re: 16,17 | 18,19 | 48,49 | 50,51
+                // x_im: 256 -> 259 | 288 -> 291
+                // y_im: 272 -> 275 | 304 -> 307
+
+                vfsubx4(v1, x_im, y_im);
+                vfsubx4(v2, x_re, y_re);
+
+                vfaddx4(x_re, x_re, y_re);
+                vfaddx4(x_im, x_im, y_im);
+
+                vfmul_lane(y_re.val[0], v1.val[0], s_re_im.val[0], 1);
+                vfmul_lane(y_re.val[1], v1.val[1], s_re_im.val[0], 1);
+                vfmul_lane(y_re.val[2], v1.val[2], s_re_im.val[1], 1);
+                vfmul_lane(y_re.val[3], v1.val[3], s_re_im.val[1], 1);
+
+                vfmul_lane(y_im.val[0], v1.val[0], s_re_im.val[0], 0);
+                vfmul_lane(y_im.val[1], v1.val[1], s_re_im.val[0], 0);
+                vfmul_lane(y_im.val[2], v1.val[2], s_re_im.val[1], 0);
+                vfmul_lane(y_im.val[3], v1.val[3], s_re_im.val[1], 0);
+
+                vfma_lane(y_re.val[0], y_re.val[0], v2.val[0], s_re_im.val[0], 0);
+                vfma_lane(y_re.val[1], y_re.val[1], v2.val[1], s_re_im.val[0], 0);
+                vfma_lane(y_re.val[2], y_re.val[2], v2.val[2], s_re_im.val[1], 0);
+                vfma_lane(y_re.val[3], y_re.val[3], v2.val[3], s_re_im.val[1], 0);
+
+                vfms_lane(y_im.val[0], y_im.val[0], v2.val[0], s_re_im.val[0], 1);
+                vfms_lane(y_im.val[1], y_im.val[1], v2.val[1], s_re_im.val[0], 1);
+                vfms_lane(y_im.val[2], y_im.val[2], v2.val[2], s_re_im.val[1], 1);
+                vfms_lane(y_im.val[3], y_im.val[3], v2.val[3], s_re_im.val[1], 1);
+
+                // print_vector(x_re, x_im, y_re, y_im);
+
+                // x_re: 0 -> 3 | 32 -> 35
+                // y_re: 16 -> 19 | 48 -> 51
+                // x_im: 256 -> 259 | 288 -> 291
+                // y_im: 272 -> 275 | 304 -> 307
+
+                vfsubx4_swap(v1, x_im, y_im, 0, 2, 1, 3);
+                vfsubx4_swap(v2, x_re, y_re, 0, 2, 1, 3);
+                
+                vfaddx4_swap(x_re, x_re, y_re, 0, 2, 1, 3);
+                vfaddx4_swap(x_im, x_im, y_im, 0, 2, 1, 3);
+
+                if (!last)
+                {
+                    printf("div %u\n", last);
+                    vfmulnx4(x_re, x_re, fpr_p2_tab[logn]);
+                    vfmulnx4(x_im, x_im, fpr_p2_tab[logn]);
+                }
+
+                vfmulx4_lane(y_re, v1, s_re_im.val[2], 1);
+                vfmax4_lane(y_re, y_re, v2, s_re_im.val[2], 0);
+
+                vfmulx4_lane(y_im, v1, s_re_im.val[2], 0);
+                vfmsx4_lane(y_im, y_im, v2, s_re_im.val[2], 1);
+
+                // x_re: 0->3 | 16 -> 19
+                // y_re: 32->35 | 48 -> 51
+                // x_im: 256->259 | 272->275
+                // y_im: 288->291 | 304->307
+
+                x_tmp.val[0] = x_re.val[0];
+                x_tmp.val[1] = x_re.val[1];
+                vstorex2(&f[j], x_tmp);
+                x_tmp.val[0] = x_re.val[2];
+                x_tmp.val[1] = x_re.val[3];
+                vstorex2(&f[j + distance], x_tmp);
+                y_tmp.val[0] = y_re.val[0];
+                y_tmp.val[1] = y_re.val[1];
+                vstorex2(&f[j + 2*distance], y_tmp);
+                y_tmp.val[0] = y_re.val[2];
+                y_tmp.val[1] = y_re.val[3];
+                vstorex2(&f[j + 3*distance], y_tmp);
+
+                x_tmp.val[0] = x_im.val[0];
+                x_tmp.val[1] = x_im.val[1];
+                vstorex2(&f[j + hn], x_tmp);
+                x_tmp.val[0] = x_im.val[2];
+                x_tmp.val[1] = x_im.val[3];
+                vstorex2(&f[j + hn + distance], x_tmp);
+                y_tmp.val[0] = y_im.val[0];
+                y_tmp.val[1] = y_im.val[1];
+                vstorex2(&f[j + hn + 2*distance], y_tmp);
+                y_tmp.val[0] = y_im.val[2];
+                y_tmp.val[1] = y_im.val[3];
+                vstorex2(&f[j + hn + 3*distance], y_tmp);
+            }
         }
     }
+    // End function
 }
 
 void Zf(iFFT_logn)(fpr *f, const unsigned logn)
@@ -1683,7 +1818,7 @@ void Zf(iFFT_logn)(fpr *f, const unsigned logn)
     case 9:
         Zf(iFFT_log5)(f, logn, 0);
         // Correct
-        Zf(iFFT_logn2)(f, logn, level, 1);
+        Zf(iFFT_logn2)(f, logn, 4, 1);
         break;
 
     default:
