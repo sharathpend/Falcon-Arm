@@ -348,7 +348,7 @@ int main()
         Zf(iFFT_logn)(f_logn, logn);
 
         // print_array(f_logn, 1 << logn, "logn", 1);
-        if (logn > 6)
+        if (logn < 0)
         {
             print_array(f_gold, 1 << logn, "after f_gold", 1);
             print_array(f_logn, 1 << logn, "after f_logn", 1);

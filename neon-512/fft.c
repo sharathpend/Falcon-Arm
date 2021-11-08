@@ -1647,10 +1647,10 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
     {
         distance = 1 << l;
         last -= 1;
-        printf("loop %u < %u , d = %u\n", l, (logn - 1 ), distance);
+        // printf("loop %u < %u , d = %u\n", l, (logn - 1 ), distance);
         for (unsigned i = 0; i < hn; i += 1 << (l + 2))
         {
-            printf("hn loop %u - %u\n", (falcon_n + i) >> l, (falcon_n + i) >> (l+1));
+            // printf("hn loop %u - %u\n", (falcon_n + i) >> l, (falcon_n + i) >> (l+1));
             vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> l]);
             s_re_im.val[0] = s_tmp.val[0];
             s_re_im.val[1] = s_tmp.val[1];
@@ -1661,7 +1661,7 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
             }
             for (unsigned j = i; j < i + distance; j += 4)
             {
-                printf("%u, %u, %u, %u\n", j, j + distance, j + 2*distance, j + 3*distance);
+                // printf("%u, %u, %u, %u\n", j, j + distance, j + 2*distance, j + 3*distance);
                 vloadx2(x_tmp, &f[j]);
                 x_re.val[0] = x_tmp.val[0];
                 x_re.val[1] = x_tmp.val[1];
@@ -1736,7 +1736,7 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
 
                 if (!last)
                 {
-                    printf("div %u\n", last);
+                    // printf("div %u\n", last);
                     vfmulnx4(x_re, x_re, fpr_p2_tab[logn]);
                     vfmulnx4(x_im, x_im, fpr_p2_tab[logn]);
                 }
