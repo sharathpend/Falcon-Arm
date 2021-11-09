@@ -555,9 +555,12 @@ prng_get_u8(prng *p) {
  *
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
-// void PQCLEAN_FALCON512_NEON_FFT(fpr *f);
-void PQCLEAN_FALCON512_NEON_FFT(fpr *f, const bool negate_true);
 
+#define Zf(name) name
+
+void PQCLEAN_FALCON512_CLEAN_FFT_original(fpr *f, unsigned logn);
+void PQCLEAN_FALCON512_NEON_FFT(fpr *f, const bool negate_true);
+void Zf(FFT_logn)(fpr *f, unsigned logn);
 /*
  * Compute the inverse FFT in-place: the source array should contain the
  * FFT representation of a real polynomial (N/2 elements); the resulting
@@ -567,7 +570,8 @@ void PQCLEAN_FALCON512_NEON_FFT(fpr *f, const bool negate_true);
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
 void PQCLEAN_FALCON512_NEON_iFFT(fpr *f);
-
+void PQCLEAN_FALCON512_CLEAN_iFFT_original(fpr *f, unsigned logn);
+void Zf(iFFT_logn)(fpr *f, unsigned logn);
 /*
  * Add polynomial b to polynomial a. a and b MUST NOT overlap. This
  * function works in both normal and FFT representations.
