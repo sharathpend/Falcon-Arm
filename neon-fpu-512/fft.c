@@ -1106,41 +1106,6 @@ static void Zf(iFFT_log4)(fpr *f)
     vstorex4(&f[8], tmp);
 }
 
-static void
-print_vector(float64x2x4_t x_re, float64x2x4_t x_im, float64x2x4_t y_re, float64x2x4_t y_im)
-{
-    printf("=====vec\n");
-    for (int k = 0; k < 4; k++)
-    {
-        for (int z = 0; z < 2; z++)
-        {
-            printf("%f, ", x_re.val[k][z]);
-        }
-    }
-    for (int k = 0; k < 4; k++)
-    {
-        for (int z = 0; z < 2; z++)
-        {
-            printf("%f, ", y_re.val[k][z]);
-        }
-    }
-    for (int k = 0; k < 4; k++)
-    {
-        for (int z = 0; z < 2; z++)
-        {
-            printf("%f, ", x_im.val[k][z]);
-        }
-    }
-    for (int k = 0; k < 4; k++)
-    {
-        for (int z = 0; z < 2; z++)
-        {
-            printf("%f, ", y_im.val[k][z]);
-        }
-    }
-    printf("\n");
-}
-
 static void Zf(iFFT_log5)(fpr *f, const unsigned logn, const uint8_t last)
 {
     // Total SIMD register: 28 = 16 + 8 + 4
