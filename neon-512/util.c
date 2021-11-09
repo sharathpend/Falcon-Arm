@@ -33,7 +33,7 @@ double fRand(double fMin, double fMax)
 
 int compare(fpr *gold, fpr *test, int bound, const char *string)
 {
-    printf("%s: ", string);
+    // printf("%s: ", string);
     fpr a, b, delta = 0.0;
     for (int i = 0; i < bound; i++)
     {
@@ -46,7 +46,7 @@ int compare(fpr *gold, fpr *test, int bound, const char *string)
             return 1;
         }
     }
-    printf("OK\n");
+    // printf("OK\n");
     return 0;
 }
 

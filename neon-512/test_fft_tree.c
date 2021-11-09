@@ -62,16 +62,10 @@ void fft(fpr *f, unsigned logn)
 
                 if (logn > 100)
                 {
-                    // printf("rvg: %f | %f\n", v2_re, v2_im);
-                    // printf("radd: %f | %f\n", x_re, x_im);
-                    // printf("rsub: %f | %f\n\n", y_re, y_im);
-                    // printf("level %u\n", u);
-                    // printf("v_re: (%3d*%3d - %3d*%3d)\n", j + ht, bla, j + ht + hn, blo);
-                    // printf("v_im: (%3d*%3d + %3d*%3d)\n", j + ht, blo, j + ht + hn, bla);
-                    printf("x_re: %3d = %3d + (%3d*%3d - %3d*%3d)\n", j, j, j + ht, bla, j + ht + hn, blo);
-                    printf("y_re: %3d = %3d - (%3d*%3d - %3d*%3d)\n", j + ht, j, j + ht, bla, j + ht + hn, blo);
-                    printf("x_im: %3d = %3d + (%3d*%3d + %3d*%3d)\n", j + hn, j + hn, j + ht, blo, j + ht + hn, bla);
-                    printf("y_im: %3d = %3d - (%3d*%3d + %3d*%3d)\n", j + ht + hn, j + hn, j + ht, blo, j + ht + hn, bla);
+                    // printf("x_re: %3d = %3d + (%3d*%3d - %3d*%3d)\n", j, j, j + ht, bla, j + ht + hn, blo);
+                    // printf("y_re: %3d = %3d - (%3d*%3d - %3d*%3d)\n", j + ht, j, j + ht, bla, j + ht + hn, blo);
+                    // printf("x_im: %3d = %3d + (%3d*%3d + %3d*%3d)\n", j + hn, j + hn, j + ht, blo, j + ht + hn, bla);
+                    // printf("y_im: %3d = %3d - (%3d*%3d + %3d*%3d)\n", j + ht + hn, j + hn, j + ht, blo, j + ht + hn, bla);
                     // printf("----\n");
                 }
 #else
@@ -183,10 +177,10 @@ ifft(fpr *f, unsigned logn) {
 
                 if (u  < 0)
                 {
-                    printf("y_re: %d = (%d - %d) * %d + (%d - %d) * %d \n", i_yre, i_xim, i_yim, i_sim, i_xre, i_yre, i_sre);
-                    printf("y_im: %d = (%d - %d) * %d - (%d - %d) * %d \n", i_yim, i_xim, i_yim, i_sre, i_xre, i_yre, i_sim);
-                    printf("x_re: %d = %d + %d\n", i_xre, i_xre, i_yre);
-                    printf("x_im: %d = %d + %d\n", i_xim, i_xim, i_yim);
+                    // printf("y_re: %d = (%d - %d) * %d + (%d - %d) * %d \n", i_yre, i_xim, i_yim, i_sim, i_xre, i_yre, i_sre);
+                    // printf("y_im: %d = (%d - %d) * %d - (%d - %d) * %d \n", i_yim, i_xim, i_yim, i_sre, i_xre, i_yre, i_sim);
+                    // printf("x_re: %d = %d + %d\n", i_xre, i_xre, i_yre);
+                    // printf("x_im: %d = %d + %d\n", i_xim, i_xim, i_yim);
                 }
                 fpct_d_re = fpr_add(fpr_mul(v1, s_re), fpr_mul(v2, s_im));
                 fpct_d_im = fpr_sub(fpr_mul(v2, s_re), fpr_mul(v1, s_im));
@@ -212,18 +206,13 @@ ifft(fpr *f, unsigned logn) {
 #if DEBUG == 1
         if (u  < 0)
         {
-            printf("========%d\n", u);
-            for (int i =0; i < 1 << logn; i++)
-            {
-                printf("%f, ", f[i]);
-            }
-            // for (int i = hn; i < 16 + 16; i++)
+            // printf("========%d\n", u);
+            // for (int i =0; i < 1 << logn; i++)
             // {
             //     printf("%f, ", f[i]);
             // }
-            printf("\n");
+            // printf("\n");
         }
-        printf("\n");
 #endif
     }
 
@@ -283,7 +272,7 @@ int main()
 
     // ret |= compare(f_gold, f_test, 1 << size, "Compare with original");
 
-    for (int kkk = 0; kkk < 1; kkk++)
+    for (int kkk = 0; kkk < 1000; kkk++)
     for (unsigned int logn = 1; logn < 11; logn += 1)
     {
         for (unsigned int j = 0; j < 1 << logn; j++)
@@ -327,10 +316,10 @@ int main()
     }
     printf("Finish Testing FFT\n");
 
-    for (int kkk = 0; kkk < 1; kkk++)
+    for (int kkk = 0; kkk < 100; kkk++)
     for (unsigned int logn = 8; logn < 11; logn += 1)
     {
-        printf("logn %u\n", logn);
+        // printf("logn %u\n", logn);
         for (unsigned int j = 0; j < 1 << logn; j++)
         {
             tmp = fRand(-512, 512);
@@ -361,7 +350,7 @@ int main()
             printf("ERR logn = %u\n", logn);
             return 1;
         }
-        printf("OK logn = %u\n", logn);
+        // printf("OK logn = %u\n", logn);
     }
     printf("Finish Testing iFFT\n");
 
