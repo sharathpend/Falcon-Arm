@@ -33,6 +33,19 @@
 #define vfmuln(c, a, n) c = vmulq_n_f64(a, n);
 // Swap from a|b to b|a
 #define vswap(c, a) c = vextq_f64(a, a, 1);
+
+#define vfmulx4(c, a, b)                        \
+    c.val[0] = vmulq_n_f64(a.val[0], b.val[0]); \
+    c.val[1] = vmulq_n_f64(a.val[1], b.val[1]); \
+    c.val[2] = vmulq_n_f64(a.val[2], b.val[2]); \
+    c.val[3] = vmulq_n_f64(a.val[3], b.val[3]);
+
+#define vfmulx4_lane(c, a, b, i)                \
+    c.val[0] = vmulq_laneq_f64(a.val[0], b, i); \
+    c.val[1] = vmulq_laneq_f64(a.val[1], b, i); \
+    c.val[2] = vmulq_laneq_f64(a.val[2], b, i); \
+    c.val[3] = vmulq_laneq_f64(a.val[3], b, i);
+
 // c = a * n (n is constant)
 #define vfmulnx4(c, a, n)                \
     c.val[0] = vmulq_n_f64(a.val[0], n); \
@@ -46,7 +59,8 @@
 // c = a * b[i]
 #define vfmul_lane(c, a, b, i) c = vmulq_laneq_f64(a, b, i);
 // d = c + a * b[i]
-#define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
+// #define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
+#define vfma_lane(d, c, a, b, i) d = vaddq_f64(c, vmulq_laneq_f64(a, b, i));
 // d = c - a * b[i]
 #define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
 // c = -a
@@ -82,5 +96,17 @@
     c.val[1] = vaddq_f64(a.val[i2], a.val[i3]); \
     c.val[2] = vaddq_f64(b.val[i0], b.val[i1]); \
     c.val[3] = vaddq_f64(b.val[i2], b.val[i3]);
+
+#define vfmax4_lane(d, c, a, b, i)                                   \
+    d.val[0] = vaddq_f64(c.val[0], vmulq_laneq_f64(a.val[0], b, i)); \
+    d.val[1] = vaddq_f64(c.val[1], vmulq_laneq_f64(a.val[1], b, i)); \
+    d.val[2] = vaddq_f64(c.val[2], vmulq_laneq_f64(a.val[2], b, i)); \
+    d.val[3] = vaddq_f64(c.val[3], vmulq_laneq_f64(a.val[3], b, i));
+
+#define vfmsx4_lane(d, c, a, b, i)                                   \
+    d.val[0] = vsubq_f64(c.val[0], vmulq_laneq_f64(a.val[0], b, i)); \
+    d.val[1] = vsubq_f64(c.val[1], vmulq_laneq_f64(a.val[1], b, i)); \
+    d.val[2] = vsubq_f64(c.val[2], vmulq_laneq_f64(a.val[2], b, i)); \
+    d.val[3] = vsubq_f64(c.val[3], vmulq_laneq_f64(a.val[3], b, i));
 
 #endif
