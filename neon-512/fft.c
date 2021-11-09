@@ -369,7 +369,6 @@ static void Zf(FFT_log4)(fpr *f)
     // Total SIMD register: 30 = 12 + 16 + 2
     float64x2x4_t tmp[2], s_re_im;                             // 12
     float64x2x2_t s_tmp, x_re, x_im, y_re, y_im, v1, v2, tmp2; // 16
-    float64x2_t v_re, v_im;                                    // 2
 
     /* 
     level 1
@@ -550,8 +549,6 @@ static void Zf(FFT_log5)(fpr *f, unsigned logn)
     float64x2x4_t s_re_im, tmp;                   // 8
     float64x2x4_t x_re, x_im, y_re, y_im, v1, v2; // 24
     float64x2x2_t s_tmp;                          // 2
-    // Level 4, 5, 6, 7
-    float64x2x2_t x_tmp, y_tmp;
     const unsigned int falcon_n = 1 << logn;
     const unsigned int hn = falcon_n >> 1;
 
@@ -772,7 +769,7 @@ static void Zf(FFT_log5)(fpr *f, unsigned logn)
     }
 }
 
-static void Zf(FFT_logn1)(fpr *f, unsigned logn, const unsigned l)
+static void Zf(FFT_logn1)(fpr *f, unsigned logn, const uint8_t level)
 {
     // Total SIMD register: 26
     float64x2_t s_re_im;                          // 2
@@ -780,11 +777,11 @@ static void Zf(FFT_logn1)(fpr *f, unsigned logn, const unsigned l)
 
     const unsigned int falcon_n = 1 << logn;
     const unsigned int hn = falcon_n >> 1;
-    const unsigned level = l - 1;
-    const unsigned distance = 1 << (level - 1);
-    for (unsigned i = 0; i < hn; i += 1 << level)
+    const unsigned l = level - 1;
+    const unsigned distance = 1 << (l - 1);
+    for (unsigned i = 0; i < hn; i += 1 << l)
     {
-        vload(s_re_im, &fpr_gm_tab[(falcon_n + i) >> (level - 1)]);
+        vload(s_re_im, &fpr_gm_tab[(falcon_n + i) >> (l - 1)]);
         for (unsigned j = 0; j < distance; j += 8)
         {
             // Level 6
@@ -843,10 +840,10 @@ static void Zf(FFT_logn1)(fpr *f, unsigned logn, const unsigned l)
     // End function
 }
 
-static void Zf(FFT_logn2)(fpr *f, unsigned logn, const unsigned level)
+static void Zf(FFT_logn2)(fpr *f, unsigned logn, const uint8_t level)
 {
     // Total: 26 = 16 + 8 + 2 register
-    float64x2x4_t s_re_im, tmp;                   // 8
+    float64x2x4_t s_re_im;                        // 8
     float64x2x4_t x_re, x_im, y_re, y_im, v1, v2; // 16
     float64x2x2_t s_tmp;                          // 2
     // for storing instruction
@@ -858,14 +855,14 @@ static void Zf(FFT_logn2)(fpr *f, unsigned logn, const unsigned level)
     for (int l = level - 1; l > 4; l -= 2)
     {
         int distance = 1 << (l - 2);
-        for (int i = 0; i < hn; i += 1 << l)
+        for (unsigned i = 0; i < hn; i += 1 << l)
         {
             vload(s_re_im.val[0], &fpr_gm_tab[(falcon_n + i) >> (l - 1)]);
             vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> (l - 2)]);
             s_re_im.val[1] = s_tmp.val[0];
             s_re_im.val[2] = s_tmp.val[1];
 
-            for (int j = i; j < i + distance; j += 4)
+            for (unsigned j = i; j < i + distance; j += 4)
             {
                 // Level 7
                 // x1_re: 0->3, 64->67
@@ -998,7 +995,7 @@ static void Zf(FFT_logn2)(fpr *f, unsigned logn, const unsigned level)
  */
 void Zf(FFT_logn)(fpr *f, const unsigned logn)
 {
-    unsigned level = logn;
+    uint8_t level = logn;
     switch (logn)
     {
     case 1:
@@ -1050,7 +1047,7 @@ static void Zf(iFFT_log2)(fpr *f)
     x_im: 2 = 2 + 3
      */
     float64x2x2_t tmp;
-    float64x2_t x_re_im, y_re_im, v1, v2, s_re_im, s_re_im_rev, neon_1i2;
+    float64x2_t x_re_im, y_re_im, v, s_re_im, s_re_im_rev, neon_1i2;
 
     const double imagine[2] = {1.0, -1.0};
 
@@ -1069,11 +1066,11 @@ static void Zf(iFFT_log2)(fpr *f)
     x_re_im = tmp.val[0];
     y_re_im = tmp.val[1];
 
-    vfsub(v1, x_re_im, y_re_im);
+    vfsub(v, x_re_im, y_re_im);
     vfadd(x_re_im, x_re_im, y_re_im);
 
-    vfmul_lane(y_re_im, s_re_im_rev, v1, 1);
-    vfma_lane(y_re_im, y_re_im, s_re_im, v1, 0);
+    vfmul_lane(y_re_im, s_re_im_rev, v, 1);
+    vfma_lane(y_re_im, y_re_im, s_re_im, v, 0);
 
     vfmuln(x_re_im, x_re_im, 0.5);
     vfmuln(y_re_im, y_re_im, 0.5);
@@ -1101,8 +1098,7 @@ static void Zf(iFFT_log3)(fpr *f)
     // 2: 4, 6 - 2: 2, 6
     // 3: 5, 7 - 3: 3, 7
     float64x2x4_t tmp;
-    float64x2x2_t x_re_im, y_re_im, v, s_re_im, s_re_im_rev, neon_i21;
-    const double imagine[2] = {-1.0, 1.0};
+    float64x2x2_t x_re_im, y_re_im, v, s_re_im;
 
     vload2(x_re_im, &f[0]);
     vload2(y_re_im, &f[4]);
@@ -1374,7 +1370,7 @@ print_vector(float64x2x4_t x_re, float64x2x4_t x_im, float64x2x4_t y_re, float64
     printf("\n");
 }
 
-static void Zf(iFFT_log5)(fpr *f, const unsigned logn, const unsigned last)
+static void Zf(iFFT_log5)(fpr *f, const unsigned logn, const uint8_t last)
 {
     // Total SIMD register: 28 = 16 + 8 + 4
     float64x2x4_t s_re_im, tmp1, tmp2;    // 8
@@ -1386,7 +1382,7 @@ static void Zf(iFFT_log5)(fpr *f, const unsigned logn, const unsigned last)
     const unsigned hn = falcon_n >> 1;
 
     // Level 0, 1, 2, 3
-    for (int j = 0; j < hn; j += 16)
+    for (unsigned j = 0; j < hn; j += 16)
     {
         vload4(x_re, &f[j]);
         vload4(y_re, &f[j + 8]);
@@ -1550,7 +1546,7 @@ static void Zf(iFFT_log5)(fpr *f, const unsigned logn, const unsigned last)
     }
 }
 
-static void Zf(iFFT_logn1)(fpr *f, const unsigned logn, const unsigned last)
+static void Zf(iFFT_logn1)(fpr *f, const unsigned logn, const uint8_t last)
 {
     /* Level 6
     y_re: 16 = (32 - 48) * 5 + (0 - 16) * 4 
@@ -1632,36 +1628,32 @@ static void Zf(iFFT_logn1)(fpr *f, const unsigned logn, const unsigned last)
     }
 }
 
-static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned last, unsigned adj)
+static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const uint8_t level, uint8_t last)
 {
-    // Total SIMD registers: 27 = 24 + 3 
+    // Total SIMD registers: 27 = 24 + 3
     float64x2x4_t x_re, y_re, x_im, y_im, v1, v2; // 24
-    float64x2x3_t s_re_im; // 3
-    float64x2x2_t x_tmp, y_tmp, s_tmp; // 6
+    float64x2x3_t s_re_im;                        // 3
+    float64x2x2_t x_tmp, y_tmp, s_tmp;            // 6
     unsigned distance;
     const unsigned falcon_n = 1 << logn;
     const unsigned hn = falcon_n >> 1;
 
-    // TODO: modify this for loop
-    for (unsigned l = level-1; l < (logn - 1 - adj ) ; l += 2)
+    for (uint8_t l = 4; l < (logn - 1 - level); l += 2)
     {
         distance = 1 << l;
         last -= 1;
-        // printf("loop %u < %u , d = %u\n", l, (logn - 1 ), distance);
         for (unsigned i = 0; i < hn; i += 1 << (l + 2))
         {
-            // printf("hn loop %u - %u\n", (falcon_n + i) >> l, (falcon_n + i) >> (l+1));
             vloadx2(s_tmp, &fpr_gm_tab[(falcon_n + i) >> l]);
             s_re_im.val[0] = s_tmp.val[0];
             s_re_im.val[1] = s_tmp.val[1];
-            vload(s_re_im.val[2], &fpr_gm_tab[(falcon_n + i) >> (l+1)]);
+            vload(s_re_im.val[2], &fpr_gm_tab[(falcon_n + i) >> (l + 1)]);
             if (!last)
             {
                 vfmuln(s_re_im.val[2], s_re_im.val[2], fpr_p2_tab[logn]);
             }
             for (unsigned j = i; j < i + distance; j += 4)
             {
-                // printf("%u, %u, %u, %u\n", j, j + distance, j + 2*distance, j + 3*distance);
                 vloadx2(x_tmp, &f[j]);
                 x_re.val[0] = x_tmp.val[0];
                 x_re.val[1] = x_tmp.val[1];
@@ -1669,10 +1661,10 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
                 y_re.val[0] = y_tmp.val[0];
                 y_re.val[1] = y_tmp.val[1];
 
-                vloadx2(x_tmp, &f[j + 2*distance]);
+                vloadx2(x_tmp, &f[j + 2 * distance]);
                 x_re.val[2] = x_tmp.val[0];
                 x_re.val[3] = x_tmp.val[1];
-                vloadx2(y_tmp, &f[j + 3*distance]);
+                vloadx2(y_tmp, &f[j + 3 * distance]);
                 y_re.val[2] = y_tmp.val[0];
                 y_re.val[3] = y_tmp.val[1];
 
@@ -1683,10 +1675,10 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
                 y_im.val[0] = y_tmp.val[0];
                 y_im.val[1] = y_tmp.val[1];
 
-                vloadx2(x_tmp, &f[j + hn + 2*distance]);
+                vloadx2(x_tmp, &f[j + hn + 2 * distance]);
                 x_im.val[2] = x_tmp.val[0];
                 x_im.val[3] = x_tmp.val[1];
-                vloadx2(y_tmp, &f[j + hn + 3*distance]);
+                vloadx2(y_tmp, &f[j + hn + 3 * distance]);
                 y_im.val[2] = y_tmp.val[0];
                 y_im.val[3] = y_tmp.val[1];
 
@@ -1730,7 +1722,7 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
 
                 vfsubx4_swap(v1, x_im, y_im, 0, 2, 1, 3);
                 vfsubx4_swap(v2, x_re, y_re, 0, 2, 1, 3);
-                
+
                 vfaddx4_swap(x_re, x_re, y_re, 0, 2, 1, 3);
                 vfaddx4_swap(x_im, x_im, y_im, 0, 2, 1, 3);
 
@@ -1760,10 +1752,10 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
                 vstorex2(&f[j + distance], x_tmp);
                 y_tmp.val[0] = y_re.val[0];
                 y_tmp.val[1] = y_re.val[1];
-                vstorex2(&f[j + 2*distance], y_tmp);
+                vstorex2(&f[j + 2 * distance], y_tmp);
                 y_tmp.val[0] = y_re.val[2];
                 y_tmp.val[1] = y_re.val[3];
-                vstorex2(&f[j + 3*distance], y_tmp);
+                vstorex2(&f[j + 3 * distance], y_tmp);
 
                 x_tmp.val[0] = x_im.val[0];
                 x_tmp.val[1] = x_im.val[1];
@@ -1773,10 +1765,10 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
                 vstorex2(&f[j + hn + distance], x_tmp);
                 y_tmp.val[0] = y_im.val[0];
                 y_tmp.val[1] = y_im.val[1];
-                vstorex2(&f[j + hn + 2*distance], y_tmp);
+                vstorex2(&f[j + hn + 2 * distance], y_tmp);
                 y_tmp.val[0] = y_im.val[2];
                 y_tmp.val[1] = y_im.val[3];
-                vstorex2(&f[j + hn + 3*distance], y_tmp);
+                vstorex2(&f[j + hn + 3 * distance], y_tmp);
             }
         }
     }
@@ -1785,7 +1777,7 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, un
 
 void Zf(iFFT_logn)(fpr *f, const unsigned logn)
 {
-    unsigned level = logn;
+    const uint8_t level = (logn - 5) & 1;
 
     switch (logn)
     {
@@ -1811,21 +1803,19 @@ void Zf(iFFT_logn)(fpr *f, const unsigned logn)
     case 6:
         Zf(iFFT_log5)(f, logn, 0);
         Zf(iFFT_logn1)(f, logn, 1);
-        // Correct
         break;
 
     case 7:
     case 9:
         Zf(iFFT_log5)(f, logn, 0);
-        // Correct
-        Zf(iFFT_logn2)(f, logn, 5, 1, 0);
+        Zf(iFFT_logn2)(f, logn, level, 1);
         break;
 
     default:
         // case 8:
         // case 10:
         Zf(iFFT_log5)(f, logn, 0);
-        Zf(iFFT_logn2)(f, logn, 5, 0, 1);
+        Zf(iFFT_logn2)(f, logn, level, 0);
         Zf(iFFT_logn1)(f, logn, 1);
         break;
     }
