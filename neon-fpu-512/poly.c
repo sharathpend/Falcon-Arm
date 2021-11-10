@@ -1,51 +1,106 @@
 /*
- * FFT code.
+ * Poly
  *
- * ==========================(LICENSE BEGIN)============================
- *
- * Copyright (c) 2017-2019  Falcon Project
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * ===========================(LICENSE END)=============================
- *
- * @author   Thomas Pornin <thomas.pornin@nccgroup.com>
+ * =============================================================================
+ * Copyright (c) 2021 by Cryptographic Engineering Research Group (CERG)
+ * ECE Department, George Mason University
+ * Fairfax, VA, U.S.A.
+ * Author: Duc Tri Nguyen
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =============================================================================
+ * @author   Duc Tri Nguyen <dnguye69@gmu.edu>
  */
 
 #include "inner.h"
 #include "macrofx4.h"
+#include "macrof.h"
+
+static inline 
+void Zf(poly_add_log1)(fpr *c, const fpr *restrict a, const fpr *restrict b)
+{
+    float64x2_t neon_a, neon_b, neon_c;
+    vload(neon_a, &a[0]);
+    vload(neon_b, &b[0]);
+    
+    vfadd(neon_c, neon_a, neon_b);
+
+    vstore(&c[0], neon_c);
+}
+
+static inline 
+void Zf(poly_add_log2)(fpr *c, const fpr *restrict a, const fpr *restrict b)
+{
+    float64x2x2_t neon_a, neon_b, neon_c;
+    vloadx2(neon_a, &a[0]);
+    vloadx2(neon_b, &b[0]);
+    
+    vfadd(neon_c.val[0], neon_a.val[0], neon_b.val[0]);
+    vfadd(neon_c.val[1], neon_a.val[1], neon_b.val[1]);
+    
+    vstorex2(&c[0], neon_c);
+}
 
 /* see inner.h */
 void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     float64x2x4_t neon_a, neon_b, neon_c;
     const int falcon_n = 1 << logn;
-    for (int i = 0; i < falcon_n; i += 8)
+    switch (logn)
     {
-        vloadx4(neon_a, &a[i]);
-        vloadx4(neon_b, &b[i]);
+    case 1:
+        Zf(poly_add_log1)(c, a, b);
+        break;
+    
+    case 2:
+        Zf(poly_add_log2)(c, a, b);
+        break;
 
-        vfaddx4(neon_c, neon_a, neon_b);
+    default:
+        // printf("poly_add %u\n", logn);
+        for (int i = 0; i < falcon_n; i += 8)
+        {
+            vloadx4(neon_a, &a[i]);
+            vloadx4(neon_b, &b[i]);
 
-        vstorex4(&c[i], neon_c);
+            vfaddx4(neon_c, neon_a, neon_b);
+
+            vstorex4(&c[i], neon_c);
+        }
+        break;
     }
+}
+
+static inline 
+void Zf(poly_sub_log1)(fpr *c, const fpr *restrict a, const fpr *restrict b)
+{
+    float64x2_t neon_a, neon_b, neon_c;
+    vload(neon_a, &a[0]);
+    vload(neon_b, &b[0]);
+    
+    vfsub(neon_c, neon_a, neon_b);
+
+    vstore(&c[0], neon_c);
+}
+
+static inline 
+void Zf(poly_sub_log2)(fpr *c, const fpr *restrict a, const fpr *restrict b)
+{
+    float64x2x2_t neon_a, neon_b, neon_c;
+    vloadx2(neon_a, &a[0]);
+    vloadx2(neon_b, &b[0]);
+    
+    vfsub(neon_c.val[0], neon_a.val[0], neon_b.val[0]);
+    vfsub(neon_c.val[1], neon_a.val[1], neon_b.val[1]);
+    
+    vstorex2(&c[0], neon_c);
 }
 
 /* see inner.h */
@@ -56,14 +111,28 @@ void Zf(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned
 {
     float64x2x4_t neon_a, neon_b, neon_c;
     const int falcon_n = 1 << logn;
-    for (int i = 0; i < falcon_n; i += 8)
+    switch (logn)
     {
-        vloadx4(neon_a, &a[i]);
-        vloadx4(neon_b, &b[i]);
+    case 1:
+        Zf(poly_sub_log1)(c, a, b);
+        break;
+    
+    case 2:
+        Zf(poly_sub_log2)(c, a, b);
+        break;
 
-        vfsubx4(neon_c, neon_a, neon_b);
+    default:
+        // printf("poly_sub %u\n", logn);
+        for (int i = 0; i < falcon_n; i += 8)
+        {
+            vloadx4(neon_a, &a[i]);
+            vloadx4(neon_b, &b[i]);
 
-        vstorex4(&c[i], neon_c);
+            vfsubx4(neon_c, neon_a, neon_b);
+
+            vstorex4(&c[i], neon_c);
+        }
+        break;
     }
 }
 
@@ -90,16 +159,130 @@ void Zf(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 {
 
     float64x2x4_t neon_a, neon_c;
+    float64x2x2_t neon_a2, neon_c2;
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
-    for (int i = hn; i < falcon_n; i += 8)
+
+    switch (logn)
     {
-        vloadx4(neon_a, &a[i]);
+    case 1:
+        // n = 2; hn = 1; 
+        c[1] = fpr_neg(a[1]);
+        break;
+    
+    case 2:
+        // n = 4; hn = 2
+        vload(neon_a.val[0], &a[2]);
+        vfneg(neon_c.val[0], neon_a.val[0]);
+        vstore(&c[2], neon_c.val[0]);
+        break;
 
-        vfnegx4(neon_c, neon_a);
+    case 3:
+        // n = 8; hn = 4
+        vloadx2(neon_a2, &a[4]);
+        vfneg(neon_c2.val[0], neon_a2.val[0]);
+        vfneg(neon_c2.val[1], neon_a2.val[1]);
+        vstorex2(&c[4], neon_c2);
+        break;
+    
+    default:
+        for (int i = hn; i < falcon_n; i += 8)
+        {
+            vloadx4(neon_a, &a[i]);
 
-        vstorex4(&c[i], neon_c);
+            vfnegx4(neon_c, neon_a);
+
+            vstorex4(&c[i], neon_c);
+        }
+        break;
     }
+}
+
+static inline
+void Zf(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
+{
+    float64x2_t neon_a, neon_b, neon_c, neon_d, neon_1i2;
+    const double imagine[2] = {1.0, -1.0};
+    vload(neon_1i2, &imagine[0]);
+    // re | im
+    vload(neon_a, &a[0]);
+    vload(neon_b, &b[0]);
+    
+    // re re | im im 
+    vfmul(neon_c, neon_a, neon_b);
+    // 1 -1 
+    vfmul(neon_c, neon_c, neon_1i2);
+    // im | re
+    neon_b = vextq_f64(neon_b, neon_b, 1);
+    vfmul(neon_d, neon_a, neon_b);
+    neon_c = vpaddq_f64(neon_c, neon_d);
+
+    vstore(&c[0], neon_c);
+}
+
+static inline
+void Zf(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
+{
+    float64x2x2_t neon_a, neon_b, neon_c;
+    float64x2_t a_re, a_im, b_re, b_im, c_re, c_im;
+
+    // 0: re, re
+    // 1: im, im
+    vloadx2(neon_a, &a[0]);
+    vloadx2(neon_b, &b[0]);
+    
+    a_re = neon_a.val[0];
+    a_im = neon_a.val[1];
+    b_re = neon_b.val[0];
+    b_im = neon_b.val[1];
+
+    vfmul(c_re, a_re, b_re);
+    vfms(c_re, c_re, a_im, b_im);
+
+    vfmul(c_im, a_re, b_im);
+    vfma(c_im, c_im, a_im, b_re);
+    
+    neon_c.val[0] = c_re;
+    neon_c.val[1] = c_im;
+
+    vstorex2(&c[0], neon_c);
+}
+
+static inline
+void Zf(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
+{
+    float64x2x4_t neon_a, neon_b, neon_c;
+    float64x2x2_t a_re, a_im, b_re, b_im, c_re, c_im;
+
+    vloadx4(neon_a, &a[0]);
+    vloadx4(neon_b, &b[0]);
+
+    a_re.val[0] = neon_a.val[0];
+    a_re.val[1] = neon_a.val[1];
+    a_im.val[0] = neon_a.val[2];
+    a_im.val[1] = neon_a.val[3];
+
+    b_re.val[0] = neon_b.val[0];
+    b_re.val[1] = neon_b.val[1];
+    b_im.val[0] = neon_b.val[2];
+    b_im.val[1] = neon_b.val[3];
+    
+    vfmul(c_re.val[0], a_re.val[0], b_re.val[0]);
+    vfmul(c_re.val[1], a_re.val[1], b_re.val[1]);
+    vfms(c_re.val[0], c_re.val[0], a_im.val[0], b_im.val[0]);
+    vfms(c_re.val[1], c_re.val[1], a_im.val[1], b_im.val[1]);
+
+    vfmul(c_im.val[0], a_re.val[0], b_im.val[0]);
+    vfmul(c_im.val[1], a_re.val[1], b_im.val[1]);
+    vfma(c_im.val[0], c_im.val[0], a_im.val[0], b_re.val[0]);
+    vfma(c_im.val[1], c_im.val[1], a_im.val[1], b_re.val[1]);
+    
+    neon_c.val[0] = c_re.val[0];
+    neon_c.val[1] = c_re.val[1];
+    neon_c.val[2] = c_im.val[0];
+    neon_c.val[3] = c_im.val[1];
+
+    vstorex4(&c[0], neon_c);
 }
 
 /* see inner.h */
@@ -113,21 +296,39 @@ void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restric
     float64x2x4_t c_re, c_im;             // 8
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
-    for (int i = 0; i < hn; i += 8)
+    switch (logn)
     {
-        vloadx4(a_re, &a[i]);
-        vloadx4(b_re, &b[i]);
-        vloadx4(a_im, &a[i + hn]);
-        vloadx4(b_im, &b[i + hn]);
+    case 1:
+        Zf(poly_mul_fft_log1)(c, a, b);
+        break;
 
-        vfmulx4(c_re, a_re, b_re);
-        vfmsx4(c_re, c_re, a_im, b_im);
+    case 2:
+        Zf(poly_mul_fft_log2)(c, a, b);
+        break;
 
-        vfmulx4(c_im, a_re, b_im);
-        vfmax4(c_im, c_im, a_im, b_re);
+    case 3:
+        Zf(poly_mul_fft_log3)(c, a, b);
+        break;
 
-        vstorex4(&c[i], c_re);
-        vstorex4(&c[i + hn], c_im);
+    default:
+        // printf("poly_mul_fft %u\n", logn);
+        for (int i = 0; i < hn; i += 8)
+        {
+            vloadx4(a_re, &a[i]);
+            vloadx4(b_re, &b[i]);
+            vloadx4(a_im, &a[i + hn]);
+            vloadx4(b_im, &b[i + hn]);
+
+            vfmulx4(c_re, a_re, b_re);
+            vfmsx4(c_re, c_re, a_im, b_im);
+
+            vfmulx4(c_im, a_re, b_im);
+            vfmax4(c_im, c_im, a_im, b_re);
+
+            vstorex4(&c[i], c_re);
+            vstorex4(&c[i + hn], c_im);
+        }
+        break;
     }
 }
 
@@ -237,23 +438,80 @@ void Zf(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *re
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     float64x2x4_t a_re, a_im, b_re, b_im, c_re, c_im, d_re;
-    for (int i = 0; i < hn; i += 8)
+    float64x2x2_t x_re_im, y_re_im, z_re_im;
+
+    switch (logn)
     {
-        vloadx4(a_re, &a[i]);
-        vloadx4(a_im, &a[i + hn]);
-        vloadx4(b_re, &b[i]);
-        vloadx4(b_im, &b[i + hn]);
+    case 1:
+        // n = 2; hn = 1; i = 0
+        /* 
+         * x_re = a[0];
+         * x_im = a[1];
+         * y_re = b[0];
+         * y_im = b[1]; 
+         * d[0] = 1.0/( (x_re*x_re) + (x_im*x_im) + (y_re*y_re) + (y_im*y_im) );
+         */
+        vload(a_re.val[0], &a[0]);
+        vload(b_re.val[0], &b[0]);
+        vfmul(a_re.val[0], a_re.val[0], a_re.val[0]);
+        vfma(c_re.val[0], a_re.val[0], b_re.val[0], b_re.val[0]);
+        d[0] = 1.0/vaddvq_f64(c_re.val[0]);
+        break;
+    
+    case 2: 
+        // n = 4; hn = 2; i = 0, 1
+        vloadx2(x_re_im, &a[0]);
+        vloadx2(y_re_im, &b[0]);
 
-        vfmulx4(c_re, a_re, a_re);
-        vfmax4(c_re, c_re, a_im, a_im);
+        vfmul(x_re_im.val[0], x_re_im.val[0], x_re_im.val[0]);
+        vfma(z_re_im.val[0], x_re_im.val[0], x_re_im.val[1], x_re_im.val[1]);
 
-        vfmulx4(c_im, b_re, b_re);
-        vfmax4(c_im, c_im, b_im, b_im);
+        vfmul(y_re_im.val[0], y_re_im.val[0], y_re_im.val[0]);
+        vfma(z_re_im.val[1], y_re_im.val[0], y_re_im.val[1], y_re_im.val[1]);
+        vfadd(z_re_im.val[0], z_re_im.val[0], z_re_im.val[1]);
 
-        vfaddx4(d_re, c_re, c_im);
-        vfinvx4(d_re, d_re);
+        z_re_im.val[0] = vdivq_f64(vdupq_n_f64(1.0), z_re_im.val[0]);
+        
+        vstore(&d[0], z_re_im.val[0]);
+        break;
+    
+    case 3:
+        // n = 8; hn = 4; i = 0,1,2,3
+        vloadx4(a_re, &a[0]);
+        vloadx4(b_re, &b[0]);
 
-        vstorex4(&d[i], d_re);
+        vfmulx4(a_re, a_re, a_re);
+        vfmax4(c_re, a_re, b_re, b_re);
+
+        vfadd(z_re_im.val[0], c_re.val[0], c_re.val[2]);
+        vfadd(z_re_im.val[1], c_re.val[1], c_re.val[3]);
+
+        z_re_im.val[0] = vdivq_f64(vdupq_n_f64(1.0), z_re_im.val[0]);
+        z_re_im.val[1] = vdivq_f64(vdupq_n_f64(1.0), z_re_im.val[1]);
+
+        vstorex2(&d[0], z_re_im);
+        break;
+    
+    default:
+        for (int i = 0; i < hn; i += 8)
+        {
+            vloadx4(a_re, &a[i]);
+            vloadx4(a_im, &a[i + hn]);
+            vloadx4(b_re, &b[i]);
+            vloadx4(b_im, &b[i + hn]);
+
+            vfmulx4(c_re, a_re, a_re);
+            vfmax4(c_re, c_re, a_im, a_im);
+
+            vfmulx4(c_im, b_re, b_re);
+            vfmax4(c_im, c_im, b_im, b_im);
+
+            vfaddx4(d_re, c_re, c_im);
+            vfinvx4(d_re, d_re);
+
+            vstorex4(&d[i], d_re);
+        }
+        break;
     }
 }
 
@@ -304,17 +562,65 @@ void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr 
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     float64x2x4_t a_re, a_im, b_re, c_re, c_im;
-    for (int i = 0; i < hn; i += 8)
+    float64x2x2_t a_re_im, b_re_im, c_re_im;
+    printf("poly_mul_autoadj_fft logn %u\n", logn);
+    switch (logn)
     {
-        vloadx4(a_re, &a[i]);
-        vloadx4(a_im, &a[i + hn]);
-        vloadx4(b_re, &b[i]);
+    case 1:
+        // n = 2; hn = 1; i = 0
+        // c[0] = a[0] * b[0];
+        // c[1] = a[1] * b[0];
+        vload(a_re.val[0], &a[0]);
+        vmulq_n_f64(a_re.val[0], b[0]);
+        vstore(&c[0], a_re.val[0]);
+        break;
+    
+    case 2:
+        // n = 4; hn = 2; i = 0, 1
+        // c[0] = a[0] * b[0];
+        // c[2] = a[2] * b[0]; 
+        // c[1] = a[1] * b[1];
+        // c[3] = a[3] * b[1]; 
+        vload2(a_re_im, &a[0]);
+        vload(b_re_im.val[0], &b[0]);
+        vfmul_lane(c_re_im.val[0], a_re_im.val[0], b_re_im.val[0], 0);
+        vfmul_lane(c_re_im.val[1], a_re_im.val[1], b_re_im.val[0], 1);
+        vstore2(&c[0], c_re_im);
+        break;
+    
+    case 3:
+        // n = 8; hn = 4; i = 0,1,2,3
+        // c[0] = a[0] * b[0]
+        // c[4] = a[4] * b[0];
+        // c[1] = a[1] * b[1]
+        // c[5] = a[5] * b[1];
+        // c[2] = a[2] * b[2]
+        // c[6] = a[6] * b[2];
+        // c[3] = a[3] * b[3]
+        // c[7] = a[7] * b[3];
+        vload4(a_re, &a[0]);
+        vloadx2(b_re_im, &b[0]);
+        vfmul_lane(c_re.val[0], a_re.val[0], b_re_im.val[0], 0);
+        vfmul_lane(c_re.val[1], a_re.val[1], b_re_im.val[0], 1);
+        vfmul_lane(c_re.val[2], a_re.val[2], b_re_im.val[1], 0);
+        vfmul_lane(c_re.val[3], a_re.val[3], b_re_im.val[1], 1);
+        vstore4(&c[0], c_re);
+        break;
+    
+    default:
+        for (int i = 0; i < hn; i += 8)
+        {
+            vloadx4(a_re, &a[i]);
+            vloadx4(a_im, &a[i + hn]);
+            vloadx4(b_re, &b[i]);
 
-        vfmulx4(c_re, a_re, b_re);
-        vfmulx4(c_im, a_im, b_re);
+            vfmulx4(c_re, a_re, b_re);
+            vfmulx4(c_im, a_im, b_re);
 
-        vstorex4(&c[i], c_re);
-        vstorex4(&c[i + hn], c_im);
+            vstorex4(&c[i], c_re);
+            vstorex4(&c[i + hn], c_im);
+        }
+        break;
     }
 }
 
