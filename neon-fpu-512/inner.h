@@ -642,8 +642,7 @@ prng_get_u8(prng *p)
  *
  * 'logn' MUST lie between 1 and 10 (inclusive).
  */
-// void Zf(FFT)(fpr *f, unsigned logn);
-void Zf(FFT)(fpr *f, unsigned logn, const bool negate_true);
+void Zf(FFT)(fpr *f, unsigned logn);
 
 /*
  * Compute the inverse FFT in-place: the source array should contain the
