@@ -764,7 +764,7 @@ static void Zf(FFT_logn2)(fpr *f, unsigned logn, const uint8_t level)
  * Support logn from [1, 10]
  * Can be easily extended to logn > 10
  */
-void Zf(FFT_logn)(fpr *f, const unsigned logn)
+void Zf(FFT)(fpr *f, const unsigned logn)
 {
     uint8_t level = logn;
     switch (logn)
@@ -1511,7 +1511,7 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const uint8_t level, uin
     // End function
 }
 
-void Zf(iFFT_logn)(fpr *f, const unsigned logn)
+void Zf(iFFT)(fpr *f, const unsigned logn)
 {
     const uint8_t level = (logn - 5) & 1;
 
