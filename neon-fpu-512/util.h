@@ -5,8 +5,9 @@
 
 void smallints_to_fpr(fpr *r, const int8_t *t, unsigned logn);
 
-void print_farray(fpr *r, unsigned logn);
+void print_farray(fpr *r, unsigned logn, const char *string);
 
-void print_iarray(int8_t *a);
+void print_iarray(int8_t *a, const char* string);
+
 
 #endif
