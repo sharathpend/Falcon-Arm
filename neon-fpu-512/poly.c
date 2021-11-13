@@ -25,47 +25,37 @@
 #include <assert.h>
 #include <stdio.h>
 
-static inline void Zf(poly_add_log1)(fpr *c, const fpr *restrict a, const fpr *restrict b)
-{
-    float64x2_t neon_a, neon_b, neon_c;
-    vload(neon_a, &a[0]);
-    vload(neon_b, &b[0]);
-
-    vfadd(neon_c, neon_a, neon_b);
-
-    vstore(&c[0], neon_c);
-}
-
-static inline void Zf(poly_add_log2)(fpr *c, const fpr *restrict a, const fpr *restrict b)
-{
-    float64x2x2_t neon_a, neon_b, neon_c;
-    vloadx2(neon_a, &a[0]);
-    vloadx2(neon_b, &b[0]);
-
-    vfadd(neon_c.val[0], neon_a.val[0], neon_b.val[0]);
-    vfadd(neon_c.val[1], neon_a.val[1], neon_b.val[1]);
-
-    vstorex2(&c[0], neon_c);
-}
-
 /* see inner.h */
 void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     float64x2x4_t neon_a, neon_b, neon_c;
+    float64x2x2_t neon_a2, neon_b2, neon_c2;
     const int falcon_n = 1 << logn;
     switch (logn)
     {
     case 1:
-        Zf(poly_add_log1)(c, a, b);
+        // n = 2;
+        vload(neon_a.val[0], &a[0]);
+        vload(neon_b.val[0], &b[0]);
+
+        vfadd(neon_c.val[0], neon_a.val[0], neon_b.val[0]);
+
+        vstore(&c[0], neon_c.val[0]);
         break;
 
     case 2:
-        Zf(poly_add_log2)(c, a, b);
+        // n = 4
+        vloadx2(neon_a2, &a[0]);
+        vloadx2(neon_b2, &b[0]);
+
+        vfadd(neon_c2.val[0], neon_a2.val[0], neon_b2.val[0]);
+        vfadd(neon_c2.val[1], neon_a2.val[1], neon_b2.val[1]);
+
+        vstorex2(&c[0], neon_c2);
         break;
 
     default:
         assert(logn >= 3);
-        // printf("SUPPORT poly_add %u\n", logn);
         for (int i = 0; i < falcon_n; i += 8)
         {
             vloadx4(neon_a, &a[i]);
@@ -79,29 +69,6 @@ void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned
     }
 }
 
-static inline void Zf(poly_sub_log1)(fpr *c, const fpr *restrict a, const fpr *restrict b)
-{
-    float64x2_t neon_a, neon_b, neon_c;
-    vload(neon_a, &a[0]);
-    vload(neon_b, &b[0]);
-
-    vfsub(neon_c, neon_a, neon_b);
-
-    vstore(&c[0], neon_c);
-}
-
-static inline void Zf(poly_sub_log2)(fpr *c, const fpr *restrict a, const fpr *restrict b)
-{
-    float64x2x2_t neon_a, neon_b, neon_c;
-    vloadx2(neon_a, &a[0]);
-    vloadx2(neon_b, &b[0]);
-
-    vfsub(neon_c.val[0], neon_a.val[0], neon_b.val[0]);
-    vfsub(neon_c.val[1], neon_a.val[1], neon_b.val[1]);
-
-    vstorex2(&c[0], neon_c);
-}
-
 /* see inner.h */
 /* 
  * c = a - b
@@ -109,19 +76,30 @@ static inline void Zf(poly_sub_log2)(fpr *c, const fpr *restrict a, const fpr *r
 void Zf(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     float64x2x4_t neon_a, neon_b, neon_c;
+    float64x2x2_t neon_a2, neon_b2, neon_c2;
     const int falcon_n = 1 << logn;
     switch (logn)
     {
     case 1:
-        Zf(poly_sub_log1)(c, a, b);
+        vload(neon_a.val[0], &a[0]);
+        vload(neon_b.val[0], &b[0]);
+
+        vfsub(neon_c.val[0], neon_a.val[0], neon_b.val[0]);
+
+        vstore(&c[0], neon_c.val[0]);
         break;
 
     case 2:
-        Zf(poly_sub_log2)(c, a, b);
+        vloadx2(neon_a2, &a[0]);
+        vloadx2(neon_b2, &b[0]);
+
+        vfsub(neon_c2.val[0], neon_a2.val[0], neon_b2.val[0]);
+        vfsub(neon_c2.val[1], neon_a2.val[1], neon_b2.val[1]);
+
+        vstorex2(&c[0], neon_c2);
         break;
 
     default:
-        // printf("SUPPORT poly_sub %u\n", logn);
         assert(logn >= 3);
         for (int i = 0; i < falcon_n; i += 8)
         {
@@ -142,16 +120,40 @@ void Zf(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned
  */
 void Zf(poly_neg)(fpr *c, const fpr *restrict a, unsigned logn)
 {
-    assert(logn >= 3);
     float64x2x4_t neon_a, neon_c;
+    float64x2x2_t neon_a2, neon_c2;
     const int falcon_n = 1 << logn;
-    for (int i = 0; i < falcon_n; i += 8)
+
+    switch (logn)
     {
-        vloadx4(neon_a, &a[i]);
+    case 1:
+        vload(neon_a.val[0], &a[0]);
 
-        vfnegx4(neon_c, neon_a);
+        vfneg(neon_c.val[0], neon_a.val[0]);
 
-        vstorex4(&c[i], neon_c);
+        vstore(&c[0], neon_c.val[0]);
+        break;
+
+    case 2:
+        vloadx2(neon_a2, &a[0]);
+
+        vfneg(neon_c2.val[0], neon_a2.val[0]);
+        vfneg(neon_c2.val[1], neon_a2.val[1]);
+
+        vstorex2(&c[0], neon_c2);
+        break;
+
+    default:
+        assert(logn >= 3);
+        for (int i = 0; i < falcon_n; i += 8)
+        {
+            vloadx4(neon_a, &a[i]);
+
+            vfnegx4(neon_c, neon_a);
+
+            vstorex4(&c[i], neon_c);
+        }
+        break;
     }
 }
 
@@ -202,6 +204,7 @@ void Zf(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 
 static inline void Zf(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
+    // n = 2
     float64x2_t neon_a, neon_b, neon_c, neon_d, neon_1i2;
     const double imagine[2] = {1.0, -1.0};
     vload(neon_1i2, &imagine[0]);
@@ -223,6 +226,7 @@ static inline void Zf(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a,
 
 static inline void Zf(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
+    // n = 4
     float64x2x2_t neon_a, neon_b, neon_c;
     float64x2_t a_re, a_im, b_re, b_im, c_re, c_im;
 
@@ -250,6 +254,7 @@ static inline void Zf(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a,
 
 static inline void Zf(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
+    // n = 8
     float64x2x4_t neon_a, neon_b, neon_c;
     float64x2x2_t a_re, a_im, b_re, b_im, c_re, c_im;
 
@@ -311,7 +316,6 @@ void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restric
 
     default:
         assert(logn >= 4);
-        // printf("SUPPORT poly_mul_fft %u\n", logn);
         for (int i = 0; i < hn; i += 8)
         {
             vloadx4(a_re, &a[i]);
@@ -467,14 +471,14 @@ void Zf(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *re
         vloadx2(x_re_im, &a[0]);
         vloadx2(y_re_im, &b[0]);
 
-        vfmul(x_re_im.val[0], x_re_im.val[0], x_re_im.val[0]);
-        vfma(z_re_im.val[0], x_re_im.val[0], x_re_im.val[1], x_re_im.val[1]);
+        vfmul(z_re_im.val[0], x_re_im.val[0], x_re_im.val[0]);
+        vfma(z_re_im.val[0], z_re_im.val[0], x_re_im.val[1], x_re_im.val[1]);
 
-        vfmul(y_re_im.val[0], y_re_im.val[0], y_re_im.val[0]);
-        vfma(z_re_im.val[1], y_re_im.val[0], y_re_im.val[1], y_re_im.val[1]);
+        vfmul(z_re_im.val[1], y_re_im.val[0], y_re_im.val[0]);
+        vfma(z_re_im.val[1], z_re_im.val[1], y_re_im.val[1], y_re_im.val[1]);
         vfadd(z_re_im.val[0], z_re_im.val[0], z_re_im.val[1]);
 
-        z_re_im.val[0] = vdivq_f64(vdupq_n_f64(1.0), z_re_im.val[0]);
+        vfinv(z_re_im.val[0], z_re_im.val[0]);
 
         vstore(&d[0], z_re_im.val[0]);
         break;
@@ -484,14 +488,14 @@ void Zf(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *re
         vloadx4(a_re, &a[0]);
         vloadx4(b_re, &b[0]);
 
-        vfmulx4(a_re, a_re, a_re);
-        vfmax4(c_re, a_re, b_re, b_re);
+        vfmulx4(c_re, a_re, a_re);
+        vfmax4(c_re, c_re, b_re, b_re);
 
         vfadd(z_re_im.val[0], c_re.val[0], c_re.val[2]);
         vfadd(z_re_im.val[1], c_re.val[1], c_re.val[3]);
 
-        z_re_im.val[0] = vdivq_f64(vdupq_n_f64(1.0), z_re_im.val[0]);
-        z_re_im.val[1] = vdivq_f64(vdupq_n_f64(1.0), z_re_im.val[1]);
+        vfinv(z_re_im.val[0], z_re_im.val[0]);
+        vfinv(z_re_im.val[1], z_re_im.val[1]);
 
         vstorex2(&d[0], z_re_im);
         break;
@@ -520,65 +524,46 @@ void Zf(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *re
     }
 }
 
-// TODO: Add assert to prevent memory corruption
-
 /* see inner.h */
 void Zf(poly_add_muladj_fft)(fpr *restrict d,
                              const fpr *restrict F, const fpr *restrict G,
                              const fpr *restrict f, const fpr *restrict g, unsigned logn)
 {
+    assert(logn > 3);
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     float64x2x4_t F_re, F_im, G_re, G_im;
     float64x2x4_t f_re, f_im, g_re, g_im;
     float64x2x4_t a_re, a_im, b_re, b_im;
 
-    switch (logn)
+    for (int i = 0; i < hn; i += 8)
     {
-    case 1:
-        printf("SUPPORT poly_add_muladj_fft log %d\n", logn);
-        break;
+        vloadx4(F_re, &F[i]);
+        vloadx4(F_im, &F[i + hn]);
+        vloadx4(G_re, &G[i]);
+        vloadx4(G_im, &G[i + hn]);
+        vloadx4(f_re, &f[i]);
+        vloadx4(f_im, &f[i + hn]);
+        vloadx4(g_re, &g[i]);
+        vloadx4(g_im, &g[i + hn]);
 
-    case 2:
-        printf("SUPPORT poly_add_muladj_fft log %d\n", logn);
-        break;
+        vfmulx4(a_re, F_re, f_re);
+        vfmax4(a_re, a_re, F_im, f_im);
 
-    case 3:
-        printf("SUPPORT poly_add_muladj_fft log %d\n", logn);
-        break;
+        vfmulx4(a_im, F_im, f_re);
+        vfmsx4(a_im, a_im, F_re, f_im);
 
-    default:
-        assert(logn >= 4);
-        for (int i = 0; i < hn; i += 8)
-        {
-            vloadx4(F_re, &F[i]);
-            vloadx4(F_im, &F[i + hn]);
-            vloadx4(G_re, &G[i]);
-            vloadx4(G_im, &G[i + hn]);
-            vloadx4(f_re, &f[i]);
-            vloadx4(f_im, &f[i + hn]);
-            vloadx4(g_re, &g[i]);
-            vloadx4(g_im, &g[i + hn]);
+        vfmulx4(b_re, G_re, g_re);
+        vfmax4(b_re, b_re, G_im, g_im);
 
-            vfmulx4(a_re, F_re, f_re);
-            vfmax4(a_re, a_re, F_im, f_im);
+        vfmulx4(b_im, G_im, g_re);
+        vfmsx4(b_im, b_im, G_re, g_im);
 
-            vfmulx4(a_im, F_im, f_re);
-            vfmsx4(a_im, a_im, F_re, f_im);
+        vfsubx4(a_re, a_re, b_re);
+        vfsubx4(a_im, a_im, b_im);
 
-            vfmulx4(b_re, G_re, g_re);
-            vfmax4(b_re, b_re, G_im, g_im);
-
-            vfmulx4(b_im, G_im, g_re);
-            vfmsx4(b_im, b_im, G_re, g_im);
-
-            vfsubx4(a_re, a_re, b_re);
-            vfsubx4(a_im, a_im, b_im);
-
-            vstorex4(&d[i], a_re);
-            vstorex4(&d[i + hn], a_im);
-        }
-        break;
+        vstorex4(&d[i], a_re);
+        vstorex4(&d[i + hn], a_im);
     }
 }
 
@@ -615,13 +600,13 @@ void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr 
 
     case 3:
         // n = 8; hn = 4; i = 0,1,2,3
-        // c[0] = a[0] * b[0]
+        // c[0] = a[0] * b[0];
         // c[4] = a[4] * b[0];
-        // c[1] = a[1] * b[1]
+        // c[1] = a[1] * b[1];
         // c[5] = a[5] * b[1];
-        // c[2] = a[2] * b[2]
+        // c[2] = a[2] * b[2];
         // c[6] = a[6] * b[2];
-        // c[3] = a[3] * b[3]
+        // c[3] = a[3] * b[3];
         // c[7] = a[7] * b[3];
         vload4(a_re, &a[0]);
         vloadx2(b_re_im, &b[0]);
@@ -656,37 +641,20 @@ void Zf(poly_div_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr 
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     float64x2x4_t a_re, a_im, b_re, binv, c_re, c_im;
-    switch (logn)
+
+    for (int i = 0; i < hn; i += 8)
     {
-    case 1:
-        printf("SUPPORT poly_div_autoadj_fft %d\n", logn);
-        break;
+        vloadx4(a_re, &a[i]);
+        vloadx4(a_im, &a[i + hn]);
+        vloadx4(b_re, &b[i]);
 
-    case 2:
-        printf("SUPPORT poly_div_autoadj_fft %d\n", logn);
-        break;
+        vfinvx4(binv, b_re);
 
-    case 3:
-        printf("SUPPORT poly_div_autoadj_fft %d\n", logn);
-        break;
+        vfmulx4(c_re, a_re, binv);
+        vfmulx4(c_im, a_im, binv);
 
-    default:
-        assert(logn >= 4);
-        for (int i = 0; i < hn; i += 8)
-        {
-            vloadx4(a_re, &a[i]);
-            vloadx4(a_im, &a[i + hn]);
-            vloadx4(b_re, &b[i]);
-
-            vfinvx4(binv, b_re);
-
-            vfmulx4(c_re, a_re, binv);
-            vfmulx4(c_im, a_im, binv);
-
-            vstorex4(&c[i], c_re);
-            vstorex4(&c[i + hn], c_im);
-        }
-        break;
+        vstorex4(&c[i], c_re);
+        vstorex4(&c[i + hn], c_im);
     }
 }
 
@@ -726,6 +694,7 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
         vfmul(mu_im.val[0], g01_re.val[0], g00_re.val[1]);
         // g01_re * g00_re + g01_im * g00_im | g01_re * -g00_im + g01_im * g00_re
         mu_re.val[0] = vpaddq_f64(mu_re.val[0], mu_im.val[0]);
+
         vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
 
         // g01_re | -g01_im
@@ -787,9 +756,9 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
         vstorex2(&g11[0], tmp);
 
         vfneg(mu_im.val[0], mu_im.val[0]);
-
         tmp.val[0] = mu_re.val[0];
         tmp.val[1] = mu_im.val[0];
+
         vstorex2(&g01[0], tmp);
 
         break;
@@ -803,8 +772,6 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
         g00_im.val[1] = g00_re.val[3];
         g01_im.val[0] = g01_re.val[2];
         g01_im.val[1] = g01_re.val[3];
-        g11_im.val[0] = g11_re.val[2];
-        g11_im.val[1] = g11_re.val[3];
 
         vfmul(m.val[0], g00_re.val[0], g00_re.val[0]);
         vfmul(m.val[1], g00_re.val[1], g00_re.val[1]);
@@ -840,8 +807,8 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
 
         vfsub(g11_re.val[0], g11_re.val[0], d_re.val[0]);
         vfsub(g11_re.val[1], g11_re.val[1], d_re.val[1]);
-        vfsub(g11_re.val[2], g11_im.val[0], d_im.val[0]);
-        vfsub(g11_re.val[3], g11_im.val[1], d_im.val[1]);
+        vfsub(g11_re.val[2], g11_re.val[2], d_im.val[0]);
+        vfsub(g11_re.val[3], g11_re.val[3], d_im.val[1]);
 
         vfneg(mu_re.val[2], mu_im.val[0]);
         vfneg(mu_re.val[3], mu_im.val[1]);
@@ -903,8 +870,7 @@ void Zf(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
-    float64x2x4_t g00_re, g00_im, g01_re, g01_im,
-        g11_re, g11_im, mu_re, mu_im, m;
+    float64x2x4_t g00_re, g00_im, g01_re, g01_im, g11_re, g11_im, mu_re, mu_im, m;
     float64x2x2_t tmp;
     float64x2_t neon_1i2;
     const fpr imagine[2] = {1.0, -1.0};
@@ -922,11 +888,11 @@ void Zf(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
 
         vfmul(g00_re.val[1], g00_re.val[0], neon_1i2);
         g00_re.val[1] = vextq_f64(g00_re.val[1], g00_re.val[1], 1);
-        
+
         vfmul(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
         vfmul(mu_im.val[0], g01_re.val[0], g00_re.val[1]);
         mu_re.val[0] = vpaddq_f64(mu_re.val[0], mu_im.val[0]);
-        
+
         vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
 
         vfmul(g01_re.val[1], g01_re.val[0], neon_1i2);
@@ -939,7 +905,7 @@ void Zf(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
         vfsub(g11_re.val[0], g11_re.val[0], g01_re.val[0]);
 
         vfmul(mu_re.val[0], mu_re.val[0], neon_1i2);
-        
+
         vstore(&d11[0], g11_re.val[0]);
         vstore(&l10[0], mu_re.val[0]);
 
