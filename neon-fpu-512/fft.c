@@ -22,7 +22,7 @@
 #include "inner.h"
 #include "macrof.h"
 #include "macrofx4.h"
-
+#include <assert.h>
 
 static void Zf(FFT_log2)(fpr *f)
 {
@@ -773,28 +773,35 @@ void Zf(FFT)(fpr *f, const unsigned logn)
         break;
 
     case 2:
+        assert(logn == 2);
         Zf(FFT_log2)(f);
         break;
 
     case 3:
+        assert(logn == 3);
         Zf(FFT_log3)(f);
         break;
 
     case 4:
+        assert(logn == 4);
         Zf(FFT_log4)(f);
         break;
 
     case 5:
+        assert(logn == 5);
         Zf(FFT_log5)(f, logn);
         break;
 
     case 6:
+        assert(logn == 6);
         Zf(FFT_logn1)(f, logn, level--);
         Zf(FFT_log5)(f, logn);
         break;
 
     case 7:
+        assert(logn == 7);
     case 9:
+        assert(logn == 9);
         Zf(FFT_logn2)(f, logn, level);
         Zf(FFT_log5)(f, logn);
         break;
@@ -802,6 +809,7 @@ void Zf(FFT)(fpr *f, const unsigned logn)
     default:
         // case 8:
         // case 10:
+        assert((logn == 8) || (logn == 10));
         Zf(FFT_logn1)(f, logn, level--);
         Zf(FFT_logn2)(f, logn, level);
         Zf(FFT_log5)(f, logn);
@@ -1521,28 +1529,35 @@ void Zf(iFFT)(fpr *f, const unsigned logn)
         break;
 
     case 2:
+        assert(logn == 2);
         Zf(iFFT_log2)(f);
         break;
 
     case 3:
+        assert(logn == 3);
         Zf(iFFT_log3)(f);
         break;
 
     case 4:
+        assert(logn == 4);
         Zf(iFFT_log4)(f);
         break;
 
     case 5:
+        assert(logn == 5);
         Zf(iFFT_log5)(f, logn, 1);
         break;
 
     case 6:
+        assert(logn == 6);
         Zf(iFFT_log5)(f, logn, 0);
         Zf(iFFT_logn1)(f, logn, 1);
         break;
 
     case 7:
+        assert(logn == 7);
     case 9:
+        assert(logn == 9);
         Zf(iFFT_log5)(f, logn, 0);
         Zf(iFFT_logn2)(f, logn, level, 1);
         break;
