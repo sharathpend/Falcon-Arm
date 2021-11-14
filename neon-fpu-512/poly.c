@@ -529,7 +529,7 @@ void Zf(poly_add_muladj_fft)(fpr *restrict d,
                              const fpr *restrict F, const fpr *restrict G,
                              const fpr *restrict f, const fpr *restrict g, unsigned logn)
 {
-    assert(logn > 3);
+    assert(logn >= 4);
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     float64x2x4_t F_re, F_im, G_re, G_im;
@@ -559,8 +559,8 @@ void Zf(poly_add_muladj_fft)(fpr *restrict d,
         vfmulx4(b_im, G_im, g_re);
         vfmsx4(b_im, b_im, G_re, g_im);
 
-        vfsubx4(a_re, a_re, b_re);
-        vfsubx4(a_im, a_im, b_im);
+        vfaddx4(a_re, a_re, b_re);
+        vfaddx4(a_im, a_im, b_im);
 
         vstorex4(&d[i], a_re);
         vstorex4(&d[i + hn], a_im);
@@ -581,7 +581,7 @@ void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr 
         // c[0] = a[0] * b[0];
         // c[1] = a[1] * b[0];
         vload(a_re.val[0], &a[0]);
-        vmulq_n_f64(a_re.val[0], b[0]);
+        vfmuln(a_re.val[0], a_re.val[0], b[0]);
         vstore(&c[0], a_re.val[0]);
         break;
 
