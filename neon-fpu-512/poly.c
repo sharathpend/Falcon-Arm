@@ -1,5 +1,5 @@
 /*
- * Poly
+ * Poly FFT
  *
  * =============================================================================
  * Copyright (c) 2021 by Cryptographic Engineering Research Group (CERG)
@@ -23,7 +23,6 @@
 #include "macrofx4.h"
 #include "macrof.h"
 #include <assert.h>
-#include <stdio.h>
 
 /* see inner.h */
 void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
