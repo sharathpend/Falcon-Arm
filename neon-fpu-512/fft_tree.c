@@ -1,7 +1,7 @@
 #include "inner.h"
 #include "macrof.h"
 #include "macrofx4.h"
-
+#include <assert.h>
 /* 
  * Minimum logn: 5
  */
@@ -172,12 +172,18 @@ static inline void Zf(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
  * Only support logn >= 3
  */
 void
-Zf(poly_merge_fft)(
-	fpr *restrict f,
-	const fpr *restrict f0, const fpr *restrict f1, unsigned logn)
+    Zf(poly_merge_fft)(
+        fpr *restrict f,
+        const fpr *restrict f0, const fpr *restrict f1, unsigned logn)
 {
     switch (logn)
     {
+    case 1:
+        printf("SUPPORT poly_merge_fft logn: %d\n", logn);
+        break;
+    case 2:
+        printf("SUPPORT poly_merge_fft logn: %d\n", logn);
+        break;
     case 3:
         Zf(poly_mergeFFT_log3)(f, f0, f1);
         break;
@@ -189,200 +195,195 @@ Zf(poly_merge_fft)(
     }
 }
 
-static inline void Zf(poly_splitFFT_log3)(fpr *restrict f0, fpr *restrict f1, const fpr *f)
+static inline 
+void Zf(poly_splitFFT_log3)(fpr *restrict f0, fpr *restrict f1, const fpr *f)
 {
-    // Max Total register: 6
-    float64x2x2_t f_re, f_im;    // 4
-    float64x2x2_t x, y, s_re_im; // 6
+    // n = 8; hn = 4; qn = 2;
+    // a_re = f[0];
+    // b_re = f[1];
+    // a_im = f[4];
+    // b_im = f[5];
 
-    vload2(f_re, &f[0]);
-    vload2(f_im, &f[4]);
+    // a_re = f[2];
+    // b_re = f[3];
+    // a_im = f[6];
+    // b_im = f[7];
+
+    // Total SIMD register: 10 = 8 + (4-2)
+    float64x2x2_t tmp, s_re_im;                                 // 4
+    float64x2_t a_re, b_re, a_im, b_im, t_re, t_im, d_re, d_im; // 8
+
+    vload2(tmp, &f[0]);
+    a_re = tmp.val[0];
+    b_re = tmp.val[1];
+    vload2(tmp, &f[4]);
+    a_im = tmp.val[0];
+    b_im = tmp.val[1];
+
+    // 8, 10
+    // 9, 11
     vload2(s_re_im, &fpr_gm_tab_half[8]);
 
-    vfadd(x.val[0], f_re.val[0], f_re.val[1]);
-    vfadd(x.val[1], f_im.val[0], f_im.val[1]);
+    vfadd(t_re, a_re, b_re);
+    vfadd(t_im, a_im, b_im);
+    vfmuln(t_re, t_re, 0.5);
+    vfmuln(t_im, t_im, 0.5);
 
-    vfmuln(x.val[0], x.val[0], 0.5);
-    vfmuln(x.val[1], x.val[1], 0.5);
+    // 0, 2, 1, 3
+    tmp.val[0] = t_re;
+    tmp.val[1] = t_im;
+    vstorex2(&f0[0], tmp);
 
-    vstorex2(&f0[0], x);
+    vfsub(t_re, a_re, b_re);
+    vfsub(t_im, a_im, b_im);
 
-    vfsub(x.val[0], f_re.val[0], f_re.val[1]);
-    vfsub(x.val[1], f_im.val[0], f_im.val[1]);
+    vfmul(d_re, t_re, s_re_im.val[0]);
+    vfma(d_re, d_re, t_im, s_re_im.val[1]);
 
-    vfmul(y.val[0], x.val[0], s_re_im.val[0]);
-    vfmul(y.val[1], x.val[1], s_re_im.val[0]);
+    vfmul(d_im, t_im, s_re_im.val[0]);
+    vfms(d_im, d_im, t_re, s_re_im.val[1]);
 
-    vfma(y.val[0], y.val[0], x.val[1], s_re_im.val[1]);
-    vfms(y.val[1], y.val[1], x.val[0], s_re_im.val[1]);
+    vfmuln(t_re, d_re, 0.5);
+    vfmuln(t_im, d_im, 0.5);
 
-    vstorex2(&f1[0], y);
+    tmp.val[0] = t_re;
+    tmp.val[1] = t_im;
+    vstorex2(&f1[0], tmp);
 }
 
-static inline void Zf(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1, const fpr *f)
+static inline 
+void Zf(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1, 
+                            const fpr *f, unsigned logn)
 {
-    // Max Total register: 12
-    float64x2x2_t x_tmp[2], y_tmp[2], s_tmp[2]; // 12
-    float64x2x4_t x, y, f_re, f_im, s_re_im;    // 20
+    // n = 16; hn = 8; qn = 4
+    // a_re = f[0,  4,  2,  6];
+    // b_re = f[1,  5,  3,  7];
+    // a_im = f[8, 12, 10, 14];
+    // b_im = f[9, 13, 11, 15];
 
-    vload2(x_tmp[0], &f[0]);
-    vload2(x_tmp[1], &f[4]);
-    vload2(y_tmp[0], &f[8]);
-    vload2(y_tmp[1], &f[12]);
-    vload2(s_tmp[0], &fpr_gm_tab_half[16]);
-    vload2(s_tmp[1], &fpr_gm_tab_half[20]);
+    // Total SIMD register: 20
+    float64x2x2_t a_re, b_re, a_im, b_im, s_re, s_im, t_re, t_im, d_re, d_im;
+    float64x2x4_t tmp, s_re_im;
 
-    s_re_im.val[0] = s_tmp[0].val[0];
-    s_re_im.val[1] = s_tmp[0].val[1];
-    s_re_im.val[2] = s_tmp[1].val[0];
-    s_re_im.val[3] = s_tmp[1].val[1];
+    const unsigned falcon_n = 1 << logn;
+    const unsigned hn = falcon_n >> 1;
+    const unsigned qn = falcon_n >> 2;
 
-    f_re.val[0] = x_tmp[0].val[0];
-    f_re.val[1] = x_tmp[0].val[1];
-    f_re.val[2] = x_tmp[1].val[0];
-    f_re.val[3] = x_tmp[1].val[1];
-
-    f_im.val[0] = y_tmp[0].val[0];
-    f_im.val[1] = y_tmp[0].val[1];
-    f_im.val[2] = y_tmp[1].val[0];
-    f_im.val[3] = y_tmp[1].val[1];
-
-    vfaddx4_swap(x, f_re, f_im, 0, 1, 2, 3);
-    vfmulnx4(x, x, 0.5);
-
-    vstorex4(&f0[0], x);
-
-    vfsubx4_swap(x, f_re, f_im, 0, 1, 2, 3);
-
-    vfmul(y.val[0], x.val[2], s_re_im.val[1]);
-    vfmul(y.val[1], x.val[3], s_re_im.val[3]);
-    vfmul(y.val[2], x.val[2], s_re_im.val[0]);
-    vfmul(y.val[3], x.val[3], s_re_im.val[2]);
-
-    vfma(y.val[0], y.val[0], x.val[0], s_re_im.val[0]);
-    vfma(y.val[1], y.val[1], x.val[1], s_re_im.val[2]);
-    vfms(y.val[2], y.val[2], x.val[0], s_re_im.val[1]);
-    vfms(y.val[3], y.val[3], x.val[1], s_re_im.val[3]);
-
-    vstorex4(&f1[0], y);
-}
-
-static void Zf(poly_splitFFT_log5)(fpr *restrict f0, fpr *restrict f1, const fpr *f, unsigned logn)
-{
-    // Max Total register: 16 + 8
-    float64x2x2_t x_tmp[4], y_tmp[4], s_tmp[4]; // 0
-    float64x2x4_t x_re, x_im, y_re, y_im;       // 16
-    float64x2x4_t f_re[2], f_im[2], s_re_im[2]; // 24
-
-    const unsigned int n = 1 << logn;
-    const unsigned int hn = n >> 1;
-    const unsigned int qn = n >> 2;
-    unsigned int u1, u2;
-    for (unsigned u = 0; u < qn; u += 8)
+    for (unsigned u = 0; u < qn; u += 4)
     {
-        u1 = u << 1;
-        u2 = u1 + hn;
-        vload2(x_tmp[0], &f[u1]);
-        vload2(x_tmp[1], &f[u1 + 4]);
-        vload2(x_tmp[2], &f[u1 + 8]);
-        vload2(x_tmp[3], &f[u1 + 12]);
+        vload4(tmp, &f[u]);
+        a_re.val[0] = tmp.val[0];
+        b_re.val[0] = tmp.val[1];
+        a_re.val[1] = tmp.val[2];
+        b_re.val[1] = tmp.val[3];
+        vload4(tmp, &f[u + hn]);
+        a_im.val[0] = tmp.val[0];
+        b_im.val[0] = tmp.val[1];
+        a_im.val[1] = tmp.val[2];
+        b_im.val[1] = tmp.val[3];
+        // s_re = 16, 20, 18, 22
+        // s_im = 17, 21, 19, 23
+        vload4(s_re_im, &fpr_gm_tab[(u + hn) << 1]);
+        s_re.val[0] = s_re_im.val[0];
+        s_re.val[1] = s_re_im.val[2];
+        s_im.val[0] = s_re_im.val[1];
+        s_im.val[1] = s_re_im.val[3];
 
-        vload2(y_tmp[0], &f[u2]);
-        vload2(y_tmp[1], &f[u2 + 4]);
-        vload2(y_tmp[2], &f[u2 + 8]);
-        vload2(y_tmp[3], &f[u2 + 12]);
+        vfadd(t_re.val[0], a_re.val[0], b_re.val[0]);
+        vfadd(t_im.val[0], a_im.val[0], b_im.val[0]);
+        vfadd(t_re.val[1], a_re.val[1], b_re.val[1]);
+        vfadd(t_im.val[1], a_im.val[1], b_im.val[1]);
 
-        vload2(s_tmp[0], &fpr_gm_tab_half[u1 + n + 0]);
-        vload2(s_tmp[1], &fpr_gm_tab_half[u1 + n + 4]);
-        vload2(s_tmp[2], &fpr_gm_tab_half[u1 + n + 8]);
-        vload2(s_tmp[3], &fpr_gm_tab_half[u1 + n + 12]);
+        // 0, 4
+        vfmuln(t_re.val[0], t_re.val[0], 0.5);
+        // 8, 12
+        vfmuln(t_im.val[0], t_im.val[0], 0.5);
+        // 2, 6
+        vfmuln(t_re.val[1], t_re.val[1], 0.5);
+        // 10, 14
+        vfmuln(t_im.val[1], t_im.val[1], 0.5);
 
-        f_re[0].val[0] = x_tmp[0].val[0];
-        f_re[0].val[1] = x_tmp[0].val[1];
-        f_re[0].val[2] = x_tmp[1].val[0];
-        f_re[0].val[3] = x_tmp[1].val[1];
+        vstore2(&f0[u], t_re);
+        vstore2(&f0[u + qn], t_im);
 
-        f_re[1].val[0] = x_tmp[2].val[0];
-        f_re[1].val[1] = x_tmp[2].val[1];
-        f_re[1].val[2] = x_tmp[3].val[0];
-        f_re[1].val[3] = x_tmp[3].val[1];
+        vfsub(t_re.val[0], a_re.val[0], b_re.val[0]);
+        vfsub(t_im.val[0], a_im.val[0], b_im.val[0]);
+        vfsub(t_re.val[1], a_re.val[1], b_re.val[1]);
+        vfsub(t_im.val[1], a_im.val[1], b_im.val[1]);
 
-        f_im[0].val[0] = y_tmp[0].val[0];
-        f_im[0].val[1] = y_tmp[0].val[1];
-        f_im[0].val[2] = y_tmp[1].val[0];
-        f_im[0].val[3] = y_tmp[1].val[1];
+        vfmul(d_re.val[0], t_re.val[0], s_re.val[0]);
+        vfmul(d_re.val[1], t_re.val[1], s_re.val[1]);
+        vfma(d_re.val[0], d_re.val[0], t_im.val[0], s_im.val[0]);
+        vfma(d_re.val[1], d_re.val[1], t_im.val[1], s_im.val[1]);
 
-        f_im[1].val[0] = y_tmp[2].val[0];
-        f_im[1].val[1] = y_tmp[2].val[1];
-        f_im[1].val[2] = y_tmp[3].val[0];
-        f_im[1].val[3] = y_tmp[3].val[1];
+        vfmul(d_im.val[0], t_im.val[0], s_re.val[0]);
+        vfmul(d_im.val[1], t_im.val[1], s_re.val[1]);
+        vfms(d_im.val[0], d_im.val[0], t_re.val[0], s_im.val[0]);
+        vfms(d_im.val[1], d_im.val[1], t_re.val[1], s_im.val[1]);
 
-        s_re_im[0].val[0] = s_tmp[0].val[0];
-        s_re_im[0].val[1] = s_tmp[0].val[1];
-        s_re_im[0].val[2] = s_tmp[1].val[0];
-        s_re_im[0].val[3] = s_tmp[1].val[1];
+        vfmuln(t_re.val[0], d_re.val[0], 0.5);
+        vfmuln(t_re.val[1], d_re.val[1], 0.5);
+        vfmuln(t_im.val[0], d_im.val[0], 0.5);
+        vfmuln(t_im.val[1], d_im.val[1], 0.5);
 
-        s_re_im[1].val[0] = s_tmp[2].val[0];
-        s_re_im[1].val[1] = s_tmp[2].val[1];
-        s_re_im[1].val[2] = s_tmp[3].val[0];
-        s_re_im[1].val[3] = s_tmp[3].val[1];
-
-        vfaddx4_swap(x_re, f_re[0], f_re[1], 0, 1, 2, 3);
-        vfaddx4_swap(x_im, f_im[0], f_im[1], 0, 1, 2, 3);
-
-        vfmulnx4(x_re, x_re, 0.5);
-        vfmulnx4(x_im, x_im, 0.5);
-
-        vstorex4(&f0[u], x_re);
-        vstorex4(&f0[u + qn], x_im);
-
-        vfsubx4_swap(x_re, f_re[0], f_re[1], 0, 1, 2, 3);
-        vfsubx4_swap(x_im, f_im[0], f_im[1], 0, 1, 2, 3);
-
-        vfmul(y_re.val[0], x_im.val[0], s_re_im[0].val[1]);
-        vfmul(y_re.val[1], x_im.val[1], s_re_im[0].val[3]);
-        vfmul(y_re.val[2], x_im.val[2], s_re_im[1].val[1]);
-        vfmul(y_re.val[3], x_im.val[3], s_re_im[1].val[3]);
-
-        vfma(y_re.val[0], y_re.val[0], x_re.val[0], s_re_im[0].val[0]);
-        vfma(y_re.val[1], y_re.val[1], x_re.val[1], s_re_im[0].val[2]);
-        vfma(y_re.val[2], y_re.val[2], x_re.val[2], s_re_im[1].val[0]);
-        vfma(y_re.val[3], y_re.val[3], x_re.val[3], s_re_im[1].val[2]);
-
-        vfmul(y_im.val[0], x_im.val[0], s_re_im[0].val[0]);
-        vfmul(y_im.val[1], x_im.val[1], s_re_im[0].val[2]);
-        vfmul(y_im.val[2], x_im.val[2], s_re_im[1].val[0]);
-        vfmul(y_im.val[3], x_im.val[3], s_re_im[1].val[2]);
-
-        vfms(y_im.val[0], y_im.val[0], x_re.val[0], s_re_im[0].val[1]);
-        vfms(y_im.val[1], y_im.val[1], x_re.val[1], s_re_im[0].val[3]);
-        vfms(y_im.val[2], y_im.val[2], x_re.val[2], s_re_im[1].val[1]);
-        vfms(y_im.val[3], y_im.val[3], x_re.val[3], s_re_im[1].val[3]);
-
-        vstorex4(&f1[u], y_re);
-        vstorex4(&f1[u + qn], y_im);
+        vstore2(&f1[u], t_re);
+        vstore2(&f1[u + qn], t_im);
     }
 }
 
 /* 
- * Only support logn >= 3
+ * Recursive Split FFT
  */
-void
-Zf(poly_split_fft)(
-	fpr *restrict f0, fpr *restrict f1,
-	const fpr *restrict f, unsigned logn)
+void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
+                        const fpr *restrict f, unsigned logn)
 {
+    float64x2x2_t tmp;
+    float64x2_t a_re_im, b_re_im, t_re_im, d_re, d_im, neon_1i2;
+    const fpr imagine[2] = {1.0, -1.0};
+
     switch (logn)
     {
+    case 1:
+        //  n = 2; hn = 1; qn = 0;
+        f0[0] = f[0];
+        f1[0] = f[1];
+        break;
+    case 2:
+        assert(logn == 2);
+        // n = 4; hn = 2; qn = 1;
+        // a_re = f[0];
+        // a_im = f[2];
+        // b_re = f[1];
+        // b_im = f[3];
+        vload2(tmp, &f[0]);
+        a_re_im = tmp.val[0];
+        b_re_im = tmp.val[1];
+        vfadd(t_re_im, a_re_im, b_re_im);
+        vfmuln(t_re_im, t_re_im, 0.5);
+        vstore(&f0[0], t_re_im);
+
+        vload(tmp.val[0], &fpr_gm_tab[2]);
+        vload(neon_1i2, &imagine[0]);
+        vfsub(t_re_im, a_re_im, b_re_im);
+
+        vfmul(tmp.val[1], tmp.val[0], neon_1i2);
+        tmp.val[1] = vextq_f64(tmp.val[1], tmp.val[1], 1);
+
+        vfmul(d_re, t_re_im, tmp.val[0]);
+        vfmul(d_im, t_re_im, tmp.val[1]);
+        t_re_im = vpaddq_f64(d_re, d_im);
+        vfmuln(t_re_im, t_re_im, 0.5);
+        vstore(&f1[0], t_re_im);
+        break;
+
     case 3:
+        assert(logn == 3);
         Zf(poly_splitFFT_log3)(f0, f1, f);
         break;
 
-    case 4:
-        Zf(poly_splitFFT_log4)(f0, f1, f);
-        break;
-
     default:
-        Zf(poly_splitFFT_log5)(f0, f1, f, logn);
+        assert(logn >= 4);
+        Zf(poly_splitFFT_log4)(f0, f1, f, logn);
+        break;
     }
 }
