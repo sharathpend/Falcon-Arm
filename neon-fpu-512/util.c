@@ -5,6 +5,7 @@
 /*
  * Convert an integer polynomial (with small values) into the
  * representation with complex numbers.
+ * IMPORTANT: Correct, verified, optimized.
  */
 void smallints_to_fpr(fpr *r, const int8_t *t, unsigned logn)
 {
@@ -57,7 +58,8 @@ void print_farray(fpr *r, unsigned logn, const char *string)
     for (unsigned i = 0; i < n; i++)
     {
         // printf("[%3d]:%.20f\n", i, r[i]);
-        printf("[%3d]:%f\n", i, r[i]);
+        // printf("[%3d]:%f\n", i, r[i]);
+        printf("%.10f, ", i, r[i]);
     }
     printf("\n");
     fflush(stdout); 
