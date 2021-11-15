@@ -338,11 +338,11 @@ void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restric
 /* see inner.h */
 void Zf(poly_muladj_fft)(fpr *d, fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
-    assert(logn >= 3);
+    assert(logn >= 4);
     float64x2x4_t a_re, b_re, d_re, a_im, b_im, d_im; // 24
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
-    for (int i = 0; i < falcon_n; i += 8)
+    for (int i = 0; i < hn; i += 8)
     {
         vloadx4(a_re, &a[i]);
         vloadx4(b_re, &b[i]);
@@ -683,7 +683,7 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
         m.val[0] = vdupq_n_f64(1 / vaddvq_f64(m.val[0]));
 
         // g00_re | -g00_im
-        vfmul(g00_re.val[1], g01_re.val[0], neon_1i2);
+        vfmul(g00_re.val[1], g00_re.val[0], neon_1i2);
         // -g00_im | g00_re
         g00_re.val[1] = vextq_f64(g00_re.val[1], g00_re.val[1], 1);
 
@@ -695,6 +695,8 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
         mu_re.val[0] = vpaddq_f64(mu_re.val[0], mu_im.val[0]);
 
         vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
+
+        printf("%d: mu_re, mu_im : %.10f, %.10f\n", logn, mu_re.val[0][0], mu_re.val[0][1]);
 
         // g01_re | -g01_im
         vfmul(g01_re.val[1], g01_re.val[0], neon_1i2);
