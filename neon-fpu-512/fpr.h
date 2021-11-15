@@ -33,6 +33,7 @@
 /* ====================================================================== */
 
 #include <math.h>
+#include <arm_neon.h>
 
 /*
  * We wrap the native 'double' type into a structure so that the C compiler
@@ -51,9 +52,9 @@ fpr_of(int64_t i)
 static const fpr fpr_q = 12289.0 ;
 static const fpr fpr_inverse_of_q = 1.0 / 12289.0 ;
 static const fpr fpr_inv_2sqrsigma0 = .150865048875372721532312163019 ;
-static const fpr fpr_inv_sigma = .005819826392951607426919370871 ;
-static const fpr fpr_sigma_min_9 = 1.291500756233514568549480827642 ;
-static const fpr fpr_sigma_min_10 = 1.311734375905083682667395805765 ;
+static const fpr fpr_inv_sigma = 0.0060336696681577241031668062510953022 ;
+static const fpr fpr_sigma_min_9 = 1.2778336969128335860256340575729042 ;
+static const fpr fpr_sigma_min_10 = 1.2982803343442918539708792538826807 ;
 static const fpr fpr_log2 = 0.69314718055994530941723212146 ;
 static const fpr fpr_inv_log2 = 1.4426950408889634073599246810 ;
 static const fpr fpr_bnorm_max = 16822.4121 ;
@@ -73,61 +74,11 @@ static const fpr fpr_ptwo63 = 9223372036854775808.0 ;
 static inline int64_t
 fpr_rint(fpr x)
 {
-	/*
-	 * We do not want to use llrint() since it might be not
-	 * constant-time.
-	 *
-	 * Suppose that x >= 0. If x >= 2^52, then it is already an
-	 * integer. Otherwise, if x < 2^52, then computing x+2^52 will
-	 * yield a value that will be rounded to the nearest integer
-	 * with exactly the right rules (round-to-nearest-even).
-	 *
-	 * In order to have constant-time processing, we must do the
-	 * computation for both x >= 0 and x < 0 cases, and use a
-	 * cast to an integer to access the sign and select the proper
-	 * value. Such casts also allow us to find out if |x| < 2^52.
-	 */
-	int64_t sx, tx, rp, rn, m;
-	uint32_t ub;
-
-	sx = (int64_t)(x - 1.0);
-	tx = (int64_t)x;
-	rp = (int64_t)(x + 4503599627370496.0) - 4503599627370496;
-	rn = (int64_t)(x - 4503599627370496.0) + 4503599627370496;
-
-	/*
-	 * If tx >= 2^52 or tx < -2^52, then result is tx.
-	 * Otherwise, if sx >= 0, then result is rp.
-	 * Otherwise, result is rn. We use the fact that when x is
-	 * close to 0 (|x| <= 0.25) then both rp and rn are correct;
-	 * and if x is not close to 0, then trunc(x-1.0) yields the
-	 * appropriate sign.
-	 */
-
-	/*
-	 * Clamp rp to zero if tx < 0.
-	 * Clamp rn to zero if tx >= 0.
-	 */
-	m = sx >> 63;
-	rn &= m;
-	rp &= ~m;
-
-	/*
-	 * Get the 12 upper bits of tx; if they are not all zeros or
-	 * all ones, then tx >= 2^52 or tx < -2^52, and we clamp both
-	 * rp and rn to zero. Otherwise, we clamp tx to zero.
-	 */
-	ub = (uint32_t)((uint64_t)tx >> 52);
-	m = -(int64_t)((((ub + 1) & 0xFFF) - 2) >> 31);
-	rp &= m;
-	rn &= m;
-	tx &= ~m;
-
-	/*
-	 * Only one of tx, rn or rp (at most) can be non-zero at this
-	 * point.
-	 */
-	return tx | rn | rp;
+    float64x1_t neon_x;
+    int64x1_t neon_s;
+    neon_x = vdup_n_f64(x);
+    neon_s = vcvtn_s64_f64(neon_x);
+    return vget_lane_s64(neon_s, 0);
 }
 
 static inline int64_t
@@ -230,41 +181,58 @@ fpr_lt(fpr x, fpr y)
 static inline uint64_t
 fpr_expm_p63(fpr x, fpr ccs)
 {
-	/*
-	 * Polynomial approximation of exp(-x) is taken from FACCT:
-	 *   https://eprint.iacr.org/2018/1234
-	 * Specifically, values are extracted from the implementation
-	 * referenced from the FACCT article, and available at:
-	 *   https://github.com/raykzhao/gaussian
-	 * Tests over more than 24 billions of random inputs in the
-	 * 0..log(2) range have never shown a deviation larger than
-	 * 2^(-50) from the true mathematical value.
-	 */
+    static const double C_expm[] = {
+        1.000000000000000000000000000000,  // c0
+        -0.999999999999994892974086724280, // c1
+        0.500000000000019206858326015208,  // c2
+        -0.166666666666984014666397229121, // c3
+        0.041666666666110491190622155955,  // c4
+        -0.008333333327800835146903501993, // c5
+        0.001388888894063186997887560103,  // c6
+        -0.000198412739277311890541063977, // c7
+        0.000024801566833585381209939524,  // c8
+        -0.000002755586350219122514855659, // c9
+        0.000000275607356160477811864927,  // c10
+        -0.000000025299506379442070029551, // c11
+        0.000000002073772366009083061987,  // c12
+        0.000000000000000000000000000000,
+    };
+    float64x2_t neon_x, neon_x0, neon_1x, neon_x2, 
+                neon_x4, neon_x8, neon_x12, neon_ccs;
+    float64x2x4_t neon_exp0;
+    float64x2x3_t neon_exp1;
+    float64x2_t y1, y2, y3, y;
+    double ret;
+    
+    neon_exp0 = vld1q_f64_x4(&C_expm[0]);
+    neon_exp1 = vld1q_f64_x3(&C_expm[8]);
+    neon_ccs = vdupq_n_f64(ccs);
+    neon_ccs = vmulq_n_f64(neon_ccs, fpr_ptwo63);
 
+    // x | x
+    neon_x = vdupq_n_f64(x);
+    // 1 | x
+    neon_1x = vsetq_lane_f64(1.0, neon_x, 0);
+    neon_x2 = vmulq_f64(neon_x, neon_x);
+    neon_x4 = vmulq_f64(neon_x2, neon_x2);
+    neon_x8 = vmulq_f64(neon_x4, neon_x4);
+    neon_x12 = vmulq_f64(neon_x8, neon_x4);
 
-	/*
-	 * Normal implementation uses Horner's method, which minimizes
-	 * the number of operations.
-	 */
+    y1 = vfmaq_f64(neon_exp0.val[0], neon_exp0.val[1], neon_x2);
+    y2 = vfmaq_f64(neon_exp0.val[2], neon_exp0.val[3], neon_x2);
+    y3 = vfmaq_f64(neon_exp1.val[0], neon_exp1.val[1], neon_x2);
 
-	double d, y;
+    y1 = vmulq_f64(y1, neon_1x);
+    y2 = vmulq_f64(y2, neon_1x);
+    y3 = vmulq_f64(y3, neon_1x);    
 
-	d = x;
-	y = 0.000000002073772366009083061987;
-	y = 0.000000025299506379442070029551 - y * d;
-	y = 0.000000275607356160477811864927 - y * d;
-	y = 0.000002755586350219122514855659 - y * d;
-	y = 0.000024801566833585381209939524 - y * d;
-	y = 0.000198412739277311890541063977 - y * d;
-	y = 0.001388888894063186997887560103 - y * d;
-	y = 0.008333333327800835146903501993 - y * d;
-	y = 0.041666666666110491190622155955 - y * d;
-	y = 0.166666666666984014666397229121 - y * d;
-	y = 0.500000000000019206858326015208 - y * d;
-	y = 0.999999999999994892974086724280 - y * d;
-	y = 1.000000000000000000000000000000 - y * d;
-	y *= ccs;
-	return (uint64_t)(y * fpr_ptwo63);
+    y = vfmaq_f64(y1, y2, neon_x4);
+    y = vfmaq_f64( y, y3, neon_x8);
+    y = vfmaq_f64( y, neon_exp1.val[2], neon_x12);
+    y = vmulq_f64( y, neon_ccs);
+    ret = vaddvq_f64(y);
+
+    return (uint64_t) ret;
 }
 
 #define fpr_gm_tab   Zf(fpr_gm_tab)
