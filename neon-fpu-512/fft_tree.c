@@ -1,12 +1,13 @@
 #include "inner.h"
 #include "macrof.h"
 #include "macrofx4.h"
-#include <assert.h>
+
 /* 
  * Minimum logn: 5
  */
 static void Zf(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsigned logn)
 {
+    // n = 32; hn = 16; qn = 8
     // Total: 32 register
     float64x2x4_t f0_re, f0_im, f1_re, f1_im, d_re, d_im; // 16
     float64x2x2_t s_tmp[4];                               // 8
@@ -203,28 +204,25 @@ void Zf(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
     float64x2_t a_re_im, b_re_im, d_re_im,
         s_re_im, s_im_re, neon_1i2, d_re, d_im;
     float64x2x2_t t_re_im;
-
     const fpr imagine[2] = {1.0, -1.0};
 
     switch (logn)
     {
     case 1:
         // n = 2; hn = 1;
-        assert(logn == 1);
         f[0] = f0[0];
         f[1] = f1[0];
         break;
 
     case 2:
         // n = 4; hn = 2; qn = 1;
-        assert(logn == 2);
         // a_re = f0[0];
         // a_im = f0[1];
         // d_re = f1[0];
         // d_im = f1[1];
         // s_re_im = 4, 5
         vload(a_re_im, &f0[0]);
-        vload(neon_1i2, &imagine[2]);
+        vload(neon_1i2, &imagine[0]);
         vload(d_re_im, &f1[0]);
         vload(s_re_im, &fpr_gm_tab[4]);
         s_im_re = vextq_f64(s_re_im, s_re_im, 1);
@@ -245,12 +243,10 @@ void Zf(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
         break;
 
     case 4:
-        assert(logn == 4);
         Zf(poly_mergeFFT_log4)(f, f0, f1);
         break;
 
     default:
-        assert(logn > 4);
         Zf(poly_mergeFFT_log5)(f, f0, f1, logn);
         break;
     }
@@ -324,22 +320,24 @@ static inline void Zf(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
     const unsigned falcon_n = 1 << logn;
     const unsigned hn = falcon_n >> 1;
     const unsigned qn = falcon_n >> 2;
+    unsigned u1;
 
     for (unsigned u = 0; u < qn; u += 4)
     {
-        vload4(tmp, &f[u]);
+        u1 = u << 1;
+        vload4(tmp, &f[u1]);
         a_re.val[0] = tmp.val[0];
         b_re.val[0] = tmp.val[1];
         a_re.val[1] = tmp.val[2];
         b_re.val[1] = tmp.val[3];
-        vload4(tmp, &f[u + hn]);
+        vload4(tmp, &f[u1 + hn]);
         a_im.val[0] = tmp.val[0];
         b_im.val[0] = tmp.val[1];
         a_im.val[1] = tmp.val[2];
         b_im.val[1] = tmp.val[3];
         // s_re = 16, 20, 18, 22
         // s_im = 17, 21, 19, 23
-        vload4(s_re_im, &fpr_gm_tab_half[(u + hn) << 1]);
+        vload4(s_re_im, &fpr_gm_tab_half[u1 + falcon_n]);
         s_re.val[0] = s_re_im.val[0];
         s_re.val[1] = s_re_im.val[2];
         s_im.val[0] = s_re_im.val[1];
@@ -377,8 +375,8 @@ static inline void Zf(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
         vfms(d_im.val[0], d_im.val[0], t_re.val[0], s_im.val[0]);
         vfms(d_im.val[1], d_im.val[1], t_re.val[1], s_im.val[1]);
 
-        vstore2(&f1[u], t_re);
-        vstore2(&f1[u + qn], t_im);
+        vstore2(&f1[u], d_re);
+        vstore2(&f1[u + qn], d_im);
     }
 }
 
@@ -400,7 +398,6 @@ void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
         f1[0] = f[1];
         break;
     case 2:
-        assert(logn == 2);
         // n = 4; hn = 2; qn = 1;
         // a_re = f[0];
         // a_im = f[2];
@@ -428,12 +425,10 @@ void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
         break;
 
     case 3:
-        assert(logn == 3);
         Zf(poly_splitFFT_log3)(f0, f1, f);
         break;
 
     default:
-        assert(logn >= 4);
         Zf(poly_splitFFT_log4)(f0, f1, f, logn);
         break;
     }
