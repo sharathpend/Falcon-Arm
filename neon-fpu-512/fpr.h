@@ -197,7 +197,7 @@ fpr_expm_p63(fpr x, fpr ccs)
         0.000000002073772366009083061987,  // c12
         0.000000000000000000000000000000,
     };
-    float64x2_t neon_x, neon_x0, neon_1x, neon_x2, 
+    float64x2_t neon_x, neon_1x, neon_x2, 
                 neon_x4, neon_x8, neon_x12, neon_ccs;
     float64x2x4_t neon_exp0;
     float64x2x3_t neon_exp1;
