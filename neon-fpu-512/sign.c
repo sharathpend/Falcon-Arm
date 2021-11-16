@@ -34,6 +34,7 @@
 #include "macrof.h"
 #include <arm_neon.h>
 #include "util.h"
+#include <stdio.h>
 /* =================================================================== */
 
 /*
@@ -184,55 +185,6 @@ ffLDL_binary_normalize(fpr *tree, unsigned orig_logn, unsigned logn)
 /* =================================================================== */
 
 /*
- * Convert an integer polynomial (with small values) into the
- * representation with complex numbers.
- */
-// static void
-// smallints_to_fpr(fpr *r, const int8_t *t, unsigned logn)
-// {
-// 	const size_t n = MKN(logn);
-//     float64x2x4_t neon_flo64, neon_fhi64;
-//     int64x2x4_t neon_lo64, neon_hi64;
-//     int32x4_t neon_lo32[2], neon_hi32[2];
-//     int16x8_t neon_lo16, neon_hi16;
-//     int8x16_t neon_8;
-
-//     for (size_t i = 0; i < n; i += 16)
-//     {
-//         neon_8 = vld1q_s8(&t[i]);
-
-//         // Extend from 8 to 16 bit
-//         // x7 | x6 | x5 | x5 - x3 | x2 | x1 | x0
-//         neon_lo16 = vshll_n_s8(vget_low_s8(neon_8), 0);
-//         neon_hi16 = vshll_high_n_s8(neon_8, 0);
-
-//         // Extend from 16 to 32 bit
-//         // xxx3 | xxx2 | xxx1 | xxx0
-//         neon_lo32[0] = vshll_n_s16(vget_low_s16(neon_lo16), 0);
-//         neon_lo32[1] = vshll_high_n_s16(neon_lo16, 0);
-//         neon_hi32[0] = vshll_n_s16(vget_low_s16(neon_hi16), 0);
-//         neon_hi32[1] = vshll_high_n_s16(neon_hi16, 0);
-
-//         // Extend from 32 to 64 bit
-//         neon_lo64.val[0] = vshll_n_s32(vget_low_s32(neon_lo32[0]), 0);
-//         neon_lo64.val[1] = vshll_high_n_s32(neon_lo32[0], 0);
-//         neon_lo64.val[2] = vshll_n_s32(vget_low_s32(neon_lo32[1]), 0);
-//         neon_lo64.val[3] = vshll_high_n_s32(neon_lo32[1], 0);
-
-//         neon_hi64.val[0] = vshll_n_s32(vget_low_s32(neon_hi32[0]), 0);
-//         neon_hi64.val[1] = vshll_high_n_s32(neon_hi32[0], 0);
-//         neon_hi64.val[2] = vshll_n_s32(vget_low_s32(neon_hi32[1]), 0);
-//         neon_hi64.val[3] = vshll_high_n_s32(neon_hi32[1], 0);
-
-//         vfcvtx4(neon_flo64, neon_lo64);
-//         vfcvtx4(neon_fhi64, neon_hi64);
-
-//         vstorex4(&r[i], neon_flo64);
-//         vstorex4(&r[i + 8], neon_fhi64);
-//     }
-// }
-
-/*
  * The expanded private key contains:
  *  - The B0 matrix (four elements)
  *  - The ffLDL tree
@@ -306,10 +258,12 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	/*
 	 * Compute the FFT for the key elements, and negate f and F.
 	 */
-	Zf(FFT)(rf, logn, true);
-	Zf(FFT)(rF, logn, true);
-    Zf(FFT)(rg, logn, false);
-	Zf(FFT)(rG, logn, false);
+	Zf(FFT)(rf, logn);
+	Zf(FFT)(rF, logn);
+    Zf(poly_neg)(rf, rf, logn);
+    Zf(poly_neg)(rF, rF, logn);
+    Zf(FFT)(rg, logn);
+	Zf(FFT)(rG, logn);
 
 	/*
 	 * The Gram matrix is G = B·B*. Formulas are:
@@ -428,10 +382,10 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 *
 	 * In the end, z1 is written over t1, and tb0 is in t0.
 	 */
-    Zf(poly_sub)(z1, t1, tmp + (n << 1), logn);
-    memcpy(t1, tmp + (n << 1), n * sizeof *tmp);
-    Zf(poly_mul_fft)(tmp, tmp, z1, logn);
-    Zf(poly_add)(t0, t0, tmp, logn);
+	Zf(poly_sub)(z1, t1, tmp + (n << 1), logn);
+	memcpy(t1, tmp + (n << 1), n * sizeof *tmp);
+	Zf(poly_mul_fft)(tmp, tmp, z1, logn);
+	Zf(poly_add)(t0, t0, tmp, logn);
 
 
 	/*
@@ -813,7 +767,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 * Apply the lattice basis to obtain the real target
 	 * vector (after normalization with regards to modulus).
 	 */
-	Zf(FFT)(t0, logn, false);
+	Zf(FFT)(t0, logn);
 	ni = fpr_inverse_of_q;
 	Zf(poly_mul_fft)(t1, t0, b01, logn);
 	Zf(poly_mulconst)(t1, t1, fpr_neg(ni), logn);
@@ -848,6 +802,16 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	/*
 	 * Compute the signature.
 	 */
+
+	/*
+	 * With "normal" degrees (e.g. 512 or 1024), it is very
+	 * improbable that the computed vector is not short enough;
+	 * however, it may happen in practice for the very reduced
+	 * versions (e.g. degree 16 or below). In that case, the caller
+	 * will loop, and we must not write anything into s2[] because
+	 * s2[] may overlap with the hashed message hm[] and we need
+	 * hm[] for the next iteration.
+	 */
 	s1tmp = (int16_t *)tx;
 	sqn = 0;
 	ng = 0;
@@ -860,25 +824,40 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 		s1tmp[u] = (int16_t)z;
 	}
 	sqn |= -(ng >> 31);
-
-	/*
-	 * With "normal" degrees (e.g. 512 or 1024), it is very
-	 * improbable that the computed vector is not short enough;
-	 * however, it may happen in practice for the very reduced
-	 * versions (e.g. degree 16 or below). In that case, the caller
-	 * will loop, and we must not write anything into s2[] because
-	 * s2[] may overlap with the hashed message hm[] and we need
-	 * hm[] for the next iteration.
-	 */
 	s2tmp = (int16_t *)tmp;
 	for (u = 0; u < n; u ++) {
 		s2tmp[u] = (int16_t)-fpr_rint(t1[u]);
 	}
+
+    // TODO: replace this
+    // s1tmp = (int16_t *)tx;
+	// s2tmp = (int16_t *)tmp;
+	
+    // Zf(sign_short_s1)(&sqn, s1tmp, hm, t0, n);
+    // Zf(sign_short_s2)(s2tmp, t1, n);
+
+    // printf("sqn %u\n", sqn);
+    // printf("s1tmp:\n");
+    // for (int i = 0; i < (1 << logn); i++)
+    // {
+    //     printf("%d, ", s1tmp[i]);
+    // }
+    // printf("\n");
+
+    // printf("s2tmp:\n");
+    // for (int i = 0; i < (1 << logn); i++)
+    // {
+    //     printf("%d, ", s2tmp[i]);
+    // }
+    // printf("\n");
+
 	if (Zf(is_short_half)(sqn, s2tmp, logn)) {
 		memcpy(s2, s2tmp, n * sizeof *s2);
 		memcpy(tmp, s1tmp, n * sizeof *s1tmp);
+        printf("is_short_half return 1\n");
 		return 1;
 	}
+    printf("is_short_half return 0\n");
 	return 0;
 }
 
@@ -901,7 +880,7 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	fpr *t0, *t1, *tx, *ty;
 	fpr *b00, *b01, *b10, *b11, *g00, *g01, *g11;
 	fpr ni;
-	uint32_t sqn, ng;
+	uint32_t sqn;
 	int16_t *s1tmp, *s2tmp;
 
 	n = MKN(logn);
@@ -917,10 +896,19 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	smallints_to_fpr(b00, g, logn);
 	smallints_to_fpr(b11, F, logn);
 	smallints_to_fpr(b10, G, logn);
-    Zf(FFT)(b01, logn, true);
-	Zf(FFT)(b11, logn, true);
-    Zf(FFT)(b00, logn, false);
-	Zf(FFT)(b10, logn, false);
+    Zf(FFT)(b01, logn);
+	Zf(FFT)(b11, logn);
+    Zf(poly_neg)(b01, b01, logn);
+    Zf(poly_neg)(b11, b11, logn);
+    Zf(FFT)(b00, logn);
+	Zf(FFT)(b10, logn);
+    // print_farray(b00, logn, "b00");
+    // print_farray(b01, logn, "b01");
+    // print_farray(b10, logn, "b10");
+    // print_farray(b11, logn, "b11");
+
+    // b00, b01
+    // print_farray(tmp, logn + 2);
 
 	/*
 	 * Compute the Gram matrix G = B·B*. Formulas are:
@@ -953,7 +941,13 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	Zf(poly_mulselfadj_fft)(t1, b11, logn);    // t1 <- b11*adj(b11)
 	Zf(poly_add)(b10, b10, t1, logn);      // b10 <- g11
 
-	/*
+    // b00, t0
+    // print_farray(b00, logn, "b00");
+    // print_farray(b01, logn, "b01");
+    // print_farray(b11, logn, "b11");
+    // print_farray(t0, logn, "t0");
+    // print_farray(t1, logn, "t1");
+    /*
 	 * We rename variables to make things clearer. The three elements
 	 * of the Gram matrix uses the first 3*n slots of tmp[], followed
 	 * by b11 and b01 (in that order).
@@ -975,23 +969,23 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 	for (u = 0; u < n; u ++) {
 		t0[u] = fpr_of(hm[u]);
+		// t1[u] = fpr_zero;
 		/* This is implicit.
-		t1[u] = fpr_zero;
 		*/
 	}
-
+    // t0, t1, g00
 	/*
 	 * Apply the lattice basis to obtain the real target
 	 * vector (after normalization with regards to modulus).
 	 */
-	Zf(FFT)(t0, logn, false);
+	Zf(FFT)(t0, logn);
 	ni = fpr_inverse_of_q;
 	// memcpy(t1, t0, n * sizeof *t0);
 	Zf(poly_mul_fft)(t1, t0, b01, logn);
 	Zf(poly_mulconst)(t1, t1, fpr_neg(ni), logn);
 	Zf(poly_mul_fft)(t0, t0, b11, logn);
 	Zf(poly_mulconst)(t0, t0, ni, logn);
-
+  
 	/*
 	 * b01 and b11 can be discarded, so we move back (t0,t1).
 	 * Memory layout is now:
@@ -1001,12 +995,29 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	t0 = g11 + n;
 	t1 = t0 + n;
 
+    // print_farray(tmp, logn + 2);
 	/*
 	 * Apply sampling; result is written over (t0,t1).
+     * t1, g00
 	 */
+    // print_farray(g00, logn, "g00");
+    // print_farray(g01, logn, "g01");
+    // print_farray(g11, logn, "g11");
+    // print_farray(t0, logn, "t0");
+    // print_farray(t1, logn, "t1");
+
+    // printf("==============\n");
 	ffSampling_fft_dyntree(samp, samp_ctx,
 		t0, t1, g00, g01, g11, logn, logn, t1 + n);
+    // printf("==============\n");
+    
+    // print_farray(g00, logn, "g00");
+    // print_farray(g01, logn, "g01");
+    // print_farray(g11, logn, "g11");
+    // print_farray(t0, logn, "t0");
+    // print_farray(t1, logn, "t1");
 
+    // Correct until here
 	/*
 	 * We arrange the layout back to:
 	 *     b00 b01 b10 b11 t0 t1
@@ -1025,12 +1036,20 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	smallints_to_fpr(b00, g, logn);
 	smallints_to_fpr(b11, F, logn);
 	smallints_to_fpr(b10, G, logn);
-	Zf(FFT)(b01, logn, true);
-	Zf(FFT)(b11, logn, true);
-	Zf(FFT)(b00, logn, false);
-	Zf(FFT)(b10, logn, false);
+	Zf(FFT)(b01, logn);
+	Zf(FFT)(b11, logn);
+    Zf(poly_neg)(b01, b01, logn);
+    Zf(poly_neg)(b11, b11, logn);
+	Zf(FFT)(b00, logn);
+	Zf(FFT)(b10, logn);
 	tx = t1 + n;
 	ty = tx + n;
+
+    // print_farray(b00, logn, "b00");
+    // print_farray(b01, logn, "b01");
+    // print_farray(b10, logn, "b10");
+    // print_farray(b11, logn, "b11");
+
 
 	/*
 	 * Get the lattice point corresponding to that tiny vector.
@@ -1040,7 +1059,6 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	Zf(poly_mul_fft)(tx, t0, b00, logn);
 	Zf(poly_mul_fft)(ty, t1, b10, logn);
 	Zf(poly_add)(tx, tx, ty, logn);
-
 	Zf(poly_mul_fft)(ty, t0, b01, logn);
 
 	memcpy(t0, tx, n * sizeof *tx);
@@ -1049,18 +1067,9 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	Zf(iFFT)(t0, logn);
 	Zf(iFFT)(t1, logn);
 
-	s1tmp = (int16_t *)tx;
-	sqn = 0;
-	ng = 0;
-	for (u = 0; u < n; u ++) {
-		int32_t z;
+    // print_farray(t0, logn, "t0");
+    // print_farray(t1, logn, "t1");
 
-		z = (int32_t)hm[u] - (int32_t)fpr_rint(t0[u]);
-		sqn += (uint32_t)(z * z);
-		ng |= sqn;
-		s1tmp[u] = (int16_t)z;
-	}
-	sqn |= -(ng >> 31);
 
 	/*
 	 * With "normal" degrees (e.g. 512 or 1024), it is very
@@ -1071,15 +1080,35 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 * s2[] may overlap with the hashed message hm[] and we need
 	 * hm[] for the next iteration.
 	 */
+	s1tmp = (int16_t *)tx;
 	s2tmp = (int16_t *)tmp;
-	for (u = 0; u < n; u ++) {
-		s2tmp[u] = (int16_t)-fpr_rint(t1[u]);
-	}
+	
+    Zf(sign_short_s1)(&sqn, s1tmp, hm, t0, n);
+    Zf(sign_short_s2)(s2tmp, t1, n);
+
+    printf("sqn %u\n", sqn);
+    printf("s1tmp:\n");
+    for (int i = 0; i < (1 << logn); i++)
+    {
+        printf("%d, ", s1tmp[i]);
+    }
+    printf("\n");
+
+    printf("s2tmp:\n");
+    for (int i = 0; i < (1 << logn); i++)
+    {
+        printf("%d, ", s2tmp[i]);
+    }
+    printf("\n");
+
+
 	if (Zf(is_short_half)(sqn, s2tmp, logn)) {
 		memcpy(s2, s2tmp, n * sizeof *s2);
 		memcpy(tmp, s1tmp, n * sizeof *s1tmp);
+        printf("is_short_half return 1\n");
 		return 1;
 	}
+    printf("is_short_half return 0\n");
 	return 0;
 }
 
@@ -1138,7 +1167,10 @@ Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
 	fpr *ftmp;
 
 	ftmp = (fpr *)tmp;
+    int i= 0;
 	for (;;) {
+    // for (i = 0; i < 1; i++){
+
 		/*
 		 * Signature produces short vectors s1 and s2. The
 		 * signature is acceptable only if the aggregate vector
@@ -1170,13 +1202,17 @@ Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
 		samp = Zf(sampler);
 		samp_ctx = &spc;
 
+        printf("sign_dyn %d\n", i++);
+        printf("signma_min %.20f\n", spc.sigma_min);
 		/*
 		 * Do the actual signature.
 		 */
 		if (do_sign_dyn(samp, samp_ctx, sig,
 			f, g, F, G, hm, logn, ftmp))
 		{
+            printf("do_sign_dyn True\n");
 			break;
 		}
+
 	}
 }
