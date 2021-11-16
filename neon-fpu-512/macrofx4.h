@@ -153,4 +153,10 @@
     d.val[3] = vsubq_f64(c.val[3], vmulq_laneq_f64(a.val[3], b, i));
 #endif
 
+#define vfrintx4(c, a)                   \
+    c.val[0] = vcvtnq_s64_f64(a.val[0]); \
+    c.val[1] = vcvtnq_s64_f64(a.val[1]); \
+    c.val[2] = vcvtnq_s64_f64(a.val[2]); \
+    c.val[3] = vcvtnq_s64_f64(a.val[3]);
+
 #endif

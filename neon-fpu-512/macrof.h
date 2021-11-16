@@ -64,6 +64,9 @@
 // c = a * b[i]
 #define vfmul_lane(c, a, b, i) c = vmulq_laneq_f64(a, b, i);
 
+// c = 1/a 
+#define vfinv(c, a) c = vdivq_f64(vdupq_n_f64(1.0), a);
+
 // c = -a
 #define vfneg(c, a) c = vnegq_f64(a);
 
