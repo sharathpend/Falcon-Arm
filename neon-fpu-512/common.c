@@ -31,14 +31,15 @@
 
 #include "inner.h"
 #include "macrous.h"
+#include "macrofx4.h"
 
 /* see inner.h */
 void
-Zf(hash_to_point_vartime)(
-	inner_shake256_context *sc,
-	uint16_t *x, unsigned logn)
+    Zf(hash_to_point_vartime)(
+        inner_shake256_context *sc,
+        uint16_t *x, unsigned logn)
 {
-	/*
+    /*
 	 * This is the straightforward per-the-spec implementation. It
 	 * is not constant-time, thus it might reveal information on the
 	 * plaintext (at least, enough to check the plaintext against a
@@ -48,32 +49,35 @@ Zf(hash_to_point_vartime)(
 	 * nonce, the hashed output cannot be matched against potential
 	 * plaintexts).
 	 */
-	size_t n;
+    size_t n;
 
-	n = (size_t)1 << logn;
-	while (n > 0) {
-		uint8_t buf[2];
-		uint32_t w;
+    n = (size_t)1 << logn;
+    while (n > 0)
+    {
+        uint8_t buf[2];
+        uint32_t w;
 
-		inner_shake256_extract(sc, (void *)buf, sizeof buf);
-		w = ((unsigned)buf[0] << 8) | (unsigned)buf[1];
-		if (w < 61445) {
-			while (w >= 12289) {
-				w -= 12289;
-			}
-			*x ++ = (uint16_t)w;
-			n --;
-		}
-	}
+        inner_shake256_extract(sc, (void *)buf, sizeof buf);
+        w = ((unsigned)buf[0] << 8) | (unsigned)buf[1];
+        if (w < 61445)
+        {
+            while (w >= 12289)
+            {
+                w -= 12289;
+            }
+            *x++ = (uint16_t)w;
+            n--;
+        }
+    }
 }
 
 /* see inner.h */
 void
-Zf(hash_to_point_ct)(
-	inner_shake256_context *sc,
-	uint16_t *x, unsigned logn, uint8_t *tmp)
+    Zf(hash_to_point_ct)(
+        inner_shake256_context *sc,
+        uint16_t *x, unsigned logn, uint8_t *tmp)
 {
-	/*
+    /*
 	 * Each 16-bit sample is a value in 0..65535. The value is
 	 * kept if it falls in 0..61444 (because 61445 = 5*12289)
 	 * and rejected otherwise; thus, each sample has probability
@@ -101,54 +105,59 @@ Zf(hash_to_point_ct)(
 	 * (i.e. 126 bytes) for the values that do not fit in tmp[].
 	 */
 
-	static const uint16_t overtab[] = {
-		0, /* unused */
-		65,
-		67,
-		71,
-		77,
-		86,
-		100,
-		122,
-		154,
-		205,
-		287
-	};
+    static const uint16_t overtab[] = {
+        0, /* unused */
+        65,
+        67,
+        71,
+        77,
+        86,
+        100,
+        122,
+        154,
+        205,
+        287};
 
-	unsigned n, n2, u, m, p, over;
-	uint16_t *tt1, tt2[63];
+    unsigned n, n2, u, m, p, over;
+    uint16_t *tt1, tt2[63];
 
-	/*
+    /*
 	 * We first generate m 16-bit value. Values 0..n-1 go to x[].
 	 * Values n..2*n-1 go to tt1[]. Values 2*n and later go to tt2[].
 	 * We also reduce modulo q the values; rejected values are set
 	 * to 0xFFFF.
 	 */
-	n = 1U << logn;
-	n2 = n << 1;
-	over = overtab[logn];
-	m = n + over;
-	tt1 = (uint16_t *)tmp;
-	for (u = 0; u < m; u ++) {
-		uint8_t buf[2];
-		uint32_t w, wr;
+    n = 1U << logn;
+    n2 = n << 1;
+    over = overtab[logn];
+    m = n + over;
+    tt1 = (uint16_t *)tmp;
+    for (u = 0; u < m; u++)
+    {
+        uint8_t buf[2];
+        uint32_t w, wr;
 
-		inner_shake256_extract(sc, buf, sizeof buf);
-		w = ((uint32_t)buf[0] << 8) | (uint32_t)buf[1];
-		wr = w - ((uint32_t)24578 & (((w - 24578) >> 31) - 1));
-		wr = wr - ((uint32_t)24578 & (((wr - 24578) >> 31) - 1));
-		wr = wr - ((uint32_t)12289 & (((wr - 12289) >> 31) - 1));
-		wr |= ((w - 61445) >> 31) - 1;
-		if (u < n) {
-			x[u] = (uint16_t)wr;
-		} else if (u < n2) {
-			tt1[u - n] = (uint16_t)wr;
-		} else {
-			tt2[u - n2] = (uint16_t)wr;
-		}
-	}
+        inner_shake256_extract(sc, buf, sizeof buf);
+        w = ((uint32_t)buf[0] << 8) | (uint32_t)buf[1];
+        wr = w - ((uint32_t)24578 & (((w - 24578) >> 31) - 1));
+        wr = wr - ((uint32_t)24578 & (((wr - 24578) >> 31) - 1));
+        wr = wr - ((uint32_t)12289 & (((wr - 12289) >> 31) - 1));
+        wr |= ((w - 61445) >> 31) - 1;
+        if (u < n)
+        {
+            x[u] = (uint16_t)wr;
+        }
+        else if (u < n2)
+        {
+            tt1[u - n] = (uint16_t)wr;
+        }
+        else
+        {
+            tt2[u - n2] = (uint16_t)wr;
+        }
+    }
 
-	/*
+    /*
 	 * Now we must "squeeze out" the invalid values. We do this in
 	 * a logarithmic sequence of passes; each pass computes where a
 	 * value should go, and moves it down by 'p' slots if necessary,
@@ -157,10 +166,11 @@ Zf(hash_to_point_ct)(
 	 * has to be moved down by p slots, the destination slot is
 	 * "free" (i.e. contains an invalid value).
 	 */
-	for (p = 1; p <= over; p <<= 1) {
-		unsigned v;
+    for (p = 1; p <= over; p <<= 1)
+    {
+        unsigned v;
 
-		/*
+        /*
 		 * In the loop below:
 		 *
 		 *   - v contains the index of the final destination of
@@ -173,65 +183,77 @@ Zf(hash_to_point_ct)(
 		 *   - The loop may swap the value with the one at index
 		 *     u-p. The address of the swap destination is d.
 		 */
-		v = 0;
-		for (u = 0; u < m; u ++) {
-			uint16_t *s, *d;
-			unsigned j, sv, dv, mk;
+        v = 0;
+        for (u = 0; u < m; u++)
+        {
+            uint16_t *s, *d;
+            unsigned j, sv, dv, mk;
 
-			if (u < n) {
-				s = &x[u];
-			} else if (u < n2) {
-				s = &tt1[u - n];
-			} else {
-				s = &tt2[u - n2];
-			}
-			sv = *s;
+            if (u < n)
+            {
+                s = &x[u];
+            }
+            else if (u < n2)
+            {
+                s = &tt1[u - n];
+            }
+            else
+            {
+                s = &tt2[u - n2];
+            }
+            sv = *s;
 
-			/*
+            /*
 			 * The value in sv should ultimately go to
 			 * address v, i.e. jump back by u-v slots.
 			 */
-			j = u - v;
+            j = u - v;
 
-			/*
+            /*
 			 * We increment v for the next iteration, but
 			 * only if the source value is valid. The mask
 			 * 'mk' is -1 if the value is valid, 0 otherwise,
 			 * so we _subtract_ mk.
 			 */
-			mk = (sv >> 15) - 1U;
-			v -= mk;
+            mk = (sv >> 15) - 1U;
+            v -= mk;
 
-			/*
+            /*
 			 * In this loop we consider jumps by p slots; if
 			 * u < p then there is nothing more to do.
 			 */
-			if (u < p) {
-				continue;
-			}
+            if (u < p)
+            {
+                continue;
+            }
 
-			/*
+            /*
 			 * Destination for the swap: value at address u-p.
 			 */
-			if ((u - p) < n) {
-				d = &x[u - p];
-			} else if ((u - p) < n2) {
-				d = &tt1[(u - p) - n];
-			} else {
-				d = &tt2[(u - p) - n2];
-			}
-			dv = *d;
+            if ((u - p) < n)
+            {
+                d = &x[u - p];
+            }
+            else if ((u - p) < n2)
+            {
+                d = &tt1[(u - p) - n];
+            }
+            else
+            {
+                d = &tt2[(u - p) - n2];
+            }
+            dv = *d;
 
-			/*
+            /*
 			 * The swap should be performed only if the source
 			 * is valid AND the jump j has its 'p' bit set.
 			 */
-			mk &= -(((j & p) + 0x1FF) >> 9);
+            mk &= -(((j & p) + 0x1FF) >> 9);
 
-			*s = (uint16_t)(sv ^ (mk & (sv ^ dv)));
-			*d = (uint16_t)(dv ^ (mk & (sv ^ dv)));
-		}
-	}
+            *s = (uint16_t)(sv ^ (mk & (sv ^ dv)));
+            *d = (uint16_t)(dv ^ (mk & (sv ^ dv)));
+        }
+    }
 }
 
 /*
@@ -240,212 +262,364 @@ Zf(hash_to_point_ct)(
  * are _inclusive_ (they are equal to floor(beta^2)).
  */
 static const uint32_t l2bound[] = {
-	0,    /* unused */
-	101498,
-	208714,
-	428865,
-	892039,
-	1852696,
-	3842630,
-	7959734,
-	16468416,
-	34034726,
-	70265242
-};
+    0, /* unused */
+    101498,
+    208714,
+    428865,
+    892039,
+    1852696,
+    3842630,
+    7959734,
+    16468416,
+    34034726,
+    70265242};
 
 /* see inner.h */
 int Zf(is_short)(const int16_t *s1, const int16_t *s2, unsigned logn)
 {
-	/*
-	 * We use the l2-norm. Code below uses only 32-bit operations to
-	 * compute the square of the norm with saturation to 2^32-1 if
-	 * the value exceeds 2^31-1.
-	 */
-    size_t n;
+    // 	/*
+    // 	 * We use the l2-norm. Code below uses only 32-bit operations to
+    // 	 * compute the square of the norm with saturation to 2^32-1 if
+    // 	 * the value exceeds 2^31-1.
+    // 	 */
+    //     size_t n;
+    //     uint32_t s, ng;
+
+    //     n = (size_t)1 << logn;
+    //     s = 0;
+    //     ng = 0;
+    //     int16x8x4_t z1, z2;
+    //     uint32x4x4_t s_lo, s_hi, ngx4;
+    //     vdup32x4(s_lo, 0);
+    //     vdup32x4(s_hi, 0);
+    //     vdup32x4(ngx4, 0);
+    //     for (size_t u = 0; u < n; u += 32)
+    //     {
+    //         z1 = vld1q_s16_x4(&s1[u]);
+    //         z2 = vld1q_s16_x4(&s2[u]);
+
+    //         vmulla_lo(s_lo.val[0], s_lo.val[0], z1.val[0], z1.val[0]);
+    //         vmulla_hi(s_hi.val[0], s_hi.val[0], z1.val[0], z1.val[0]);
+    //         vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //         vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
+
+    //         vmulla_lo(s_lo.val[1], s_lo.val[1], z1.val[1], z1.val[1]);
+    //         vmulla_hi(s_hi.val[1], s_hi.val[1], z1.val[1], z1.val[1]);
+    //         vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+    //         vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
+
+    //         vmulla_lo(s_lo.val[2], s_lo.val[2], z1.val[2], z1.val[2]);
+    //         vmulla_hi(s_hi.val[2], s_hi.val[2], z1.val[2], z1.val[2]);
+    //         vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
+    //         vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
+
+    //         vmulla_lo(s_lo.val[3], s_lo.val[3], z1.val[3], z1.val[3]);
+    //         vmulla_hi(s_hi.val[3], s_hi.val[3], z1.val[3], z1.val[3]);
+    //         vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
+    //         vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
+
+    //         vmulla_lo(s_lo.val[0], s_lo.val[0], z2.val[0], z2.val[0]);
+    //         vmulla_hi(s_hi.val[0], s_hi.val[0], z2.val[0], z2.val[0]);
+    //         vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //         vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
+
+    //         vmulla_lo(s_lo.val[1], s_lo.val[1], z2.val[1], z2.val[1]);
+    //         vmulla_hi(s_hi.val[1], s_hi.val[1], z2.val[1], z2.val[1]);
+    //         vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+    //         vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
+
+    //         vmulla_lo(s_lo.val[2], s_lo.val[2], z2.val[2], z2.val[2]);
+    //         vmulla_hi(s_hi.val[2], s_hi.val[2], z2.val[2], z2.val[2]);
+    //         vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
+    //         vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
+
+    //         vmulla_lo(s_lo.val[3], s_lo.val[3], z2.val[3], z2.val[3]);
+    //         vmulla_hi(s_hi.val[3], s_hi.val[3], z2.val[3], z2.val[3]);
+    //         vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
+    //         vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
+    //     }
+    //     // Collapse s_lo, s_hi
+    //     vadd(s_lo.val[0], s_lo.val[0], s_hi.val[0]);
+    //     vadd(s_lo.val[1], s_lo.val[1], s_hi.val[1]);
+    //     vadd(s_lo.val[2], s_lo.val[2], s_hi.val[2]);
+    //     vadd(s_lo.val[3], s_lo.val[3], s_hi.val[3]);
+
+    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //     vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+    //     vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
+    //     vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
+
+    //     // Collapse s_lo 4 down to 2
+    //     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[2]);
+    //     vadd(s_lo.val[1], s_lo.val[1], s_lo.val[3]);
+    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //     vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+
+    //     // Collapse ngx4 4 downto 2
+    //     vor(ngx4.val[0], ngx4.val[0], ngx4.val[2]);
+    //     vor(ngx4.val[1], ngx4.val[1], ngx4.val[3]);
+    //     // Collapse ngx4 2 downto 1
+    //     vor(ngx4.val[0], ngx4.val[0], ngx4.val[1]);
+    //     // Collapse s_lo 2 downto 1
+    //     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[1]);
+    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+
+    //     uint32x2_t sx2, ngx2;
+    //     // Collapse s_lox4 down to x2
+    //     sx2 = vadd_u32(vget_low_u32(s_lo.val[0]), vget_high_u32(s_lo.val[0]));
+    //     // Collapse ngx4 downto x2
+    //     ngx2 = vorr_u32(vget_low_u32(ngx4.val[0]), vget_high_u32(ngx4.val[0]));
+    //     ngx2 = vorr_u32(ngx2, sx2);
+    //     // Collapse s_lox2 downto x1
+    //     s = vaddv_u32(sx2);
+    //     // No instruction to collapse ngx2 to ngx1, so move to general purpose register
+    //     ng |= vget_lane_u32(ngx2, 0);
+    //     ng |= vget_lane_u32(ngx2, 1);
+    //     ng |= s;
+    // #if DEBUG
+    //     printf("is_short neon ng-s: %u - %u\n", ng, s);
+    //     return s;
+    // #endif
+    //     s |= -(ng >> 31);
+    //     return s <= l2bound[logn];
+    size_t n, u;
     uint32_t s, ng;
 
     n = (size_t)1 << logn;
     s = 0;
     ng = 0;
-    int16x8x4_t z1, z2;
-    uint32x4x4_t s_lo, s_hi, ngx4;
-    vdup32x4(s_lo, 0);
-    vdup32x4(s_hi, 0);
-    vdup32x4(ngx4, 0);
-    for (size_t u = 0; u < n; u += 32)
+    for (u = 0; u < n; u++)
     {
-        z1 = vld1q_s16_x4(&s1[u]);
-        z2 = vld1q_s16_x4(&s2[u]);
+        int32_t z;
 
-        vmulla_lo(s_lo.val[0], s_lo.val[0], z1.val[0], z1.val[0]);
-        vmulla_hi(s_hi.val[0], s_hi.val[0], z1.val[0], z1.val[0]);
-        vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-        vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
-
-        vmulla_lo(s_lo.val[1], s_lo.val[1], z1.val[1], z1.val[1]);
-        vmulla_hi(s_hi.val[1], s_hi.val[1], z1.val[1], z1.val[1]);
-        vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-        vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
-
-        vmulla_lo(s_lo.val[2], s_lo.val[2], z1.val[2], z1.val[2]);
-        vmulla_hi(s_hi.val[2], s_hi.val[2], z1.val[2], z1.val[2]);
-        vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-        vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
-
-        vmulla_lo(s_lo.val[3], s_lo.val[3], z1.val[3], z1.val[3]);
-        vmulla_hi(s_hi.val[3], s_hi.val[3], z1.val[3], z1.val[3]);
-        vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
-        vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
-
-        vmulla_lo(s_lo.val[0], s_lo.val[0], z2.val[0], z2.val[0]);
-        vmulla_hi(s_hi.val[0], s_hi.val[0], z2.val[0], z2.val[0]);
-        vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-        vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
-
-        vmulla_lo(s_lo.val[1], s_lo.val[1], z2.val[1], z2.val[1]);
-        vmulla_hi(s_hi.val[1], s_hi.val[1], z2.val[1], z2.val[1]);
-        vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-        vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
-
-        vmulla_lo(s_lo.val[2], s_lo.val[2], z2.val[2], z2.val[2]);
-        vmulla_hi(s_hi.val[2], s_hi.val[2], z2.val[2], z2.val[2]);
-        vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-        vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
-
-        vmulla_lo(s_lo.val[3], s_lo.val[3], z2.val[3], z2.val[3]);
-        vmulla_hi(s_hi.val[3], s_hi.val[3], z2.val[3], z2.val[3]);
-        vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
-        vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
+        z = s1[u];
+        s += (uint32_t)(z * z);
+        ng |= s;
+        z = s2[u];
+        s += (uint32_t)(z * z);
+        ng |= s;
     }
-    // Collapse s_lo, s_hi
-    vadd(s_lo.val[0], s_lo.val[0], s_hi.val[0]);
-    vadd(s_lo.val[1], s_lo.val[1], s_hi.val[1]);
-    vadd(s_lo.val[2], s_lo.val[2], s_hi.val[2]);
-    vadd(s_lo.val[3], s_lo.val[3], s_hi.val[3]);
-
-    vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-    vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-    vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
-
-    // Collapse s_lo 4 down to 2
-    vadd(s_lo.val[0], s_lo.val[0], s_lo.val[2]);
-    vadd(s_lo.val[1], s_lo.val[1], s_lo.val[3]);
-    vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-
-    // Collapse ngx4 4 downto 2
-    vor(ngx4.val[0], ngx4.val[0], ngx4.val[2]);
-    vor(ngx4.val[1], ngx4.val[1], ngx4.val[3]);
-    // Collapse ngx4 2 downto 1
-    vor(ngx4.val[0], ngx4.val[0], ngx4.val[1]);
-    // Collapse s_lo 2 downto 1
-    vadd(s_lo.val[0], s_lo.val[0], s_lo.val[1]);
-    vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-
-    uint32x2_t sx2, ngx2;
-    // Collapse s_lox4 down to x2
-    sx2 = vadd_u32(vget_low_u32(s_lo.val[0]), vget_high_u32(s_lo.val[0]));
-    // Collapse ngx4 downto x2
-    ngx2 = vorr_u32(vget_low_u32(ngx4.val[0]), vget_high_u32(ngx4.val[0]));
-    ngx2 = vorr_u32(ngx2, sx2);
-    // Collapse s_lox2 downto x1
-    s = vaddv_u32(sx2);
-    // No instruction to collapse ngx2 to ngx1, so move to general purpose register
-    ng |= vget_lane_u32(ngx2, 0);
-    ng |= vget_lane_u32(ngx2, 1);
-    ng |= s;
-#if DEBUG
-    printf("is_short neon ng-s: %u - %u\n", ng, s);
-    return s;
-#endif
     s |= -(ng >> 31);
+
     return s <= l2bound[logn];
 }
 
 /* see inner.h */
 int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn)
 {
-	size_t n;
+
+    size_t n, u;
     uint32_t ng;
 
     n = (size_t)1 << logn;
     ng = -(sqn >> 31);
-
-    int16x8x4_t z2;
-    uint32x4x4_t s_lo, s_hi, ngx4;
-    vdup32x4(s_lo, 0);
-    s_lo.val[0] = vsetq_lane_u32(sqn, s_lo.val[0], 0);
-    vdup32x4(s_hi, 0);
-    vdup32x4(ngx4, 0);
-    for (size_t u = 0; u < n; u += 32)
+    for (u = 0; u < n; u++)
     {
-        z2 = vld1q_s16_x4(&s2[u]);
+        int32_t z;
 
-        vmulla_lo(s_lo.val[0], s_lo.val[0], z2.val[0], z2.val[0]);
-        vmulla_hi(s_hi.val[0], s_hi.val[0], z2.val[0], z2.val[0]);
-        vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-        vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
-
-        vmulla_lo(s_lo.val[1], s_lo.val[1], z2.val[1], z2.val[1]);
-        vmulla_hi(s_hi.val[1], s_hi.val[1], z2.val[1], z2.val[1]);
-        vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-        vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
-
-        vmulla_lo(s_lo.val[2], s_lo.val[2], z2.val[2], z2.val[2]);
-        vmulla_hi(s_hi.val[2], s_hi.val[2], z2.val[2], z2.val[2]);
-        vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-        vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
-
-        vmulla_lo(s_lo.val[3], s_lo.val[3], z2.val[3], z2.val[3]);
-        vmulla_hi(s_hi.val[3], s_hi.val[3], z2.val[3], z2.val[3]);
-        vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
-        vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
+        z = s2[u];
+        sqn += (uint32_t)(z * z);
+        ng |= sqn;
     }
-    vadd(s_lo.val[0], s_lo.val[0], s_hi.val[0]);
-    vadd(s_lo.val[1], s_lo.val[1], s_hi.val[1]);
-    vadd(s_lo.val[2], s_lo.val[2], s_hi.val[2]);
-    vadd(s_lo.val[3], s_lo.val[3], s_hi.val[3]);
+    sqn |= -(ng >> 31);
 
-    vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-    vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-    vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
+    return sqn <= l2bound[logn];
 
-    // Collapse s_lo 4 down to 2
-    vadd(s_lo.val[0], s_lo.val[0], s_lo.val[2]);
-    vadd(s_lo.val[1], s_lo.val[1], s_lo.val[3]);
-    vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+    // 	size_t n;
+    //     uint32_t ng;
 
-    // Collapse ngx4 4 downto 2
-    vor(ngx4.val[0], ngx4.val[0], ngx4.val[2]);
-    vor(ngx4.val[1], ngx4.val[1], ngx4.val[3]);
-    // Collapse ngx4 2 downto 1
-    vor(ngx4.val[0], ngx4.val[0], ngx4.val[1]);
-    // Collapse s_lo 2 downto 1
-    vadd(s_lo.val[0], s_lo.val[0], s_lo.val[1]);
-    vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //     n = (size_t)1 << logn;
+    //     ng = -(sqn >> 31);
 
-    uint32x2_t sx2, ngx2;
-    uint32_t s;
-    // Collapse s_lox4 down to x2
-    sx2 = vadd_u32(vget_low_u32(s_lo.val[0]), vget_high_u32(s_lo.val[0]));
-    // Collapse ngx4 downto x2
-    ngx2 = vorr_u32(vget_low_u32(ngx4.val[0]), vget_high_u32(ngx4.val[0]));
-    ngx2 = vorr_u32(ngx2, sx2);
-    // Collapse s_lox2 downto x1
-    s = vaddv_u32(sx2);
-    // No instruction to collapse ngx2 to ngx1, so move to general purpose register
-    ng |= vget_lane_u32(ngx2, 0);
-    ng |= vget_lane_u32(ngx2, 1);
-    ng |= s;
-    
-#if DEBUG
-    printf("is_short_half neon ng-sqn: %u - %u\n", ng, s);
-    return s;
-#endif
+    //     int16x8x4_t z2;
+    //     uint32x4x4_t s_lo, s_hi, ngx4;
+    //     vdup32x4(s_lo, 0);
+    //     s_lo.val[0] = vsetq_lane_u32(sqn, s_lo.val[0], 0);
+    //     vdup32x4(s_hi, 0);
+    //     vdup32x4(ngx4, 0);
+    //     for (size_t u = 0; u < n; u += 32)
+    //     {
+    //         z2 = vld1q_s16_x4(&s2[u]);
 
-    s |= -(ng >> 31);
-    return s <= l2bound[logn];
+    //         vmulla_lo(s_lo.val[0], s_lo.val[0], z2.val[0], z2.val[0]);
+    //         vmulla_hi(s_hi.val[0], s_hi.val[0], z2.val[0], z2.val[0]);
+    //         vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //         vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
+
+    //         vmulla_lo(s_lo.val[1], s_lo.val[1], z2.val[1], z2.val[1]);
+    //         vmulla_hi(s_hi.val[1], s_hi.val[1], z2.val[1], z2.val[1]);
+    //         vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+    //         vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
+
+    //         vmulla_lo(s_lo.val[2], s_lo.val[2], z2.val[2], z2.val[2]);
+    //         vmulla_hi(s_hi.val[2], s_hi.val[2], z2.val[2], z2.val[2]);
+    //         vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
+    //         vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
+
+    //         vmulla_lo(s_lo.val[3], s_lo.val[3], z2.val[3], z2.val[3]);
+    //         vmulla_hi(s_hi.val[3], s_hi.val[3], z2.val[3], z2.val[3]);
+    //         vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
+    //         vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
+    //     }
+    //     vadd(s_lo.val[0], s_lo.val[0], s_hi.val[0]);
+    //     vadd(s_lo.val[1], s_lo.val[1], s_hi.val[1]);
+    //     vadd(s_lo.val[2], s_lo.val[2], s_hi.val[2]);
+    //     vadd(s_lo.val[3], s_lo.val[3], s_hi.val[3]);
+
+    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //     vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+    //     vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
+    //     vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
+
+    //     // Collapse s_lo 4 down to 2
+    //     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[2]);
+    //     vadd(s_lo.val[1], s_lo.val[1], s_lo.val[3]);
+    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+    //     vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
+
+    //     // Collapse ngx4 4 downto 2
+    //     vor(ngx4.val[0], ngx4.val[0], ngx4.val[2]);
+    //     vor(ngx4.val[1], ngx4.val[1], ngx4.val[3]);
+    //     // Collapse ngx4 2 downto 1
+    //     vor(ngx4.val[0], ngx4.val[0], ngx4.val[1]);
+    //     // Collapse s_lo 2 downto 1
+    //     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[1]);
+    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
+
+    //     uint32x2_t sx2, ngx2;
+    //     uint32_t s;
+    //     // Collapse s_lox4 down to x2
+    //     sx2 = vadd_u32(vget_low_u32(s_lo.val[0]), vget_high_u32(s_lo.val[0]));
+    //     // Collapse ngx4 downto x2
+    //     ngx2 = vorr_u32(vget_low_u32(ngx4.val[0]), vget_high_u32(ngx4.val[0]));
+    //     ngx2 = vorr_u32(ngx2, sx2);
+    //     // Collapse s_lox2 downto x1
+    //     s = vaddv_u32(sx2);
+    //     // No instruction to collapse ngx2 to ngx1, so move to general purpose register
+    //     ng |= vget_lane_u32(ngx2, 0);
+    //     ng |= vget_lane_u32(ngx2, 1);
+    //     ng |= s;
+
+    // #if DEBUG
+    //     printf("is_short_half neon ng-sqn: %u - %u\n", ng, s);
+    //     return s;
+    // #endif
+
+    //     s |= -(ng >> 31);
+    //     return s <= l2bound[logn];
+}
+
+void Zf(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, const double *t0, const unsigned falcon_n)
+{
+    uint32x4_t neon_sqn, neon_ng;
+    uint16x8_t neon_zero;
+    neon_sqn = vdupq_n_u32(0);
+    neon_ng = vdupq_n_u32(0);
+    neon_zero = vdupq_n_u16(0);
+    uint32_t ng = 0, sqn = 0;
+    for (unsigned u = 0; u < falcon_n; u += 16)
+    {
+        float64x2x4_t neon_tf64[2];
+        int64x2x4_t neon_ts64[2];
+        int32x4x4_t neon_ts32, neon_hms32, z;
+        uint16x8x2_t neon_hm;
+        int16x8x2_t z16;
+
+        vloadx4(neon_tf64[0], &t0[u]);
+        vloadx4(neon_tf64[1], &t0[u + 8]);
+        neon_hm = vld1q_u16_x2(&hm[u]);
+
+        vfrintx4(neon_ts64[0], neon_tf64[0]);
+        vfrintx4(neon_ts64[1], neon_tf64[1]);
+
+        neon_ts32.val[0] = vuzp1q_s32(neon_ts64[0].val[0], neon_ts64[0].val[1]);
+        neon_ts32.val[1] = vuzp1q_s32(neon_ts64[0].val[2], neon_ts64[0].val[3]);
+        neon_ts32.val[2] = vuzp1q_s32(neon_ts64[1].val[0], neon_ts64[1].val[1]);
+        neon_ts32.val[3] = vuzp1q_s32(neon_ts64[1].val[2], neon_ts64[1].val[3]);
+
+        neon_hms32.val[0] = (int32x4_t)vzip1q_u16(neon_hm.val[0], neon_zero);
+        neon_hms32.val[1] = (int32x4_t)vzip2q_u16(neon_hm.val[0], neon_zero);
+        neon_hms32.val[2] = (int32x4_t)vzip1q_u16(neon_hm.val[1], neon_zero);
+        neon_hms32.val[3] = (int32x4_t)vzip2q_u16(neon_hm.val[1], neon_zero);
+
+        z.val[0] = vsubq_s32(neon_hms32.val[0], neon_ts32.val[0]);
+        z.val[1] = vsubq_s32(neon_hms32.val[1], neon_ts32.val[1]);
+        z.val[2] = vsubq_s32(neon_hms32.val[2], neon_ts32.val[2]);
+        z.val[3] = vsubq_s32(neon_hms32.val[3], neon_ts32.val[3]);
+
+        neon_sqn = vmlaq_u32(neon_sqn, (uint32x4_t)z.val[0], (uint32x4_t)z.val[0]);
+        neon_ng = vorrq_u32(neon_ng, neon_sqn);
+
+        neon_sqn = vmlaq_u32(neon_sqn, (uint32x4_t)z.val[1], (uint32x4_t)z.val[1]);
+        neon_ng = vorrq_u32(neon_ng, neon_sqn);
+
+        neon_sqn = vmlaq_u32(neon_sqn, (uint32x4_t)z.val[2], (uint32x4_t)z.val[2]);
+        neon_ng = vorrq_u32(neon_ng, neon_sqn);
+
+        neon_sqn = vmlaq_u32(neon_sqn, (uint32x4_t)z.val[3], (uint32x4_t)z.val[3]);
+        neon_ng = vorrq_u32(neon_ng, neon_sqn);
+
+        z16.val[0] = vuzp1q_s16(z.val[0], z.val[1]);
+        z16.val[1] = vuzp1q_s16(z.val[2], z.val[3]);
+
+        vst1q_s16_x2(&s1tmp[u], z16);
+    }
+    sqn += vgetq_lane_u32(neon_sqn, 0);
+    ng |= sqn;
+    sqn += vgetq_lane_u32(neon_sqn, 1);
+    ng |= sqn;
+    sqn += vgetq_lane_u32(neon_sqn, 2);
+    ng |= sqn;
+    sqn += vgetq_lane_u32(neon_sqn, 3);
+    ng |= sqn;
+    ng |= vgetq_lane_u32(neon_ng, 0);
+    ng |= vgetq_lane_u32(neon_ng, 1);
+    ng |= vgetq_lane_u32(neon_ng, 2);
+    ng |= vgetq_lane_u32(neon_ng, 3);
+
+    sqn |= -(ng >> 31);
+
+    *sqn_out = sqn;
+}
+
+void Zf(sign_short_s2)(int16_t *s2tmp, const double *t1, const unsigned falcon_n)
+{
+    float64x2x4_t neon_tf64[4];
+    int64x2x4_t neon_ts64[4];
+    int32x4x4_t neon_ts32[2];
+    int16x8x4_t neon_s2;
+    for (unsigned u = 0; u < falcon_n; u += 32)
+    {
+        vloadx4(neon_tf64[0], &t1[u]);
+        vloadx4(neon_tf64[1], &t1[u + 8]);
+        vloadx4(neon_tf64[2], &t1[u + 16]);
+        vloadx4(neon_tf64[3], &t1[u + 24]);
+
+        vfrintx4(neon_ts64[0], neon_tf64[0]);
+        vfrintx4(neon_ts64[1], neon_tf64[1]);
+        vfrintx4(neon_ts64[2], neon_tf64[2]);
+        vfrintx4(neon_ts64[3], neon_tf64[3]);
+
+        neon_ts32[0].val[0] = vuzp1q_s32(neon_ts64[0].val[0], neon_ts64[0].val[1]);
+        neon_ts32[0].val[1] = vuzp1q_s32(neon_ts64[0].val[2], neon_ts64[0].val[3]);
+        neon_ts32[0].val[2] = vuzp1q_s32(neon_ts64[1].val[0], neon_ts64[1].val[1]);
+        neon_ts32[0].val[3] = vuzp1q_s32(neon_ts64[1].val[2], neon_ts64[1].val[3]);
+
+        neon_ts32[1].val[0] = vuzp1q_s32(neon_ts64[2].val[0], neon_ts64[2].val[1]);
+        neon_ts32[1].val[1] = vuzp1q_s32(neon_ts64[2].val[2], neon_ts64[2].val[3]);
+        neon_ts32[1].val[2] = vuzp1q_s32(neon_ts64[3].val[0], neon_ts64[3].val[1]);
+        neon_ts32[1].val[3] = vuzp1q_s32(neon_ts64[3].val[2], neon_ts64[3].val[3]);
+
+        neon_s2.val[0] = vuzp1q_s16(neon_ts32[0].val[0], neon_ts32[0].val[1]);
+        neon_s2.val[1] = vuzp1q_s16(neon_ts32[0].val[2], neon_ts32[0].val[3]);
+        neon_s2.val[2] = vuzp1q_s16(neon_ts32[1].val[0], neon_ts32[1].val[1]);
+        neon_s2.val[3] = vuzp1q_s16(neon_ts32[1].val[2], neon_ts32[1].val[3]);
+
+        neon_s2.val[0] = vnegq_s16(neon_s2.val[0]);
+        neon_s2.val[1] = vnegq_s16(neon_s2.val[1]);
+        neon_s2.val[2] = vnegq_s16(neon_s2.val[2]);
+        neon_s2.val[3] = vnegq_s16(neon_s2.val[3]);
+
+        vst1q_s16_x4(&s2tmp[u], neon_s2);
+    }
 }
