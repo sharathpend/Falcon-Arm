@@ -324,6 +324,10 @@ int Zf(is_short)(const int16_t *s1, const int16_t *s2, unsigned logn);
  */
 int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn);
 
+void Zf(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, 
+                                    const double *t0, const unsigned falcon_n);
+void Zf(sign_short_s2)(int16_t *s2tmp, const double *t1, const unsigned falcon_n);
+
 /* ==================================================================== */
 /*
  * Signature verification functions (vrfy.c).
