@@ -696,8 +696,6 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
 
         vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
 
-        printf("%d: mu_re, mu_im : %.10f, %.10f\n", logn, mu_re.val[0][0], mu_re.val[0][1]);
-
         // g01_re | -g01_im
         vfmul(g01_re.val[1], g01_re.val[0], neon_1i2);
         // -g01_im | g01_re
