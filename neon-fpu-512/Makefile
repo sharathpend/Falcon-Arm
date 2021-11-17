@@ -9,21 +9,21 @@
 .POSIX:
 
 # CC = c99
-CC = clang
-CFLAGS = -W -Wall -O2 -Wextra -Wpedantic -g3
+CC = gcc
+CFLAGS = -W -Wall -O3 -Wextra -Wpedantic -g3 -Werror
 LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o build/falcon.o 
+OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o build/falcon.o
 
-OBJ2 = build/PQCgenKAT_sign.o build/katrng.o
+OBJ2 = build/PQCgenKAT_sign.o build/katrng.o 
 OBJ3 = build/speed.o build/katrng.o
 
 HEAD1 = api.h fpr.h inner.h
 HEAD2 = api.h katrng.h
 
-all: build build/kat512fpu build/speed
+all: build build/kat512fpu build/speed 
 
 build:
 	-mkdir build
