@@ -7,9 +7,9 @@
 
 #define vmull_hi(c, a, b) c = vmull_high_s16(a, b);
 
-#define vmulla_lo(d, c, a, b) d = vmlal_u16(c, (uint16x4_t)vget_low_s16(a), (uint16x4_t)vget_low_s16(b));
+#define vmulla_lo(d, c, a, b) d = vmlal_s16(c, vget_low_s16(a), vget_low_s16(b));
 
-#define vmulla_hi(d, c, a, b) d = vmlal_high_u16(c, (uint16x8_t)a, (uint16x8_t)b);
+#define vmulla_hi(d, c, a, b) d = vmlal_high_s16(c, a, b);
 
 #define vadd(c, a, b) c = vaddq_u32(a, b);
 
