@@ -54,7 +54,6 @@ void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned
         break;
 
     default:
-        assert(logn >= 3);
         for (int i = 0; i < falcon_n; i += 8)
         {
             vloadx4(neon_a, &a[i]);
@@ -99,7 +98,6 @@ void Zf(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned
         break;
 
     default:
-        assert(logn >= 3);
         for (int i = 0; i < falcon_n; i += 8)
         {
             vloadx4(neon_a, &a[i]);
@@ -143,7 +141,6 @@ void Zf(poly_neg)(fpr *c, const fpr *restrict a, unsigned logn)
         break;
 
     default:
-        assert(logn >= 3);
         for (int i = 0; i < falcon_n; i += 8)
         {
             vloadx4(neon_a, &a[i]);
@@ -188,7 +185,6 @@ void Zf(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
         break;
 
     default:
-        assert(logn >= 4);
         for (int i = hn; i < falcon_n; i += 8)
         {
             vloadx4(neon_a, &a[i]);
@@ -292,7 +288,7 @@ static inline void Zf(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a,
 /* 
  * c = a * b
  */
-void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
+void Zf(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
 {
     // Total 32 registers
     float64x2x4_t a_re, b_re, a_im, b_im; // 24
@@ -314,7 +310,6 @@ void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restric
         break;
 
     default:
-        assert(logn >= 4);
         for (int i = 0; i < hn; i += 8)
         {
             vloadx4(a_re, &a[i]);
@@ -336,7 +331,7 @@ void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restric
 }
 
 /* see inner.h */
-void Zf(poly_muladj_fft)(fpr *d, fpr *restrict a, const fpr *restrict b, unsigned logn)
+void Zf(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
 {
     assert(logn >= 4);
     float64x2x4_t a_re, b_re, d_re, a_im, b_im, d_im; // 24
@@ -567,7 +562,7 @@ void Zf(poly_add_muladj_fft)(fpr *restrict d,
 }
 
 /* see inner.h */
-void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
+void Zf(poly_mul_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -635,7 +630,7 @@ void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr 
 }
 
 /* see inner.h */
-void Zf(poly_div_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
+void Zf(poly_div_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -1056,5 +1051,72 @@ void Zf(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
             vstorex4(&l10[i + hn], mu_im);
         }
         break;
+    }
+}
+
+void Zf(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n)
+{
+    float64x2x4_t neon_t0;
+    uint16x8x4_t neon_hm;
+    uint16x8_t neon_zero;
+    uint32x4x4_t neon_hmu32[2];
+    int64x2x4_t neon_hms64[4];
+    neon_zero = vdupq_n_u16(0);
+    for (unsigned u = 0; u < falcon_n; u += 32)
+    {
+        neon_hm = vld1q_u16_x4(&hm[u]);
+        neon_hmu32[0].val[0] = (uint32x4_t)vzip1q_u16(neon_hm.val[0], neon_zero);
+        neon_hmu32[0].val[1] = (uint32x4_t)vzip2q_u16(neon_hm.val[0], neon_zero);
+        neon_hmu32[0].val[2] = (uint32x4_t)vzip1q_u16(neon_hm.val[1], neon_zero);
+        neon_hmu32[0].val[3] = (uint32x4_t)vzip2q_u16(neon_hm.val[1], neon_zero);
+
+        neon_hmu32[1].val[0] = (uint32x4_t)vzip1q_u16(neon_hm.val[2], neon_zero);
+        neon_hmu32[1].val[1] = (uint32x4_t)vzip2q_u16(neon_hm.val[2], neon_zero);
+        neon_hmu32[1].val[2] = (uint32x4_t)vzip1q_u16(neon_hm.val[3], neon_zero);
+        neon_hmu32[1].val[3] = (uint32x4_t)vzip2q_u16(neon_hm.val[3], neon_zero);
+
+        neon_hms64[0].val[0] = (int64x2_t)vzip1q_u32(neon_hmu32[0].val[0], (uint32x4_t)neon_zero);
+        neon_hms64[0].val[1] = (int64x2_t)vzip2q_u32(neon_hmu32[0].val[0], (uint32x4_t)neon_zero);
+        neon_hms64[0].val[2] = (int64x2_t)vzip1q_u32(neon_hmu32[0].val[1], (uint32x4_t)neon_zero);
+        neon_hms64[0].val[3] = (int64x2_t)vzip2q_u32(neon_hmu32[0].val[1], (uint32x4_t)neon_zero);
+
+        neon_hms64[1].val[0] = (int64x2_t)vzip1q_u32(neon_hmu32[0].val[2], (uint32x4_t)neon_zero);
+        neon_hms64[1].val[1] = (int64x2_t)vzip2q_u32(neon_hmu32[0].val[2], (uint32x4_t)neon_zero);
+        neon_hms64[1].val[2] = (int64x2_t)vzip1q_u32(neon_hmu32[0].val[3], (uint32x4_t)neon_zero);
+        neon_hms64[1].val[3] = (int64x2_t)vzip2q_u32(neon_hmu32[0].val[3], (uint32x4_t)neon_zero);
+
+        neon_hms64[2].val[0] = (int64x2_t)vzip1q_u32(neon_hmu32[1].val[0], (uint32x4_t)neon_zero);
+        neon_hms64[2].val[1] = (int64x2_t)vzip2q_u32(neon_hmu32[1].val[0], (uint32x4_t)neon_zero);
+        neon_hms64[2].val[2] = (int64x2_t)vzip1q_u32(neon_hmu32[1].val[1], (uint32x4_t)neon_zero);
+        neon_hms64[2].val[3] = (int64x2_t)vzip2q_u32(neon_hmu32[1].val[1], (uint32x4_t)neon_zero);
+
+        neon_hms64[3].val[0] = (int64x2_t)vzip1q_u32(neon_hmu32[1].val[2], (uint32x4_t)neon_zero);
+        neon_hms64[3].val[1] = (int64x2_t)vzip2q_u32(neon_hmu32[1].val[2], (uint32x4_t)neon_zero);
+        neon_hms64[3].val[2] = (int64x2_t)vzip1q_u32(neon_hmu32[1].val[3], (uint32x4_t)neon_zero);
+        neon_hms64[3].val[3] = (int64x2_t)vzip2q_u32(neon_hmu32[1].val[3], (uint32x4_t)neon_zero);
+
+        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[0].val[0]);
+        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[0].val[1]);
+        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[0].val[2]);
+        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[0].val[3]);
+        vstorex4(&t0[u], neon_t0);
+
+        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[1].val[0]);
+        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[1].val[1]);
+        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[1].val[2]);
+        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[1].val[3]);
+        vstorex4(&t0[u + 8], neon_t0);
+
+        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[2].val[0]);
+        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[2].val[1]);
+        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[2].val[2]);
+        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[2].val[3]);
+        vstorex4(&t0[u + 16], neon_t0);
+
+        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[3].val[0]);
+        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[3].val[1]);
+        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[3].val[2]);
+        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[3].val[3]);
+        vstorex4(&t0[u + 24], neon_t0);
     }
 }
