@@ -232,7 +232,7 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	fpr *b00, *b01, *b10, *b11;
 	fpr *g00, *g01, *g11, *gxx;
 	fpr *tree;
-	const size_t n = MKN(logn);
+	const unsigned n = MKN(logn);
 
 	b00 = expanded_key + skoff_b00(logn);
 	b01 = expanded_key + skoff_b01(logn);
@@ -843,7 +843,7 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	uint32_t sqn;
 	int16_t *s1tmp, *s2tmp;
 
-	const size_t n = MKN(logn);
+	const unsigned n = MKN(logn);
 
 	/*
 	 * Lattice basis is B = [[g, -f], [G, -F]]. We convert it to FFT.
