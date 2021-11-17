@@ -691,14 +691,14 @@ void Zf(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn);
  * This function works only in FFT representation.
  */
 // void Zf(poly_mul_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
-void Zf(poly_mul_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn);
 
 /*
  * Multiply polynomial a with the adjoint of polynomial b. a and b MUST NOT
  * overlap. This function works only in FFT representation.
  */
 // void Zf(poly_muladj_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
-void Zf(poly_muladj_fft)(fpr *d, fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn);
 
 /*
  * Multiply polynomial with its own adjoint. This function works only in FFT
@@ -746,7 +746,7 @@ void Zf(poly_add_muladj_fft)(fpr *restrict d,
  * a and b MUST NOT overlap.
  */
 // void Zf(poly_mul_autoadj_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
-void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_mul_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn);
 
 /*
  * Divide polynomial a by polynomial b, where b is autoadjoint. Both
@@ -756,7 +756,7 @@ void Zf(poly_mul_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr 
  */
 // void Zf(poly_div_autoadj_fft)(fpr *restrict a,
 // 	const fpr *restrict b, unsigned logn);
-void Zf(poly_div_autoadj_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn);
+void Zf(poly_div_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn);
 
 /*
  * Perform an LDL decomposition of an auto-adjoint matrix G, in FFT
@@ -795,6 +795,8 @@ void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
  */
 void Zf(poly_merge_fft)(fpr *restrict f,
 	const fpr *restrict f0, const fpr *restrict f1, unsigned logn);
+
+void Zf(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n);
 
 /* ==================================================================== */
 /*
