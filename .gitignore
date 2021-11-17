@@ -4,6 +4,7 @@
 *.o
 *.req
 *.rsp
+vgcore.*
 ref-fft
 avx2_fft
 neon-fft
@@ -14,3 +15,4 @@ neon-512/test_log1
 ref-fpu-512/build/
 neon-fpu-512/build/*
 neon-fpu-512/test_common
+ref-fpu-512/bench_fft
