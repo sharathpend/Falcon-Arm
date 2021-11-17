@@ -31,7 +31,6 @@
 
 #include "inner.h"
 #include "util.h"
-#include "stdio.h"
 
 #define MKN(logn)   ((size_t)1 << (logn))
 
@@ -3091,8 +3090,8 @@ solve_NTRU_intermediate(unsigned logn_top,
 	 * Compute 1/(f*adj(f)+g*adj(g)) in rt5. We also keep adj(f)
 	 * and adj(g) in rt3 and rt4, respectively.
 	 */
-	Zf(FFT)(rt3, logn, false);
-	Zf(FFT)(rt4, logn, false);
+	Zf(FFT)(rt3, logn);
+	Zf(FFT)(rt4, logn);
 	Zf(poly_invnorm2_fft)(rt5, rt3, rt4, logn);
 	Zf(poly_adj_fft)(rt3, rt3, logn);
 	Zf(poly_adj_fft)(rt4, rt4, logn);
@@ -3151,8 +3150,8 @@ solve_NTRU_intermediate(unsigned logn_top,
 		/*
 		 * Compute (F*adj(f)+G*adj(g))/(f*adj(f)+g*adj(g)) in rt2.
 		 */
-		Zf(FFT)(rt1, logn, false);
-		Zf(FFT)(rt2, logn, false);
+		Zf(FFT)(rt1, logn);
+		Zf(FFT)(rt2, logn);
 		Zf(poly_mul_fft)(rt1, rt1, rt3, logn);
 		Zf(poly_mul_fft)(rt2, rt2, rt4, logn);
 		Zf(poly_add)(rt2, rt2, rt1, logn);
@@ -3612,10 +3611,10 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 	 *   rt4 = g
 	 * in that order in RAM. We convert all of them to FFT.
 	 */
-	Zf(FFT)(rt1, logn, false);
-	Zf(FFT)(rt2, logn, false);
-	Zf(FFT)(rt3, logn, false);
-	Zf(FFT)(rt4, logn, false);
+	Zf(FFT)(rt1, logn);
+	Zf(FFT)(rt2, logn);
+	Zf(FFT)(rt3, logn);
+	Zf(FFT)(rt4, logn);
 
 	/*
 	 * Compute:
@@ -3651,7 +3650,7 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 		}
 		rt5[u] = fpr_of(fpr_rint(z));
 	}
-	Zf(FFT)(rt5, logn, false);
+	Zf(FFT)(rt5, logn);
 
 	/*
 	 * Subtract k*f from F, and k*g from G.
@@ -3881,7 +3880,7 @@ solve_NTRU_binary_depth0(unsigned logn,
 	for (u = 0; u < n; u ++) {
 		rt3[u] = fpr_of(((int32_t *)t2)[u]);
 	}
-	Zf(FFT)(rt3, logn, false);
+	Zf(FFT)(rt3, logn);
 	rt2 = align_fpr(tmp, t2);
 	memmove(rt2, rt3, hn * sizeof *rt3);
 
@@ -3892,7 +3891,7 @@ solve_NTRU_binary_depth0(unsigned logn,
 	for (u = 0; u < n; u ++) {
 		rt3[u] = fpr_of(((int32_t *)t1)[u]);
 	}
-	Zf(FFT)(rt3, logn, false);
+	Zf(FFT)(rt3, logn);
 
 	/*
 	 * Compute (F*adj(f)+G*adj(g))/(f*adj(f)+g*adj(g)) and get
@@ -3960,10 +3959,6 @@ solve_NTRU(unsigned logn, int8_t *F, int8_t *G,
 	const small_prime *primes;
 
 	n = MKN(logn);
-
-    // print_iarray(f);
-    // print_iarray(g);
-    // print_iarray(F);
 
 	if (!solve_NTRU_deepest(logn, f, g, tmp)) {
 		return 0;
@@ -4105,8 +4100,6 @@ poly_small_mkgauss(RNG_CONTEXT *rng, int8_t *f, unsigned logn)
 	}
 }
 
-#define DEBUG 1
-
 /* see falcon.h */
 void
 Zf(keygen)(inner_shake256_context *rng,
@@ -4158,8 +4151,7 @@ Zf(keygen)(inner_shake256_context *rng,
 	 * We require that Res(f,phi) and Res(g,phi) are both odd (the
 	 * NTRU equation solver requires it).
 	 */
-    for (;;) {
-	// for (int iii = 0; iii < 2; iii++) {
+	for (;;) {
 		fpr *rt1, *rt2, *rt3;
 		fpr bnorm;
 		uint32_t normf, normg, norm;
@@ -4219,8 +4211,8 @@ Zf(keygen)(inner_shake256_context *rng,
 		rt3 = rt2 + n;
 		poly_small_to_fp(rt1, f, logn);
 		poly_small_to_fp(rt2, g, logn);
-		Zf(FFT)(rt1, logn, false);
-		Zf(FFT)(rt2, logn, false);
+		Zf(FFT)(rt1, logn);
+		Zf(FFT)(rt2, logn);
 		Zf(poly_invnorm2_fft)(rt3, rt1, rt2, logn);
 		Zf(poly_adj_fft)(rt1, rt1, logn);
 		Zf(poly_adj_fft)(rt2, rt2, logn);
@@ -4235,14 +4227,6 @@ Zf(keygen)(inner_shake256_context *rng,
 			bnorm = fpr_add(bnorm, fpr_sqr(rt1[u]));
 			bnorm = fpr_add(bnorm, fpr_sqr(rt2[u]));
 		}
-#if DEBUG
-        // print_farray(rt1, logn);
-        // print_farray(rt2, logn);
-        // print_farray(rt3, logn);
-        // printf("A\n");
-        // printf("bnorm: %f\n", bnorm);
-        break;
-#endif
 		if (!fpr_lt(bnorm, fpr_bnorm_max)) {
 			continue;
 		}
@@ -4259,7 +4243,6 @@ Zf(keygen)(inner_shake256_context *rng,
 			tmp2 = (uint16_t *)tmp;
 		}
 		if (!Zf(compute_public)(h2, f, g, logn, (uint8_t *)tmp2)) {
-            // printf("comp public\n");
 			continue;
 		}
 
@@ -4268,7 +4251,6 @@ Zf(keygen)(inner_shake256_context *rng,
 		 */
 		lim = (1 << (Zf(max_FG_bits)[logn] - 1)) - 1;
 		if (!solve_NTRU(logn, F, G, f, g, lim, (uint32_t *)tmp)) {
-            // printf("solve_NTRU\n");
 			continue;
 		}
 
