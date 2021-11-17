@@ -7,16 +7,17 @@
  * representation with complex numbers.
  * IMPORTANT: Correct, verified, optimized.
  */
-void smallints_to_fpr(fpr *r, const int8_t *t, unsigned logn)
+void smallints_to_fpr(fpr *r, const int8_t *t, const unsigned logn)
 {
-	const size_t n = 1 << logn;
     float64x2x4_t neon_flo64, neon_fhi64;
     int64x2x4_t neon_lo64, neon_hi64;
     int32x4_t neon_lo32[2], neon_hi32[2];
     int16x8_t neon_lo16, neon_hi16;
     int8x16_t neon_8;
 
-    for (size_t i = 0; i < n; i += 16)
+    const unsigned falcon_n =  1 << logn;
+
+    for (unsigned i = 0; i < falcon_n; i += 16)
     {
         neon_8 = vld1q_s8(&t[i]);
 
@@ -59,7 +60,7 @@ void print_farray(fpr *r, unsigned logn, const char *string)
     {
         // printf("[%3d]:%.20f\n", i, r[i]);
         // printf("[%3d]:%f\n", i, r[i]);
-        printf("%.10f, ", i, r[i]);
+        printf("%.10f, ", r[i]);
     }
     printf("\n");
     fflush(stdout); 
