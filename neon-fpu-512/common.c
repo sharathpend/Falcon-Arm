@@ -277,129 +277,74 @@ static const uint32_t l2bound[] = {
 /* see inner.h */
 int Zf(is_short)(const int16_t *s1, const int16_t *s2, unsigned logn)
 {
-    // 	/*
-    // 	 * We use the l2-norm. Code below uses only 32-bit operations to
-    // 	 * compute the square of the norm with saturation to 2^32-1 if
-    // 	 * the value exceeds 2^31-1.
-    // 	 */
-    //     size_t n;
-    //     uint32_t s, ng;
-
-    //     n = (size_t)1 << logn;
-    //     s = 0;
-    //     ng = 0;
-    //     int16x8x4_t z1, z2;
-    //     uint32x4x4_t s_lo, s_hi, ngx4;
-    //     vdup32x4(s_lo, 0);
-    //     vdup32x4(s_hi, 0);
-    //     vdup32x4(ngx4, 0);
-    //     for (size_t u = 0; u < n; u += 32)
-    //     {
-    //         z1 = vld1q_s16_x4(&s1[u]);
-    //         z2 = vld1q_s16_x4(&s2[u]);
-
-    //         vmulla_lo(s_lo.val[0], s_lo.val[0], z1.val[0], z1.val[0]);
-    //         vmulla_hi(s_hi.val[0], s_hi.val[0], z1.val[0], z1.val[0]);
-    //         vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    //         vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
-
-    //         vmulla_lo(s_lo.val[1], s_lo.val[1], z1.val[1], z1.val[1]);
-    //         vmulla_hi(s_hi.val[1], s_hi.val[1], z1.val[1], z1.val[1]);
-    //         vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-    //         vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
-
-    //         vmulla_lo(s_lo.val[2], s_lo.val[2], z1.val[2], z1.val[2]);
-    //         vmulla_hi(s_hi.val[2], s_hi.val[2], z1.val[2], z1.val[2]);
-    //         vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-    //         vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
-
-    //         vmulla_lo(s_lo.val[3], s_lo.val[3], z1.val[3], z1.val[3]);
-    //         vmulla_hi(s_hi.val[3], s_hi.val[3], z1.val[3], z1.val[3]);
-    //         vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
-    //         vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
-
-    //         vmulla_lo(s_lo.val[0], s_lo.val[0], z2.val[0], z2.val[0]);
-    //         vmulla_hi(s_hi.val[0], s_hi.val[0], z2.val[0], z2.val[0]);
-    //         vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    //         vor(ngx4.val[0], ngx4.val[0], s_hi.val[0]);
-
-    //         vmulla_lo(s_lo.val[1], s_lo.val[1], z2.val[1], z2.val[1]);
-    //         vmulla_hi(s_hi.val[1], s_hi.val[1], z2.val[1], z2.val[1]);
-    //         vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-    //         vor(ngx4.val[1], ngx4.val[1], s_hi.val[1]);
-
-    //         vmulla_lo(s_lo.val[2], s_lo.val[2], z2.val[2], z2.val[2]);
-    //         vmulla_hi(s_hi.val[2], s_hi.val[2], z2.val[2], z2.val[2]);
-    //         vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-    //         vor(ngx4.val[2], ngx4.val[2], s_hi.val[2]);
-
-    //         vmulla_lo(s_lo.val[3], s_lo.val[3], z2.val[3], z2.val[3]);
-    //         vmulla_hi(s_hi.val[3], s_hi.val[3], z2.val[3], z2.val[3]);
-    //         vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
-    //         vor(ngx4.val[3], ngx4.val[3], s_hi.val[3]);
-    //     }
-    //     // Collapse s_lo, s_hi
-    //     vadd(s_lo.val[0], s_lo.val[0], s_hi.val[0]);
-    //     vadd(s_lo.val[1], s_lo.val[1], s_hi.val[1]);
-    //     vadd(s_lo.val[2], s_lo.val[2], s_hi.val[2]);
-    //     vadd(s_lo.val[3], s_lo.val[3], s_hi.val[3]);
-
-    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    //     vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-    //     vor(ngx4.val[2], ngx4.val[2], s_lo.val[2]);
-    //     vor(ngx4.val[3], ngx4.val[3], s_lo.val[3]);
-
-    //     // Collapse s_lo 4 down to 2
-    //     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[2]);
-    //     vadd(s_lo.val[1], s_lo.val[1], s_lo.val[3]);
-    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-    //     vor(ngx4.val[1], ngx4.val[1], s_lo.val[1]);
-
-    //     // Collapse ngx4 4 downto 2
-    //     vor(ngx4.val[0], ngx4.val[0], ngx4.val[2]);
-    //     vor(ngx4.val[1], ngx4.val[1], ngx4.val[3]);
-    //     // Collapse ngx4 2 downto 1
-    //     vor(ngx4.val[0], ngx4.val[0], ngx4.val[1]);
-    //     // Collapse s_lo 2 downto 1
-    //     vadd(s_lo.val[0], s_lo.val[0], s_lo.val[1]);
-    //     vor(ngx4.val[0], ngx4.val[0], s_lo.val[0]);
-
-    //     uint32x2_t sx2, ngx2;
-    //     // Collapse s_lox4 down to x2
-    //     sx2 = vadd_u32(vget_low_u32(s_lo.val[0]), vget_high_u32(s_lo.val[0]));
-    //     // Collapse ngx4 downto x2
-    //     ngx2 = vorr_u32(vget_low_u32(ngx4.val[0]), vget_high_u32(ngx4.val[0]));
-    //     ngx2 = vorr_u32(ngx2, sx2);
-    //     // Collapse s_lox2 downto x1
-    //     s = vaddv_u32(sx2);
-    //     // No instruction to collapse ngx2 to ngx1, so move to general purpose register
-    //     ng |= vget_lane_u32(ngx2, 0);
-    //     ng |= vget_lane_u32(ngx2, 1);
-    //     ng |= s;
-    // #if DEBUG
-    //     printf("is_short neon ng-s: %u - %u\n", ng, s);
-    //     return s;
-    // #endif
-    //     s |= -(ng >> 31);
-    //     return s <= l2bound[logn];
-    size_t n, u;
+    int16x8x4_t neon_s1, neon_s2;
+    uint32x4_t neon_ng;
+    int32x4_t neon_s, neon_zero;
+    const unsigned falcon_n = 1 << logn;
     uint32_t s, ng;
+    neon_s = vdupq_n_s32(0);
+    neon_zero = vdupq_n_s32(0);
+    neon_ng = vdupq_n_u32(0);
 
-    n = (size_t)1 << logn;
-    s = 0;
-    ng = 0;
-    for (u = 0; u < n; u++)
+    for (unsigned u = 0; u < falcon_n; u += 32)
     {
-        int32_t z;
+        neon_s1 = vld1q_s16_x4(&s1[u]);
+        neon_s2 = vld1q_s16_x4(&s2[u]);
 
-        z = s1[u];
-        s += (uint32_t)(z * z);
-        ng |= s;
-        z = s2[u];
-        s += (uint32_t)(z * z);
-        ng |= s;
+        vmulla_lo(neon_s, neon_s, neon_s1.val[0], neon_s1.val[0]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s1.val[0], neon_s1.val[0]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+
+        vmulla_lo(neon_s, neon_s, neon_s1.val[1], neon_s1.val[1]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s1.val[1], neon_s1.val[1]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+
+        vmulla_lo(neon_s, neon_s, neon_s1.val[2], neon_s1.val[2]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s1.val[2], neon_s1.val[2]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+
+        vmulla_lo(neon_s, neon_s, neon_s1.val[3], neon_s1.val[3]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s1.val[3], neon_s1.val[3]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        //
+        vmulla_lo(neon_s, neon_s, neon_s2.val[0], neon_s2.val[0]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s2.val[0], neon_s2.val[0]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+
+        vmulla_lo(neon_s, neon_s, neon_s2.val[1], neon_s2.val[1]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s2.val[1], neon_s2.val[1]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+
+        vmulla_lo(neon_s, neon_s, neon_s2.val[2], neon_s2.val[2]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s2.val[2], neon_s2.val[2]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+
+        vmulla_lo(neon_s, neon_s, neon_s2.val[3], neon_s2.val[3]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+        vmulla_hi(neon_s, neon_s, neon_s2.val[3], neon_s2.val[3]);
+        vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
     }
+    // 32x2
+    neon_s = vpaddq_s32(neon_s, neon_zero);
+    vor(neon_ng, neon_ng, (uint32x4_t)neon_s);
+    s = vaddvq_s32(neon_s);
+
+    ng = vgetq_lane_u32(neon_ng, 0);
+    ng |= vgetq_lane_u32(neon_ng, 1);
+    ng |= vgetq_lane_u32(neon_ng, 2);
+    ng |= vgetq_lane_u32(neon_ng, 3);
+    ng |= s;
+
+    // printf("s: %8x\n", s);
     s |= -(ng >> 31);
+    // printf("is_short s, ng: %8x | %8x\n", s, ng);
 
     return s <= l2bound[logn];
 }
@@ -452,11 +397,11 @@ int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn)
     ng |= vgetq_lane_u32(neon_ng, 2);
     ng |= vgetq_lane_u32(neon_ng, 3);
 
-    printf("is_short_half neon sqn: %8x\n", sqn);
+    // printf("is_short_half sqn: %8x\n", sqn);
 
     sqn |= -(ng >> 31);
 
-    printf("is_short_half neon ng, sqn: %8x | %8x\n", ng, sqn);
+    // printf("is_short_half ng, sqn: %8x | %8x\n", ng, sqn);
 
     return sqn <= l2bound[logn];
 }
@@ -529,7 +474,7 @@ void Zf(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, co
     ng |= vgetq_lane_u32(neon_ng, 2);
     ng |= vgetq_lane_u32(neon_ng, 3);
 
-    printf("sqn %u\n", sqn);
+    // printf("sqn %u\n", sqn);
 
     sqn |= -(ng >> 31);
 
