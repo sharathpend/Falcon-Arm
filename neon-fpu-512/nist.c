@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "api.h"
 #include "inner.h"
@@ -25,6 +26,26 @@ void randombytes_init(unsigned char *entropy_input,
 	int security_strength);
 int randombytes(unsigned char *x, unsigned long long xlen);
 
+void print_key(int8_t *f, const char *string)
+{
+    printf("%s:\n", string);
+    for (int i = 0; i < 512; i++)
+    {
+        printf("%02x", f[i]);
+    }
+    printf("\n");
+}
+
+void print_hkey(uint16_t *h, const char *string)
+{
+    printf("%s:\n", string);
+    for (int i = 0; i < 512; i++)
+    {
+        printf("%04x", h[i]);
+    }
+    printf("\n");
+}
+
 int
 crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 {
@@ -33,14 +54,13 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 		uint64_t dummy_u64;
 		fpr dummy_fpr;
 	} tmp;
-	TEMPALLOC int8_t f[512], g[512], F[512];
-	TEMPALLOC uint16_t h[512];
+	TEMPALLOC int8_t f[512]= {0}, g[512]= {0}, F[512] = {0};
+	TEMPALLOC uint16_t h[512]= {0};
 	TEMPALLOC unsigned char seed[48];
 	TEMPALLOC inner_shake256_context rng;
 	size_t u, v;
-	unsigned savcw;
 
-	savcw = set_fpu_cw(2);
+
 
 	/*
 	 * Generate key pair.
@@ -51,7 +71,7 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 	inner_shake256_flip(&rng);
 	Zf(keygen)(&rng, f, g, F, NULL, h, 9, tmp.b);
 
-	set_fpu_cw(savcw);
+
 
 	/*
 	 * Encode private key.
@@ -111,7 +131,6 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	TEMPALLOC unsigned char esig[CRYPTO_BYTES - 2 - sizeof nonce];
 	TEMPALLOC inner_shake256_context sc;
 	size_t u, v, sig_len;
-	unsigned savcw;
 
 	/*
 	 * Decode the private key.
@@ -167,14 +186,12 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	inner_shake256_inject(&sc, seed, sizeof seed);
 	inner_shake256_flip(&sc);
 
-	savcw = set_fpu_cw(2);
 
 	/*
 	 * Compute the signature.
 	 */
 	Zf(sign_dyn)(r.sig, &sc, f, g, F, G, r.hm, 9, tmp.b);
 
-	set_fpu_cw(savcw);
 
 	/*
 	 * Encode the signature and bundle it with the message. Format is:
@@ -264,6 +281,7 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	 * Verify signature.
 	 */
 	if (!Zf(verify_raw)(hm, sig, h, 9, tmp.b)) {
+        printf("verify_raw -1\n");
 		return -1;
 	}
 
