@@ -281,25 +281,47 @@ G = 7
 R = 2**16
 Ginv = 8778
 
-def compare_with_ref(logn=10):
+assert( pow(G, 2048, Q) == 1)
+
+def gen_NTT(g, logn):
     NTT = [] 
-    for i in range(len(GMb)):
+    n = 1 << logn
+    assert (pow(g, 2*n, Q) == 1)
+    for i in range(n):
         j = bitrev(i, logn)
         t = R * (G**j) % Q
         NTT.append(t)
+    return NTT 
 
-    compare(NTT, GMb)
-    assert NTT == GMb
-
-    iNTT = [] 
-    for i in range(len(GMb)):
+def gen_iNTT(ginv, logn):
+    iNTT = []
+    n = 1 << logn 
+    assert (pow(ginv, 2*n, Q) == 1)
+    for i in range(n):
         j = bitrev(i, logn)
         t = R * (Ginv** j) % Q 
         iNTT.append(t)
+    return iNTT
 
-    compare(iNTT, iGMb)
-    assert iNTT == iGMb
+def compare_with_ref(NTT, iNTT, logn=10):
+    if logn == 10:
+        compare(NTT, GMb)
+        assert NTT == GMb
+
+        compare(iNTT, iGMb)
+        assert iNTT == iGMb
+    else:
+        print("No comparison")
     return NTT, iNTT
 
 if __name__ == "__main__":
-    NTT, iNTT = compare_with_ref(10)
+    NTT1024 = gen_NTT(G, 10)
+    iNTT1024 = gen_iNTT(Ginv, 10)
+    # Table for N = 1024
+    logn = 10
+    NTT, iNTT = compare_with_ref(NTT1024, iNTT1024, logn)
+    # Table for N = 512
+    NTT512 = gen_NTT(G**2, 9)
+    iNTT512 = gen_iNTT(Ginv**2, 9)
+
+
