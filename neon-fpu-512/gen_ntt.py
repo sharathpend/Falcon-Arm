@@ -315,13 +315,23 @@ def compare_with_ref(NTT, iNTT, logn=10):
     return NTT, iNTT
 
 if __name__ == "__main__":
-    NTT1024 = gen_NTT(G, 10)
-    iNTT1024 = gen_iNTT(Ginv, 10)
     # Table for N = 1024
     logn = 10
+    NTT1024 = gen_NTT(G, logn)
+    iNTT1024 = gen_iNTT(Ginv, logn)
     NTT, iNTT = compare_with_ref(NTT1024, iNTT1024, logn)
     # Table for N = 512
-    NTT512 = gen_NTT(G**2, 9)
-    iNTT512 = gen_iNTT(Ginv**2, 9)
+    logn = 9
+    NTT512 = gen_NTT(G**2, logn)
+    iNTT512 = gen_iNTT(Ginv**2, logn)
+    # Table for N = 256
+    logn = 8
+    NTT256 = gen_NTT(G**4, logn)
+    iNTT256 = gen_iNTT(Ginv**4, logn)
 
+    # Simple check to verify NTT512
+    assert NTT512 == NTT1024[::2]
+    assert iNTT512 == iNTT1024[::2]
+    assert NTT256 == NTT1024[::4]
+    assert iNTT256 == iNTT1024[::4]
 
