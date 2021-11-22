@@ -1,5 +1,8 @@
+#include <arm_neon.h>
+#include "macrous.h"
 #include "inner.h"
 #include "ntt.h"
+#include "ntt_consts.h"
 /* ===================================================================== */
 /*
  * Compute NTT on a ring element.
@@ -34,6 +37,147 @@ void mq_NTT(uint16_t *a, unsigned logn)
         }
         t = ht;
     }
+}
+
+void neon_invNTT(int16_t a[FALCON_N])
+{
+    // Total SIMD registers: 28 = 16 + 8 + 4
+    uint16x8x4_t v0, v1, v2, v3; // 16
+    uint16x8x4_t zl, zh; // 8
+    uint16x8x4_t t;
+    uint16x8_t neon_q;
+    unsigned k = 0;
+    // TODO: add reduction between NTT level to avoid overflows
+    for (unsigned j = 0; j < FALCON_N; j += 128)
+    {
+        vload_u16_x4(v0, &a[j]);
+        vload_u16_x4(v1, &a[j + 32]);
+        vload_u16_x4(v2, &a[j + 64]);
+        vload_u16_x4(v3, &a[j + 96]);
+
+        // Layer 0
+        // v0.val[0]: 0, 4, 8,  12 | 16, 20, 24, 28
+        // v0.val[1]: 1, 5, 9,  13 | 17, 21, 25, 29
+        // v0.val[2]: 2, 6, 10, 14 | 18, 22, 26, 30
+        // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
+        vload_u16_x4(zl, &ntt[k]);
+        vload_u16_x4(zh, &ntt[k]);
+        k += 32;
+
+        // 0 - 1, 2 - 3
+        gsbf(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v1.val[0], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v1.val[2], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        gsbf(v2.val[0], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v2.val[2], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v3.val[0], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v3.val[2], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        // Layer 1
+        // v0.val[0]: 0, 4, 8,  12 | 16, 20, 24, 28
+        // v0.val[1]: 1, 5, 9,  13 | 17, 21, 25, 29
+        // v0.val[2]: 2, 6, 10, 14 | 18, 22, 26, 30
+        // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
+        // 0 - 2, 1 - 3
+        gsbf(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v1.val[0], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v1.val[1], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        gsbf(v2.val[0], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v2.val[1], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v3.val[0], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v3.val[1], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        // Layer 2
+        // Transpose 
+        transpose(v0, t);
+        transpose(v1, t);
+        transpose(v2, t);
+        transpose(v3, t);
+
+        // v0.val[0]: 0,  1,  2,  3  | 16,  17,  18,  19
+        // v0.val[1]: 4,  5,  6,  7  | 20,  21,  22,  23
+        // v0.val[2]: 8,  9,  10, 11 | 24,  25,  26,  27
+        // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
+        // 0 - 1, 2 - 3
+        gsbf(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v1.val[0], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v1.val[2], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        gsbf(v2.val[0], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v2.val[2], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v3.val[0], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v3.val[2], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        // Layer 3
+        // v0.val[0]: 0,  1,  2,  3  | 16,  17,  18,  19
+        // v0.val[1]: 4,  5,  6,  7  | 20,  21,  22,  23
+        // v0.val[2]: 8,  9,  10, 11 | 24,  25,  26,  27
+        // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
+        // 0 - 2, 1 - 3
+        gsbf(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v1.val[0], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v1.val[1], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        gsbf(v2.val[0], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v2.val[1], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v3.val[0], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v3.val[1], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        // Layer 4
+        // Re-arrange vector
+        // v0.val[0]: 0,  1,  2,  3  | 4,  5,  6,  7  
+        // v0.val[1]: 16, 17, 18, 19 | 20, 21, 22, 23
+        // v0.val[2]: 8,  9,  10, 11 | 12, 13, 14, 15 
+        // v0.val[3]: 24, 25, 26, 27 | 28, 29, 30, 31
+        // 0 - 1, 2 - 3
+        gsbf(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v1.val[0], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v1.val[2], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        gsbf(v2.val[0], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v2.val[2], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v3.val[0], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v3.val[2], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        // Layer 5
+        // Cross block
+        // v0.0->3 - v1.0->3
+        gsbf(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        gsbf(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        // Layer 6
+        // Cross block
+        // v0.0->3 - v2.0->3
+        gsbf(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+
+        gsbf(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
+        gsbf(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
+        gsbf(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
+        gsbf(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+    }
+
+    // Layer 7, 8
+
+    // Layer 9
+
+    // Layer 10
 }
 
 /*
@@ -317,18 +461,3 @@ void mq_poly_sub(uint16_t *f, const uint16_t *g, unsigned logn)
 }
 
 /* ===================================================================== */
-#include <arm_neon.h>
-
-#define gsbf(a, b, zl, zh, N, t) \
-    t = vsubq_s16(a, b);         \
-    a = vaddq_s16(a, b);         \
-    b = vmulq_s16(t, zh);        \
-    t = vqrdmulhq_s16(t, zl);    \
-    b = vmls_s16(t, N);
-
-#define ctbf(a, b, zl, zh, N, t) \
-    t = vmulq_s16(b, zh);        \
-    b = vqrdmulhq_s16(b, zl);    \
-    t = vmlsq_s16(b, N);         \
-    b = vsubq_s16(a, t);         \
-    a = vaddq_s16(a, t);
