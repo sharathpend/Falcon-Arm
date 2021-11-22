@@ -19,7 +19,6 @@
  * @author   Duc Tri Nguyen <dnguye69@gmu.edu>
  */
 
-
 #ifndef MACROUS_H
 #define MACROUS_H
 
@@ -44,5 +43,69 @@
     c.val[1] = vdupq_n_u32(constant); \
     c.val[2] = vdupq_n_u32(constant); \
     c.val[3] = vdupq_n_u32(constant);
+
+// Macro for NTT operation. Using signed 16-bit.
+
+#define gsbf(a, b, zl, zh, N, t) \
+    t = vsubq_u16(a, b);         \
+    a = vaddq_u16(a, b);         \
+    b = vmulq_u16(t, zh);        \
+    t = vqrdmulhq_s16(t, zl);    \
+    b = vmls_u16(t, N);
+
+#define ctbf(a, b, zl, zh, N, t) \
+    t = vmulq_s16(b, zh);        \
+    b = vqrdmulhq_s16(b, zl);    \
+    t = vmlsq_s16(b, N);         \
+    b = vsubq_s16(a, t);         \
+    a = vaddq_s16(a, t);
+
+/* 
+ * Montgomery multiplication via doubling with bNinv precomputed
+ * t is temp register
+ * Input: a, b, bNinv, N 
+ * Output: c = ab * R^-1
+ */
+#define montmuld(c, a, b, bNinv, N, t) \
+    c = vqdmulhq_s16(a, b);            \
+    t = vmulq_s16(a, bNinv);           \
+    t = vqdmulhq_s16(t, N);            \
+    c = vhsubq_u16(c, t);
+
+/* 
+ * Montgomery multiplication via doubling without bNinv precomputed
+ * t is temp register
+ * Input: a, b, Ninv, N
+ * Ouput: c = ab * R^-1
+ */
+#define montmuld_1(c, a, b, Ninv, N, t) \
+    t = vmulq_s16(b, Ninv);             \
+    c = vqdmulhq_s16(a, b);             \
+    t = vmulq_s16(a, t);                \
+    t = vqdmulhq_s16(t, N);             \
+    c = vhsubq_u16(c, t);
+
+/* 
+ * Montgomery multiplication via rounding with -bNinv
+ * t is temp register
+ * Input: a, b, bNinv_neg (-bNinv), N
+ * Output: c = 2ab * R^-1
+ */
+#define montmulr(c, a, b, bNinv_neg, N, t) \
+    c = vqrdmulhq_s16(a, b);               \
+    t = vmulq_s16(a, bNinv_neg);           \
+    c = vqrdmlahq_s16(t, N);
+
+/* 
+ * Montgomery multiplication via rounding without -bNinv
+ * t is temp register
+ * Input: a, b, Ninv_neg (-Ninv), N
+ * Output: c = 2ab * R^-1
+ */
+#define montmulr_1(c, a, b, Ninv_neg, N, t) \
+    c = vqrdmulhq_s16(a, b);                \
+    t = vmulq_s16(b, Ninv_neg);             \
+    t = vmulq_s16(a, t);                    \
+    c = vqrdmlahq_s16(t, N);
 
 #endif
