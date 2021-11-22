@@ -314,6 +314,18 @@ def compare_with_ref(NTT, iNTT, logn=10):
         print("No comparison")
     return NTT, iNTT
 
+def center_q(table, q):
+    new_table = []
+    for i in range(len(table)):
+        assert table[i] < q 
+        if table[i] > q//2:
+            t = table[i] - q
+        else:
+            t = table[i]
+        new_table.append(t)
+        assert -(q-1)/2 <= t < (q-1)/2
+    return new_table
+
 if __name__ == "__main__":
     # Table for N = 1024
     logn = 10
@@ -335,3 +347,17 @@ if __name__ == "__main__":
     assert NTT256 == NTT1024[::4]
     assert iNTT256 == iNTT1024[::4]
 
+    center_NTT512 = center_q(NTT512, Q)
+    center_iNTT512 = center_q(iNTT512, Q)
+    center_NTT1024 = center_q(NTT1024, Q)
+    center_iNTT1024 = center_q(iNTT1024, Q)
+    center_NTT256 = center_q(NTT256, Q)
+    center_iNTT256 = center_q(iNTT256, Q)
+
+    # Double Make sure it is centered by modulo checking
+    assert NTT512 == list(map(lambda x: x % Q, center_NTT512))
+    assert iNTT512 == list(map(lambda x: x % Q, center_iNTT512))
+    assert NTT1024 == list(map(lambda x: x % Q, center_NTT1024))
+    assert iNTT1024 == list(map(lambda x: x % Q, center_iNTT1024))
+    assert NTT256 == list(map(lambda x: x % Q, center_NTT256))
+    assert iNTT256 == list(map(lambda x: x % Q, center_iNTT256))
