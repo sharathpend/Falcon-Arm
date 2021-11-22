@@ -1,3 +1,5 @@
+import sys
+
 GMb = [
     4091, 7888, 11060, 11208, 6960, 4342, 6275, 9759,
     1591, 6399, 9477, 5266, 586, 5825, 7538, 9710,
@@ -326,6 +328,15 @@ def center_q(table, q):
         assert -(q-1)/2 <= t < (q-1)/2
     return new_table
 
+def print_table(table, name):
+    print("extern const int16_t %s[] = {" % name)
+    for i in range(0, len(table), 8):
+        for j in range(i, i + 8):
+            print("{:5}".format(table[j]), end=', ')
+        print()
+    print("};\n")
+    
+
 if __name__ == "__main__":
     # Table for N = 1024
     logn = 10
@@ -347,17 +358,37 @@ if __name__ == "__main__":
     assert NTT256 == NTT1024[::4]
     assert iNTT256 == iNTT1024[::4]
 
-    center_NTT512 = center_q(NTT512, Q)
-    center_iNTT512 = center_q(iNTT512, Q)
-    center_NTT1024 = center_q(NTT1024, Q)
-    center_iNTT1024 = center_q(iNTT1024, Q)
-    center_NTT256 = center_q(NTT256, Q)
-    center_iNTT256 = center_q(iNTT256, Q)
+    centered_NTT512 = center_q(NTT512, Q)
+    centered_iNTT512 = center_q(iNTT512, Q)
+    centered_NTT1024 = center_q(NTT1024, Q)
+    centered_iNTT1024 = center_q(iNTT1024, Q)
+    centered_NTT256 = center_q(NTT256, Q)
+    centered_iNTT256 = center_q(iNTT256, Q)
 
     # Double Make sure it is centered by modulo checking
-    assert NTT512 == list(map(lambda x: x % Q, center_NTT512))
-    assert iNTT512 == list(map(lambda x: x % Q, center_iNTT512))
-    assert NTT1024 == list(map(lambda x: x % Q, center_NTT1024))
-    assert iNTT1024 == list(map(lambda x: x % Q, center_iNTT1024))
-    assert NTT256 == list(map(lambda x: x % Q, center_NTT256))
-    assert iNTT256 == list(map(lambda x: x % Q, center_iNTT256))
+    assert NTT512 == list(map(lambda x: x % Q,   centered_NTT512))
+    assert iNTT512 == list(map(lambda x: x % Q,  centered_iNTT512))
+    assert NTT1024 == list(map(lambda x: x % Q,  centered_NTT1024))
+    assert iNTT1024 == list(map(lambda x: x % Q, centered_iNTT1024))
+    assert NTT256 == list(map(lambda x: x % Q,   centered_NTT256))
+    assert iNTT256 == list(map(lambda x: x % Q,  centered_iNTT256))
+
+    # TODO: Add precomputed 1 known factor for barret in butterfly units
+
+    # Printing table
+    if len(sys.argv) < 2:
+        # Do nothing
+        sys.exit(0)
+    else:
+        logn = int(sys.argv[1])
+        
+        if logn == 10:
+            print_table(centered_NTT1024, "ntt")
+            print_table(centered_iNTT1024, "invntt")
+        elif logn == 9:
+            print_table(centered_NTT512, "ntt")
+            print_table(centered_iNTT512, "invntt")
+        else:
+            print_table(centered_NTT256, "ntt")
+            print_table(centered_iNTT256, "invntt")
+
