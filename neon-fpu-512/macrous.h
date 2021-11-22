@@ -45,7 +45,11 @@
     c.val[3] = vdupq_n_u32(constant);
 
 // Macro for NTT operation. Using signed 16-bit.
+#define vload_u16_x4(c, addr) c = vld4q_u16(addr);
 
+/* 
+ * GS Buttefly with Barrett 1 unknown factor
+ */
 #define gsbf(a, b, zl, zh, N, t) \
     t = vsubq_u16(a, b);         \
     a = vaddq_u16(a, b);         \
@@ -53,6 +57,9 @@
     t = vqrdmulhq_s16(t, zl);    \
     b = vmls_u16(t, N);
 
+/* 
+ * CT Buttefly with Barrett 1 unknown factor
+ */
 #define ctbf(a, b, zl, zh, N, t) \
     t = vmulq_s16(b, zh);        \
     b = vqrdmulhq_s16(b, zl);    \
@@ -107,5 +114,20 @@
     t = vmulq_s16(b, Ninv_neg);             \
     t = vmulq_s16(a, t);                    \
     c = vqrdmlahq_s16(t, N);
+
+/*
+ * Matrix 4x4 transpose: v
+ * Input: int16x8x4_t v, tmp
+ * Output: int16x8x4_t v
+ */
+#define transpose(v, tmp)                                                         \
+  tmp.val[0] = vtrn1q_s16(v.val[0], v.val[1]);                                    \
+  tmp.val[1] = vtrn2q_s16(v.val[0], v.val[1]);                                    \
+  tmp.val[2] = vtrn1q_s16(v.val[2], v.val[3]);                                    \
+  tmp.val[3] = vtrn2q_s16(v.val[2], v.val[3]);                                    \
+  v.val[0] = (int16x8_t)vtrn1q_s32((int32x4_t)tmp.val[0], (int32x4_t)tmp.val[2]); \
+  v.val[2] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[0], (int32x4_t)tmp.val[2]); \
+  v.val[1] = (int16x8_t)vtrn1q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]); \
+  v.val[3] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]);
 
 #endif
