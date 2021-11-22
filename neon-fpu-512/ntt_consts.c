@@ -1,6 +1,6 @@
 #include "ntt_consts.h"
 
-#if LOGN == 9
+#if FALCON_LOGN == 9
 
 extern const uint16_t ntt[] = {
     4091, 11060, 6960, 6275, 1591, 9477, 586, 7538, 
@@ -136,7 +136,7 @@ extern const uint16_t invntt[] = {
     5764, 8381, 5, 4363, 5421, 6473, 7567, 6229, 
 };
 
-#elif LOGN == 10
+#elif FALCON_LOGN == 10
 extern const uint16_t ntt[] = {
     4091, 7888, 11060, 11208, 6960, 4342, 6275, 9759, 
     1591, 6399, 9477, 5266, 586, 5825, 7538, 9710, 
@@ -399,7 +399,7 @@ extern const uint16_t invntt[] = {
     5421, 5231, 6473, 436, 7567, 8603, 6229, 8230, 
 };
 
-#elif LOGN == 8
+#elif FALCON_LOGN == 8
 extern const uint16_t ntt[] = {
     4091, 6960, 1591, 586, 1134, 7099, 10414, 1364, 
     12210, 4783, 2829, 7144, 12189, 7610, 2181, 4843, 
@@ -471,6 +471,6 @@ extern const uint16_t invntt[] = {
 };
 
 #else
-#error "Only support logn = 8,9,10"
+#error "Only support falcon_logn = 8,9,10"
 
 #endif
