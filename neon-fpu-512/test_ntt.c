@@ -429,14 +429,12 @@ mq_sub(uint32_t x, uint32_t y)
     return d;
 }
 
-extern inline uint32_t
-mq_sub_test(uint32_t x, uint32_t y)
+extern inline uint16_t
+mq_sub_test(uint16_t x, uint16_t y)
 {
-    uint32_t d, k; 
+    int32_t d; 
     d = x - y;
-    k = Q & (-d >> 31);
-    printf("k = %u\n", k);
-    d += k; 
+    if (d < 0) d += Q;
     return d;
 }
 
@@ -475,7 +473,7 @@ void test_invntt(uint16_t a[FALCON_N]) {
       for(j = start; j < start + len; ++j) {
         t = a[j];
         a[j] = (t + a[j + len]) % Q;
-        w = mq_sub(t , a[j + len]);
+        w = mq_sub_test(t , a[j + len]);
         a[j + len] = (uint16_t) mq_montymul(zeta, w);
       }
     }
