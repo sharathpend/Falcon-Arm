@@ -547,7 +547,7 @@ void test_ntt(uint16_t a[FALCON_N]) {
       zeta = zetas[++k];
       for(j = start; j < start + len; ++j) {
         t = mq_montymul(zeta, a[j + len]);
-        a[j + len] = (uint16_t)mq_sub(a[j], t);
+        a[j + len] = mq_sub_test(a[j], t);
         a[j] = (a[j] + t) % Q;       
       }
     }
