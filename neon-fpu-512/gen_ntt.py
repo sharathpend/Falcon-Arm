@@ -282,8 +282,17 @@ Q = 12289
 G = 7 
 R = 2**16
 Ginv = 8778
-
 assert( pow(G, 2048, Q) == 1)
+assert( pow(Ginv, 2048, Q) == 1)
+
+# Q = 8380417
+# Qinv = 58728449
+# G = 1753
+# Ginv = 731434
+# R = 2**32
+
+# assert(pow(G, 512, Q) == 1)
+# assert(pow(Ginv, 512, Q) == 1)
 
 def gen_NTT(g, logn):
     NTT = [] 
@@ -302,6 +311,26 @@ def gen_iNTT(ginv, logn):
     for i in range(n):
         j = bitrev(i, logn)
         t = R * (Ginv** j) % Q 
+        iNTT.append(t)
+    return iNTT
+
+def gen_NTT_barrett(g, logn):
+    NTT = [] 
+    n = 1 << logn
+    assert (pow(g, 2*n, Q) == 1)
+    for i in range(n):
+        j = bitrev(i, logn)
+        t = (G**j) % Q
+        NTT.append(t)
+    return NTT 
+
+def gen_iNTT_barrett(ginv, logn):
+    iNTT = []
+    n = 1 << logn 
+    assert (pow(ginv, 2*n, Q) == 1)
+    for i in range(n):
+        j = bitrev(i, logn)
+        t = (Ginv** j) % Q 
         iNTT.append(t)
     return iNTT
 
@@ -331,18 +360,20 @@ def center_q(table, q):
 def print_table(table, name):
     print("extern const int16_t %s[] = {" % name)
     for i in range(0, len(table), 8):
+        print("    ", end='')
         for j in range(i, i + 8):
-            print("{:5}".format(table[j]), end=', ')
+            print("{:6}".format(table[j]), end=', ')
         print()
     print("};\n")
     
 
 if __name__ == "__main__":
+    # Montgomery
     # Table for N = 1024
     logn = 10
     NTT1024 = gen_NTT(G, logn)
     iNTT1024 = gen_iNTT(Ginv, logn)
-    NTT, iNTT = compare_with_ref(NTT1024, iNTT1024, logn)
+    # NTT, iNTT = compare_with_ref(NTT1024, iNTT1024, logn)
     # Table for N = 512
     logn = 9
     NTT512 = gen_NTT(G**2, logn)
@@ -352,11 +383,26 @@ if __name__ == "__main__":
     NTT256 = gen_NTT(G**4, logn)
     iNTT256 = gen_iNTT(Ginv**4, logn)
 
-    # Simple check to verify NTT512
-    assert NTT512 == NTT1024[::2]
-    assert iNTT512 == iNTT1024[::2]
-    assert NTT256 == NTT1024[::4]
-    assert iNTT256 == iNTT1024[::4]
+    # # Simple check to verify NTT512
+    # assert NTT512 == NTT1024[::2]
+    # assert iNTT512 == iNTT1024[::2]
+    # assert NTT256 == NTT1024[::4]
+    # assert iNTT256 == iNTT1024[::4]
+
+    # Barrett
+    # Table for N = 1024
+    logn = 10
+    NTT1024_barrett = gen_NTT_barrett(G, logn)
+    iNTT1024_barrett = gen_iNTT_barrett(Ginv, logn)
+    # Table for N = 512
+    logn = 9
+    NTT512_barrett = gen_NTT_barrett(G**2, logn)
+    iNTT512_barrett = gen_iNTT_barrett(Ginv**2, logn)
+    # Table for N = 256
+    logn = 8
+    NTT256_barrett = gen_NTT_barrett(G**4, logn)
+    iNTT256_barrett = gen_iNTT_barrett(Ginv**4, logn)
+
 
     centered_NTT512 = center_q(NTT512, Q)
     centered_iNTT512 = center_q(iNTT512, Q)
@@ -365,30 +411,84 @@ if __name__ == "__main__":
     centered_NTT256 = center_q(NTT256, Q)
     centered_iNTT256 = center_q(iNTT256, Q)
 
-    # Double Make sure it is centered by modulo checking
-    assert NTT512 == list(map(lambda x: x % Q,   centered_NTT512))
-    assert iNTT512 == list(map(lambda x: x % Q,  centered_iNTT512))
-    assert NTT1024 == list(map(lambda x: x % Q,  centered_NTT1024))
-    assert iNTT1024 == list(map(lambda x: x % Q, centered_iNTT1024))
-    assert NTT256 == list(map(lambda x: x % Q,   centered_NTT256))
-    assert iNTT256 == list(map(lambda x: x % Q,  centered_iNTT256))
+    centered_NTT512_barrett = center_q(NTT512_barrett, Q)
+    centered_iNTT512_barrett = center_q(iNTT512_barrett, Q)
+    centered_NTT1024_barrett = center_q(NTT1024_barrett, Q)
+    centered_iNTT1024_barrett = center_q(iNTT1024_barrett, Q)
+    centered_NTT256_barrett = center_q(NTT256_barrett, Q)
+    centered_iNTT256_barrett = center_q(iNTT256_barrett, Q)
 
-    # TODO: Add precomputed 1 known factor for barret in butterfly units
+
+    # # Double Make sure it is centered by modulo checking
+    # assert NTT512 == list(map(lambda x: x % Q,   centered_NTT512))
+    # assert iNTT512 == list(map(lambda x: x % Q,  centered_iNTT512))
+    # assert NTT1024 == list(map(lambda x: x % Q,  centered_NTT1024))
+    # assert iNTT1024 == list(map(lambda x: x % Q, centered_iNTT1024))
+    # assert NTT256 == list(map(lambda x: x % Q,   centered_NTT256))
+    # assert iNTT256 == list(map(lambda x: x % Q,  centered_iNTT256))
+
+    # # TODO: Add precomputed 1 known factor for barret in butterfly units
+    # assert NTT512_barrett == list(map(lambda x: x % Q,   centered_NTT512_barrett))
+    # assert iNTT512_barrett == list(map(lambda x: x % Q,  centered_iNTT512_barrett))
+    # assert NTT1024_barrett == list(map(lambda x: x % Q,  centered_NTT1024_barrett))
+    # assert iNTT1024_barrett == list(map(lambda x: x % Q, centered_iNTT1024_barrett))
+    # assert NTT256_barrett == list(map(lambda x: x % Q,   centered_NTT256_barrett))
+    # assert iNTT256_barrett == list(map(lambda x: x % Q,  centered_iNTT256_barrett))
+
 
     # Printing table
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         # Do nothing
         sys.exit(0)
     else:
         logn = int(sys.argv[1])
-        
-        if logn == 10:
-            print_table(centered_NTT1024, "ntt")
-            print_table(centered_iNTT1024, "invntt")
-        elif logn == 9:
-            print_table(centered_NTT512, "ntt")
-            print_table(centered_iNTT512, "invntt")
+        barrett = int(sys.argv[2])
+        center = int(sys.argv[3])
+
+        if barrett == 0:
+            if center == 0:
+                # Montgomery, no center
+                if logn == 10:
+                    print_table(NTT1024, "ntt")
+                    print_table(iNTT1024, "invntt")
+                elif logn == 9:
+                    print_table(NTT512, "ntt")
+                    print_table(iNTT512, "invntt")
+                else:
+                    print_table(NTT256, "ntt")
+                    print_table(iNTT256, "invntt")
+            else:
+                # Montgomery, center around 0
+                if logn == 10:
+                    print_table(centered_NTT1024, "ntt")
+                    print_table(centered_iNTT1024, "invntt")
+                elif logn == 9:
+                    print_table(centered_NTT512, "ntt")
+                    print_table(centered_iNTT512, "invntt")
+                else:
+                    print_table(centered_NTT256, "ntt")
+                    print_table(centered_iNTT256, "invntt")
         else:
-            print_table(centered_NTT256, "ntt")
-            print_table(centered_iNTT256, "invntt")
+            if center == 0:
+                # Barrett, no center
+                if logn == 10:
+                    print_table(NTT1024_barrett, "ntt")
+                    print_table(iNTT1024_barrett, "invntt")
+                elif logn == 9:
+                    print_table(NTT512_barrett, "ntt")
+                    print_table(iNTT512_barrett, "invntt")
+                else:
+                    print_table(NTT256_barrett, "ntt")
+                    print_table(iNTT256_barrett, "invntt")
+            else:
+                # Barett, center around 0
+                if logn == 10:
+                    print_table(centered_NTT1024_barrett, "ntt")
+                    print_table(centered_iNTT1024_barrett, "invntt")
+                elif logn == 9:
+                    print_table(centered_NTT512_barrett, "ntt")
+                    print_table(centered_iNTT512_barrett, "invntt")
+                else:
+                    print_table(centered_NTT256_barrett, "ntt")
+                    print_table(centered_iNTT256_barrett, "invntt")
 
