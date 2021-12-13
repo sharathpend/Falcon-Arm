@@ -19,6 +19,6 @@ extern const uint16_t ntt[];
  *   iGMb[x] = R*((1/g)^rev(x)) mod q
  * Since g = 7, 1/g = 8778 mod 12289.
  */
-extern const uint16_t invntt[];
+// extern const uint16_t invntt[];
 
 #endif 
