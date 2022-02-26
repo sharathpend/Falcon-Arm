@@ -45,89 +45,101 @@
     c.val[3] = vdupq_n_u32(constant);
 
 // Macro for NTT operation. Using signed 16-bit.
-#define vload_u16_x4(c, addr) c = vld4q_u16(addr);
+#define vload_s16_4(c, addr) c = vld4q_s16(addr);
+#define vload_s16_x2(c, addr) c = vld1q_s16_x2(addr);
+#define vload_s16_x4(c, addr) c = vld1q_s16_x4(addr);
 
-/* 
- * GS Buttefly with Barrett 1 unknown factor
- */
-#define gsbf(a, b, zl, zh, N, t) \
-    t = vsubq_u16(a, b);         \
-    a = vaddq_u16(a, b);         \
-    b = vmulq_u16(t, zh);        \
-    t = vqrdmulhq_s16(t, zl);    \
-    b = vmls_u16(t, N);
+#define vstore_s16_x4(addr, c) vst1q_s16_x4(addr, c);
+#define vstore_s16_x2(addr, c) vst1q_s16_x2(addr, c);
 
-/* 
- * CT Buttefly with Barrett 1 unknown factor
+/*
+ * Strategy for NTT:
+ * - Forward and Inverse NTT multiply with constant, use either Barrett or Montgomery *Rounding* arithmetic
+ * - Pointwise multiplication must use Montgomery *Doubling* arithmetic
+ *
+ * Rounding because:
+ * - Montgomery need one coefficient to be *odd*, it only works with precomputed coefficient
+ * - Barrett reduction work.
+ *
+ * Doubling because
+ * - Montgomery Doubling work with two unknown coefficient, no constaint at all
  */
-#define ctbf(a, b, zl, zh, N, t) \
-    t = vmulq_s16(b, zh);        \
-    b = vqrdmulhq_s16(b, zl);    \
-    t = vmlsq_s16(b, N);         \
-    b = vsubq_s16(a, t);         \
+
+// ------------ Forward NTT and Inverse NTT ------------
+/*
+ * GS Butterfly with Montgomery *Rounding* reduction
+ * Input: a, b < R/2
+ * Output: c in [-q, q], c = a * (2bR^-1)
+ */
+#define gsbf_mt(a, b, zl, zh, N, t) \
+    t = vsubq_s16(a, b);            \
+    a = vaddq_s16(a, b);            \
+    b = vqrdmulhq_s16(t, zl);       \
+    t = vmulq_s16(t, zh);           \
+    b = vqrdmlahq_s16(b, t, N);
+
+#define gsbf_mti(a, b, zl, zh, N, t, il, ih) \
+    t = vsubq_s16(a, b);                     \
+    a = vaddq_s16(a, b);                     \
+    b = vqrdmulhq_laneq_s16(t, zl, il);      \
+    t = vmulq_laneq_s16(a, zh, ih);          \
+    b = vqrdmlahq_s16(b, t, N);
+
+/*
+ * CT Butterfly with Montgomery *Rounding* reduction
+ * Input: a, b < R/2
+ * Output: c in [-q, q], c = a * (2bR^-1)
+ */
+#define ctbf_mt(a, b, zl, zh, N, t) \
+    t = vqrdmulhq_s16(b, zl);       \
+    b = vmulq_s16(b, zh);           \
+    t = vqrdmlahq_s16(t, b, N);     \
+    b = vsubq_s16(a, t);            \
     a = vaddq_s16(a, t);
 
-/* 
- * Montgomery multiplication via doubling with bNinv precomputed
- * t is temp register
- * Input: a, b, bNinv, N 
+#define ctbf_mti(a, b, zl, zh, N, t, il, iH) \
+    t = vqrdmulhq_laneq_s16(b, zl, il);      \
+    b = vmulq_laneq_s16(b, zh, ih);          \
+    t = vqrdmlahq_s16(t, b, N);              \
+    b = vsubq_s16(a, t);                     \
+    a = vaddq_s16(a, t);
+
+// ------------ Pointwise Multiplication ------------
+/*
+ * Montgomery multiplication via *Doubling*
+ * Input: a, b, bNinv, N
  * Output: c = ab * R^-1
  */
-#define montmuld(c, a, b, bNinv, N, t) \
-    c = vqdmulhq_s16(a, b);            \
-    t = vmulq_s16(a, bNinv);           \
-    t = vqdmulhq_s16(t, N);            \
+#define montmul(c, a, b, t, neon_q, neon_qinv) \
+    c = vqdmulhq_s16(a, b);                    \
+    t = vmulq_s16(b, neon_qinv);               \
+    t = vmulq_s16(a, t);                       \
+    t = vqdmulhq_s16(t, neon_q);               \
     c = vhsubq_u16(c, t);
 
-/* 
- * Montgomery multiplication via doubling without bNinv precomputed
- * t is temp register
- * Input: a, b, Ninv, N
- * Ouput: c = ab * R^-1
+// ------------ Barrett Reduction ------------
+/* Barrett reduction, return [-Q/2, Q/2]
+ * `v` = 5461, `n` = 11
  */
-#define montmuld_1(c, a, b, Ninv, N, t) \
-    t = vmulq_s16(b, Ninv);             \
-    c = vqdmulhq_s16(a, b);             \
-    t = vmulq_s16(a, t);                \
-    t = vqdmulhq_s16(t, N);             \
-    c = vhsubq_u16(c, t);
+#define barrett(a, t, neon_v, neon_q) \
+    t = vqdmulhq_s16(a, neon_v);      \
+    t = vrshrq_n_s16(t, 11);          \
+    a = vmlsq_s16(a, t, neon_q);
 
-/* 
- * Montgomery multiplication via rounding with -bNinv
- * t is temp register
- * Input: a, b, bNinv_neg (-bNinv), N
- * Output: c = 2ab * R^-1
- */
-#define montmulr(c, a, b, bNinv_neg, N, t) \
-    c = vqrdmulhq_s16(a, b);               \
-    t = vmulq_s16(a, bNinv_neg);           \
-    c = vqrdmlahq_s16(t, N);
-
-/* 
- * Montgomery multiplication via rounding without -bNinv
- * t is temp register
- * Input: a, b, Ninv_neg (-Ninv), N
- * Output: c = 2ab * R^-1
- */
-#define montmulr_1(c, a, b, Ninv_neg, N, t) \
-    c = vqrdmulhq_s16(a, b);                \
-    t = vmulq_s16(b, Ninv_neg);             \
-    t = vmulq_s16(a, t);                    \
-    c = vqrdmlahq_s16(t, N);
-
+// ------------ Matrix Transpose ------------
 /*
  * Matrix 4x4 transpose: v
  * Input: int16x8x4_t v, tmp
  * Output: int16x8x4_t v
  */
-#define transpose(v, tmp)                                                         \
-  tmp.val[0] = vtrn1q_s16(v.val[0], v.val[1]);                                    \
-  tmp.val[1] = vtrn2q_s16(v.val[0], v.val[1]);                                    \
-  tmp.val[2] = vtrn1q_s16(v.val[2], v.val[3]);                                    \
-  tmp.val[3] = vtrn2q_s16(v.val[2], v.val[3]);                                    \
-  v.val[0] = (int16x8_t)vtrn1q_s32((int32x4_t)tmp.val[0], (int32x4_t)tmp.val[2]); \
-  v.val[2] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[0], (int32x4_t)tmp.val[2]); \
-  v.val[1] = (int16x8_t)vtrn1q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]); \
-  v.val[3] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]);
+#define transpose(v, tmp)                                                           \
+    tmp.val[0] = vtrn1q_s16(v.val[0], v.val[1]);                                    \
+    tmp.val[1] = vtrn2q_s16(v.val[0], v.val[1]);                                    \
+    tmp.val[2] = vtrn1q_s16(v.val[2], v.val[3]);                                    \
+    tmp.val[3] = vtrn2q_s16(v.val[2], v.val[3]);                                    \
+    v.val[0] = (int16x8_t)vtrn1q_s32((int32x4_t)tmp.val[0], (int32x4_t)tmp.val[2]); \
+    v.val[2] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[0], (int32x4_t)tmp.val[2]); \
+    v.val[1] = (int16x8_t)vtrn1q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]); \
+    v.val[3] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]);
 
 #endif
