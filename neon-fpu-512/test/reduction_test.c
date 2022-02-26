@@ -14,7 +14,65 @@ int16_t mul(int16_t a, int16_t b)
     return c;
 }
 
-/* 
+/*
+ * If `sl, sr` = 25, 26 then `v` = 5461
+ * If `sl, sr` = 26, 27 then `v` = 10922
+ * If `sl, sr` = 27, 28 then `v` = 21844
+ * I select `v` = 5461
+ */
+int16_t barrett_reduce(int16_t a)
+{
+    int16_t t;
+    const int sl = 25;
+    const int sr = 26;
+    const int16_t v = ((1 << sr) + FALCON_Q / 2) / FALCON_Q;
+
+    t = ((int32_t)v * a + (1 << sl)) >> sr;
+    t *= FALCON_Q;
+    return a - t;
+}
+
+/*
+ * If vrshr `n` = 11, then v = 5461
+ * If vrshr `n` = 12, then v = 10922
+ * If vrshr `n` = 13, then v = 21843, 21844
+ * I select `v` = 5461, `n` = 11
+ */
+int16_t barrett_simd(int16_t a)
+{
+    int16x8_t t, t1, z;
+
+    z = vdupq_n_s16(a);
+
+    t = vqdmulhq_n_s16(z, 5461);
+    t = vrshrq_n_s16(t, 11);
+    z = vmlsq_n_s16(z, t, FALCON_Q);
+
+    return z[0];
+}
+
+int test_barret_red()
+{
+    int16_t gold, test;
+
+    printf("test_barrett_reduction: ");
+    for (int16_t i = INT16_MIN; i < INT16_MAX; i++)
+    {
+        gold = barrett_reduce(i);
+        test = barrett_simd(i);
+
+        if (gold != test)
+        {
+            printf("[%d] [%d]\n", gold, test);
+        }
+    }
+
+    printf("OK\n");
+
+    return 0;
+}
+
+/*
 def compute_doubling_16(a):
     Q = 12289
     QINV = 53249
@@ -52,7 +110,7 @@ int16_t montgomery_doubling(int16_t a, int16_t b)
     return neon_z[0];
 }
 
-/* 
+/*
  * Doubling work full range [-R, R]
  */
 int test_montgomery_doubling()
@@ -83,14 +141,14 @@ int test_montgomery_doubling()
     return 0;
 }
 
-/* 
+/*
 def compute(a):
     Q = 12289
     QINV = 53249
     root = a * pow(2, 15) % Q
     if root % 2 == 0:
         root += Q
-    
+
     twisted_root = (pow(2, 16) - root * QINV) % pow(2, 16)
 
     return root, twisted_root
@@ -128,7 +186,7 @@ int16_t montgomery_rounding(int16_t a, int16_t b)
     return neon_z[0];
 }
 
-/* 
+/*
  * Rounding work range [-R/2 + 1, R/2]
  */
 int test_montgomery_rounding()
@@ -167,6 +225,7 @@ int main()
 
     ret |= test_montgomery_rounding();
     ret |= test_montgomery_doubling();
+    ret |= test_barret_red();
 
     if (ret)
         return 1;
@@ -174,8 +233,9 @@ int main()
     return 0;
 }
 
-/* 
+/*
 ❯ gcc -o test reduction_test.c -O3; ./test
 test_montgomery_rounding: OK
 test_montgomery_doubling: OK
+test_barrett_reduction: OK
  */
