@@ -18,4 +18,5 @@ ref-fpu-512/build/
 neon-fpu-512/build/*
 neon-fpu-512/test_common
 neon-fpu-512/test_fpr
-
+neon-fpu-512/test_ntt
+neon-fpu-512/test
