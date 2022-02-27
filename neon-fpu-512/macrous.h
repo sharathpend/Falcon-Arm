@@ -38,12 +38,6 @@
 
 #define vor(c, a, b) c = vorrq_u32(a, b);
 
-#define vdup32x4(c, constant)         \
-    c.val[0] = vdupq_n_u32(constant); \
-    c.val[1] = vdupq_n_u32(constant); \
-    c.val[2] = vdupq_n_u32(constant); \
-    c.val[3] = vdupq_n_u32(constant);
-
 // Macro for NTT operation. Using signed 16-bit.
 #define vload_s16_4(c, addr) c = vld4q_s16(addr);
 #define vload_s16_x2(c, addr) c = vld1q_s16_x2(addr);
@@ -78,12 +72,22 @@
     t = vmulq_s16(t, zh);           \
     b = vqrdmlahq_s16(b, t, N);
 
-#define gsbf_mti(a, b, zl, zh, N, t, il, ih) \
-    t = vsubq_s16(a, b);                     \
-    a = vaddq_s16(a, b);                     \
-    b = vqrdmulhq_laneq_s16(t, zl, il);      \
-    t = vmulq_laneq_s16(a, zh, ih);          \
+#define gsbf_mti(a, b, zl, zh, N, t, i) \
+    t = vsubq_s16(a, b);                \
+    a = vaddq_s16(a, b);                \
+    b = vqrdmulhq_laneq_s16(t, zl, i);  \
+    t = vmulq_laneq_s16(t, zh, i);      \
     b = vqrdmlahq_s16(b, t, N);
+
+/*
+ * Montgomery multiplication via *Rounding* use only for Inverse NTT
+ * Input: a, b, bNinv, N
+ * Output: c = ab * R^-1
+ */
+#define montmul_invntt(a, zl, zh, N, t, i) \
+    a = vqrdmulhq_laneq_s16(a, zl, i);     \
+    t = vmulq_laneq_s16(a, zh, i);         \
+    a = vqrdmlahq_s16(a, t, N);
 
 /*
  * CT Butterfly with Montgomery *Rounding* reduction
@@ -97,11 +101,11 @@
     b = vsubq_s16(a, t);            \
     a = vaddq_s16(a, t);
 
-#define ctbf_mti(a, b, zl, zh, N, t, il, iH) \
-    t = vqrdmulhq_laneq_s16(b, zl, il);      \
-    b = vmulq_laneq_s16(b, zh, ih);          \
-    t = vqrdmlahq_s16(t, b, N);              \
-    b = vsubq_s16(a, t);                     \
+#define ctbf_mti(a, b, zl, zh, N, t, i) \
+    t = vqrdmulhq_laneq_s16(b, zl, i);  \
+    b = vmulq_laneq_s16(b, zh, i);      \
+    t = vqrdmlahq_s16(t, b, N);         \
+    b = vsubq_s16(a, t);                \
     a = vaddq_s16(a, t);
 
 // ------------ Pointwise Multiplication ------------
@@ -141,5 +145,12 @@
     v.val[2] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[0], (int32x4_t)tmp.val[2]); \
     v.val[1] = (int16x8_t)vtrn1q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]); \
     v.val[3] = (int16x8_t)vtrn2q_s32((int32x4_t)tmp.val[1], (int32x4_t)tmp.val[3]);
+
+// ------------ Re-arrange vector ------------
+#define arrange(v_out, v_in, i, j, m, n)                                                  \
+    v_out.val[0] = (int16x8_t)vtrn1q_s64((int64x2_t)v_in.val[i], (int64x2_t)v_in.val[j]); \
+    v_out.val[2] = (int16x8_t)vtrn2q_s64((int64x2_t)v_in.val[i], (int64x2_t)v_in.val[j]); \
+    v_out.val[1] = (int16x8_t)vtrn1q_s64((int64x2_t)v_in.val[m], (int64x2_t)v_in.val[n]); \
+    v_out.val[3] = (int16x8_t)vtrn2q_s64((int64x2_t)v_in.val[m], (int64x2_t)v_in.val[n]);
 
 #endif
