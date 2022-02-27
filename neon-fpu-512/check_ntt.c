@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FALCON_LOGN 10
+#define FALCON_LOGN 9
 #define FALCON_N ((1 << FALCON_LOGN))
 
 #define Q 12289
@@ -751,3 +751,17 @@ int main()
     printf("OK\n");
     return 0;
 }
+
+/* 
+❯ gcc -o check_ntt check_ntt.c -O3; ./check_ntt
+TEST for FALCON_N = 1024
+ntt_rewrite_forward is equal to mq_NTT
+ntt_rewrite_inverse is equal to mq_iNTT
+OK
+
+❯ gcc -o check_ntt check_ntt.c -O3; ./check_ntt
+TEST for FALCON_N = 512
+ntt_rewrite_forward is equal to mq_NTT
+ntt_rewrite_inverse is equal to mq_iNTT
+OK
+ */
