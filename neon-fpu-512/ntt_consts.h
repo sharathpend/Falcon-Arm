@@ -7,18 +7,18 @@
 
 /*
  * Table for NTT, binary case:
- *   GMb[x] = R*(g^rev(x)) mod q
  * where g = 7 (it is a 2048-th primitive root of 1 modulo q)
- * and rev() is the bit-reversal function over 10 bits.
  */
-extern const uint16_t ntt[];
+extern const int16_t ntt_mont[];
+extern const int16_t ntt_qinv_mont[];
 
 
 /*
- * Table for inverse NTT, binary case:
- *   iGMb[x] = R*((1/g)^rev(x)) mod q
+ * Table for inverse NTT
  * Since g = 7, 1/g = 8778 mod 12289.
  */
-// extern const uint16_t invntt[];
+
+extern const int16_t invntt_mont[];
+extern const int16_t invntt_qinv_mont[];
 
 #endif 
