@@ -1,4 +1,4 @@
-from ntt_mont_1024 import ntt_mont, ntt_mont_qinv
+from ntt_mont_1024 import *
 
 FALCON_Q = 12289
 FALCON_QINV = 53249
@@ -6,10 +6,10 @@ FALCON_N = 1024
 FALCON_PADDING = 0
 
 assert len(ntt_mont) == FALCON_N
-assert len(ntt_mont_qinv) == FALCON_N
+assert len(ntt_qinv_mont) == FALCON_N
 
 def print_table(a, string):
-    print("const int16_t %s[] = {" % string)
+    print("extern const int16_t %s[] = {" % string)
     for i in range(0, len(a), 8):
         for j in range(8):
             if a[i + j] == FALCON_PADDING:
@@ -17,32 +17,7 @@ def print_table(a, string):
             else:
                 print("{:8d}".format(a[i + j]), end=", ")
         print()
-    print("}; // %s" % len(a))
-
-
-def center_q(a):
-    b = []
-    for i in a:
-        i = i % FALCON_Q
-        if i > FALCON_Q // 2:
-            t = i - FALCON_Q
-        elif i < -FALCON_Q // 2:
-            t = i + FALCON_Q
-        else:
-            t = i
-        b.append(t)
-    return b
-
-
-def adjust_q(a):
-    b = []
-    for i in a:
-        if i % 2 == 0:
-            b.append(i - FALCON_Q)
-        else:
-            b.append(i)
-    return b
-
+    print("}; // %s" % len(a), end='\n\n')
 
 def dup(a, x):
     b = []
@@ -50,21 +25,6 @@ def dup(a, x):
         for j in range(x):
             b.append(i)
     return b
-
-
-def inv_mont(n, mont=True):
-    if mont:
-        ret = (2**16 % FALCON_Q) ** 2 * pow(n, -1, FALCON_Q) % FALCON_Q
-    else:
-        ret = (2**16 % FALCON_Q) * pow(n, -1, FALCON_Q) % FALCON_Q
-
-    return ret
-
-def compute_twisted_root(root):
-    twisted_root = (-root * FALCON_QINV) % pow(2, 16)
-    # twisted_root = pow(2, 16) - twisted_root
-
-    return twisted_root
 
 # 0 - 127
 # 128 - 255
@@ -170,7 +130,7 @@ def gen_table06_invntt(zetas):
     return final_inv_zetas
 
 
-def gen_table79_invntt(zetas, mont=False, twisted=False):
+def gen_table79_invntt(zetas, twisted=False):
     inv_zetas = zetas[:]
     inv_zetas = inv_zetas[::-1]
 
@@ -207,9 +167,6 @@ def gen_table79_invntt(zetas, mont=False, twisted=False):
 
     final_inv_zetas = []
 
-    n1024_inv = inv_mont(1024, mont=False)
-    n1024_inv_mont = inv_mont(1024, mont=True)
-
     # Layer 7 = Distance 128
     final_inv_zetas = inv_zetas[bar7 : bar7 + 4]
 
@@ -217,39 +174,20 @@ def gen_table79_invntt(zetas, mont=False, twisted=False):
     final_inv_zetas += inv_zetas[bar8 : bar8 + 2]
 
     # Layer 9 = Distance 512, Embed N^-1 * Mont to the last layer for N = 1024
-    if mont:
-        temp = list(
-            map(lambda x: x * n1024_inv_mont % FALCON_Q, inv_zetas[bar9 : bar9 + 1])
-        )
+    # print("{} -> {}".format(bar9, bar9 + 1))
+    if twisted:
+        temp = [-18211]
     else:
-        temp = list(map(lambda x: x * n1024_inv % FALCON_Q, inv_zetas[bar9 : bar9 + 1]))
-
-    if twisted == False:
-        temp = center_q(temp)
-        temp = adjust_q(temp)
-
+        temp = [-10461]
+        
     final_inv_zetas += temp
 
-    # N^-1 * Mont for the coefficient not related to MUL operation in butterfly
-    if mont:
-        # (2**16 % q)**2 * pow(1024, -1, q) % q
-        val = n1024_inv_mont
-        if twisted: 
-            val = compute_twisted_root(val)
-        
-        temp = [val]
+    # N^-1
+    if twisted:
+        temp = [n1024_inv_twisted]
     else:
-        # (2**16 % q) * pow(1024, -1, q) % q
-        val = n1024_inv
-        if twisted:
-            val = compute_twisted_root(val)
-        
-        temp = [val]
-
-    if twisted == False:
-        temp = center_q(temp)
-        temp = adjust_q(temp)
-
+        temp = [n1024_inv_root]
+    
     final_inv_zetas += temp
 
     assert len(final_inv_zetas) % 8 == 0
@@ -258,11 +196,11 @@ def gen_table79_invntt(zetas, mont=False, twisted=False):
 
 # Input table already in Montgomery domain, thus `mont = False`
 invntt_mont = gen_table06_invntt(ntt_mont)
-invntt_mont += gen_table79_invntt(ntt_mont, mont=False, twisted=False)
+invntt_mont += gen_table79_invntt(ntt_mont, twisted=False)
 
 # We compute twisted value for qinv
-invntt_qinv_mont = gen_table06_invntt(ntt_mont_qinv)
-invntt_qinv_mont += gen_table79_invntt(ntt_mont_qinv, mont=False, twisted=True)
+invntt_qinv_mont = gen_table06_invntt(ntt_qinv_mont)
+invntt_qinv_mont += gen_table79_invntt(ntt_qinv_mont, twisted=True)
 
 # Sanity check
 for index, item in enumerate(invntt_mont):
