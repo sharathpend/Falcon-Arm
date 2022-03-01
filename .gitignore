@@ -20,3 +20,6 @@ neon-fpu-512/build/*
 neon-fpu-512/test_common
 neon-fpu-512/test_fpr
 neon-fpu-512/test_ntt
+neon-fpu-512/test/genroot
+neon-fpu-512/inv_ntt.coeffs
+neon-fpu-512/check_ntt
