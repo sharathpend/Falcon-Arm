@@ -4,6 +4,7 @@
 *.o
 *.req
 *.rsp
+*.pyc
 vgcore.*
 *.log
 */bench_fft
@@ -19,4 +20,4 @@ neon-fpu-512/build/*
 neon-fpu-512/test_common
 neon-fpu-512/test_fpr
 neon-fpu-512/test_ntt
-neon-fpu-512/test
+neon-fpu-512/
