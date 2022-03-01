@@ -163,7 +163,7 @@ void montgomery_rounding_root(int16_t b, int16_t *broot, int16_t *btwisted)
     {
         root += FALCON_Q;
     }
-    twisted_root = ((1 << 16) - root * FALCON_QINV) % (1 << 16);
+    twisted_root = (-root * FALCON_QINV) & 0xFFFF;
 
     *broot = root;
     *btwisted = twisted_root;
@@ -175,6 +175,7 @@ int16_t montgomery_rounding(int16_t a, int16_t b)
     int16_t broot, btwisted;
 
     montgomery_rounding_root(b, &broot, &btwisted);
+    // if ( (b == 12265) || (b == 12277) )
     // printf("broot, btwisted: %d %d\n", broot, btwisted);
 
     neon_a = vdupq_n_s16(a);
