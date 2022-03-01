@@ -31,12 +31,12 @@ void montgomery_rounding_root(int16_t b, int16_t *broot, int16_t *btwisted)
 
 void print_array(int16_t *a, int bound, const char *string)
 {
-    printf("%s = \n[", string);
+    printf("%s = [", string);
     for (int i = 0; i < bound; i++)
     {
         printf("%d, ", a[i]);
     }
-    printf("]\n");
+    printf("]\n\n");
 }
 
 int16_t montgomery_rounding(int16_t a, int16_t broot, int16_t btwisted)
@@ -57,12 +57,15 @@ int16_t montgomery_rounding(int16_t a, int16_t broot, int16_t btwisted)
 
 int main()
 {
-    int16_t n512_inv, n1024_inv,
+    int16_t n512_inv, n1024_inv, last_layer,
             n512_inv_root, n512_inv_twisted,
-            n1024_inv_root, n1024_inv_twisted;
+            n1024_inv_root, n1024_inv_twisted, 
+            last_layer_inv_root, last_layer_inv_twisted;
     
     n512_inv = 12265; // pow(512, -1, q)
     n1024_inv = 12277; // pow(1024, -1, q)
+    // Embed N^-1 to last layer
+    last_layer = zetas[1] * n1024_inv % FALCON_Q;
 
     int16_t broot[1024] = {0};
     int16_t btwisted[1024] = {0};
@@ -92,15 +95,21 @@ int main()
         }
     }
 
-    montgomery_rounding_root(n512_inv, &n512_inv_root, &n512_inv_twisted);
+    // montgomery_rounding_root(n512_inv, &n512_inv_root, &n512_inv_twisted);
     montgomery_rounding_root(n1024_inv, &n1024_inv_root, &n1024_inv_twisted);
+    montgomery_rounding_root(last_layer, &last_layer_inv_root, &last_layer_inv_twisted);
 
-    printf("# 512 : N^-1 * Mont| root (%d) | twisted (%d)\n", n512_inv_root, n512_inv_twisted);
+    // printf("# 512 : N^-1 * Mont| root (%d) | twisted (%d)\n", n512_inv_root, n512_inv_twisted);
+    
+    printf("# Last: coef * N^-1 * Mont| root (%d) | twisted (%d)\n", last_layer_inv_root, last_layer_inv_twisted);
     printf("# 1024: N^-1 * Mont| root (%d) | twisted (%d)\n", n1024_inv_root, n1024_inv_twisted);
 
-    print_array(broot, 1024, "ntt_mont");
-    print_array(btwisted, 1024, "ntt_qinv_mont");
+    // print_array(broot, 1024, "ntt_mont");
+    // print_array(btwisted, 1024, "ntt_qinv_mont");
 
+    /* 
+     * Remember to edit last layer zetas[1] manually for InvNTT table
+     */
 
     return 0;
 }
