@@ -3,7 +3,6 @@
 
 // gcc -o test reduction_test.c -O3; ./test
 
-
 #define FALCON_Q 12289
 #define FALCON_QINV (-12287)
 #define FALCON_MONT 4091
@@ -16,23 +15,15 @@ void montgomery_rounding_root(int16_t b, int16_t *broot, int16_t *btwisted)
 
     root = (int32_t)b;
     root = (root << 15) % FALCON_Q;
+    // Center root is wrong. Don't center root
+
+    // Handle even root
     if ((root & 1) == 0)
     {
-        if (root > FALCON_Q/2)
-        {
-            root -= FALCON_Q;
-        }
-        else if (root < -FALCON_Q/2)
-        {
-            root += FALCON_Q;
-        }
-        else
-        {
-            root += FALCON_Q;
-        }
-        
+        root += FALCON_Q;
     }
-    twisted_root = (-root * FALCON_QINV) % (1 << 16);
+
+    twisted_root = (-root * FALCON_QINV) & 0xFFFF;
 
     *broot = root;
     *btwisted = twisted_root;
@@ -40,38 +31,76 @@ void montgomery_rounding_root(int16_t b, int16_t *broot, int16_t *btwisted)
 
 void print_array(int16_t *a, int bound, const char *string)
 {
-    printf("%s[] = [", string);
+    printf("%s = \n[", string);
     for (int i = 0; i < bound; i++)
     {
         printf("%d, ", a[i]);
     }
-    printf("];\n");
+    printf("]\n");
 }
 
-void center_q(int16_t *a, int bound)
+int16_t montgomery_rounding(int16_t a, int16_t broot, int16_t btwisted)
 {
-    for (int i = 0; i < bound; i++)
-    {
-        a[i] = a[i] % FALCON_Q;
-        if(a[i] > FALCON_Q/2)
-            a[i] -= FALCON_Q;
-        if(a[i] < -FALCON_Q/2)
-            a[i] += FALCON_Q;
-    }
+    int16x8_t neon_a, neon_z, neon_t;
+
+    // if ( (b == 12265) || (b == 12277) )
+    // printf("broot, btwisted: %d %d\n", broot, btwisted);
+
+    neon_a = vdupq_n_s16(a);
+
+    neon_z = vqrdmulhq_n_s16(neon_a, broot);
+    neon_a = vmulq_n_s16(neon_a, btwisted);
+    neon_z = vqrdmlahq_s16(neon_z, neon_a, vdupq_n_s16(FALCON_Q));
+
+    return neon_z[0];
 }
 
 int main()
 {
+    int16_t n512_inv, n1024_inv,
+            n512_inv_root, n512_inv_twisted,
+            n1024_inv_root, n1024_inv_twisted;
+    
+    n512_inv = 12265; // pow(512, -1, q)
+    n1024_inv = 12277; // pow(1024, -1, q)
+
     int16_t broot[1024] = {0};
-    int16_t btwisted[1024] = {0}; 
+    int16_t btwisted[1024] = {0};
     for (int i = 0; i < 1024; i++)
     {
         montgomery_rounding_root(zetas[i], &broot[i], &btwisted[i]);
     }
 
+    // Test barrett and Montgomery
+    for (int16_t a = INT16_MIN / 2 + 1; a < INT16_MAX / 2; a++)
+    {
+        for (int i = 1; i < 1024; i++)
+        {
+            int16_t gold, test;
+            gold = ((int32_t)a * zetas[i]) % FALCON_Q;
+            test = montgomery_rounding(a, broot[i], btwisted[i]);
+
+            // Congruent result
+            gold = (gold + FALCON_Q) % FALCON_Q;
+            test = (test + FALCON_Q) % FALCON_Q;
+
+            if ( (gold != test) && (gold != test + FALCON_Q) && (gold != test - FALCON_Q) )
+            {
+                printf("ERROR %d * [%d](%d): %d != %d\n", a, i, zetas[i], gold, test);
+                return 1;
+            }
+        }
+    }
+
+    montgomery_rounding_root(n512_inv, &n512_inv_root, &n512_inv_twisted);
+    montgomery_rounding_root(n1024_inv, &n1024_inv_root, &n1024_inv_twisted);
+
+    printf("# 512 : N^-1 * Mont| root (%d) | twisted (%d)\n", n512_inv_root, n512_inv_twisted);
+    printf("# 1024: N^-1 * Mont| root (%d) | twisted (%d)\n", n1024_inv_root, n1024_inv_twisted);
 
     print_array(broot, 1024, "ntt_mont");
     print_array(btwisted, 1024, "ntt_qinv_mont");
+
 
     return 0;
 }
