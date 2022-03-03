@@ -5,7 +5,6 @@
 
 #define FALCON_Q 12289
 #define FALCON_QINV (-12287)
-#define FALCON_MONT 4091
 
 int16_t mul(int16_t a, int16_t b)
 {
@@ -51,15 +50,25 @@ int16_t barrett_simd(int16_t a)
     return z[0];
 }
 
+/* 
+ * Output in [-Q/2, Q/2]
+ * a in [-R, R]
+ * c = a % Q => c in [-Q/2, Q/2]
+ */
 int test_barret_red()
 {
     int16_t gold, test;
-
+    int16_t min = INT16_MAX, max = INT16_MIN;
     printf("test_barrett_reduction: ");
     for (int16_t i = INT16_MIN; i < INT16_MAX; i++)
     {
         gold = barrett_reduce(i);
         test = barrett_simd(i);
+
+        if (test < min)
+            min = test;
+        if (max < test)
+            max = test;
 
         if (gold != test)
         {
@@ -68,7 +77,7 @@ int test_barret_red()
     }
 
     printf("OK\n");
-
+    printf("min, max = %d, %d\n", min, max);
     return 0;
 }
 
@@ -112,17 +121,26 @@ int16_t montgomery_doubling(int16_t a, int16_t b)
 
 /*
  * Doubling work full range [-R, R]
+ * a in [-R, R]
+ * b in [-R, R]
+ * c = a*b => c in [-R, R]
  */
 int test_montgomery_doubling()
 {
     printf("test_montgomery_doubling: ");
     int16_t gold, test;
+    int16_t min = INT16_MAX, max = INT16_MIN;
     for (int16_t a = INT16_MIN; a < INT16_MAX; a++)
     {
         for (int16_t b = INT16_MIN; b < INT16_MAX; b++)
         {
             gold = mul(a, b);
             test = montgomery_doubling(a, b);
+
+            if (test < min)
+                min = test;
+            if (max < test)
+                max = test;
 
             gold = (gold + FALCON_Q) % FALCON_Q;
             test = (test + FALCON_Q) % FALCON_Q;
@@ -137,6 +155,7 @@ int test_montgomery_doubling()
         }
     }
     printf("OK\n");
+    printf("min, max = %d, %d\n", min, max);
 
     return 0;
 }
@@ -188,19 +207,28 @@ int16_t montgomery_rounding(int16_t a, int16_t b)
 }
 
 /*
- * Rounding work range [-R/2 + 1, R/2]
+ * Rounding work range 
+ * a in [-R/2 + 1, R/2]
+ * b in [-Q/2, Q/2]
+ * c = a * b => c in [-24568, 24568]
  */
 int test_montgomery_rounding()
 {
     printf("test_montgomery_rounding: ");
 
     int16_t gold, test;
+    int16_t min = INT16_MAX, max = INT16_MIN;
     for (int16_t a = INT16_MIN / 2 + 1; a < INT16_MAX / 2; a++)
     {
-        for (int16_t b = INT16_MIN / 2 + 1; b < INT16_MAX / 2; b++)
+        for (int16_t b = -FALCON_Q/2; b < FALCON_Q/2; b++)
         {
             gold = mul(a, b);
             test = montgomery_rounding(a, b);
+
+            if (test < min)
+                min = test;
+            if (max < test)
+                max = test;
 
             gold = (gold + FALCON_Q) % FALCON_Q;
             test = (test + FALCON_Q) % FALCON_Q;
@@ -216,6 +244,73 @@ int test_montgomery_rounding()
     }
     printf("OK\n");
 
+    printf("min, max = %d, %d\n", min, max);
+    return 0;
+}
+
+void barrett_rounding_root(int16_t b, int16_t *broot)
+{
+    int32_t root;
+    root = b;
+    root = ((int32_t)(root << 16) / FALCON_Q) / 2;
+
+    *broot = root;
+}
+
+int16_t barrett_mul(int16_t a, int16_t b)
+{
+    int16x8_t neon_a, neon_z, neon_t;
+
+    int16_t broot;
+    barrett_rounding_root(b, &broot);
+
+    neon_a = vdupq_n_s16(a);
+
+    neon_z = vmulq_n_s16(neon_a, b);
+    neon_t = vqrdmulhq_n_s16(neon_a, broot);
+    // printf("neon_t = %d\n", neon_t[0]);
+    neon_z = vmlsq_n_s16(neon_z, neon_t, FALCON_Q);
+
+    return neon_z[0];
+}
+
+/* 
+ * Output in range [-18431, 18430]
+ * a in [-R, R]
+ * b in [-Q/2, Q/2]
+ * c = a * b => c in [-18431, 18430]
+ */
+int test_barrett_mul()
+{
+    printf("test_barrett_mul: ");
+
+    int16_t gold, test;
+    int16_t min = INT16_MAX, max = INT16_MIN;
+
+    for (int16_t a = INT16_MIN; a < INT16_MAX; a++)
+    {
+        for (int16_t b = -FALCON_Q/2; b < FALCON_Q; b++)
+        {
+            gold = mul(a, b);
+            test = barrett_mul(a, b);
+
+            if (test < min)
+                min = test;
+            if (max < test)
+                max = test;
+
+            if ((gold != test) && (gold != test + FALCON_Q) && (gold != test - FALCON_Q))
+            {
+                printf("\n");
+                printf("Error %d * %d: %d != %d\n", b, a, gold, test);
+                printf("Error %d * %d: %d != %d\n", b, a, gold, test + FALCON_Q);
+                return 1;
+            }
+        }
+    }
+    printf("OK\n");
+
+    printf("min, max = %d, %d\n", min, max);
     return 0;
 }
 
@@ -227,6 +322,7 @@ int main()
     ret |= test_montgomery_rounding();
     ret |= test_montgomery_doubling();
     ret |= test_barret_red();
+    ret |= test_barrett_mul();
 
     if (ret)
         return 1;
@@ -235,8 +331,13 @@ int main()
 }
 
 /*
-❯ gcc -o test reduction_test.c -O3; ./test
+❯ gcc -o reduction_test reduction_test.c -O3; ./reduction_test 
 test_montgomery_rounding: OK
+min, max = -24568, 24568
 test_montgomery_doubling: OK
+min, max = -12285, 12288
 test_barrett_reduction: OK
+min, max = -6145, 6145
+test_barrett_mul: OK
+min, max = -18431, 18430
  */
