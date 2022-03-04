@@ -4,41 +4,6 @@
 #include "ntt.h"
 #include "ntt_consts.h"
 #include "config.h"
-/* ===================================================================== */
-/*
- * Compute NTT on a ring element.
- */
-void mq_NTT(uint16_t *a, unsigned logn)
-{
-    size_t n, t, m;
-
-    n = (size_t)1 << logn;
-    t = n;
-    for (m = 1; m < n; m <<= 1)
-    {
-        size_t ht, i, j1;
-
-        ht = t >> 1;
-        for (i = 0, j1 = 0; i < m; i++, j1 += t)
-        {
-            size_t j, j2;
-            uint32_t s;
-
-            s = GMb[m + i];
-            j2 = j1 + ht;
-            for (j = j1; j < j2; j++)
-            {
-                uint32_t u, v;
-
-                u = a[j];
-                v = mq_montymul(a[j + ht], s);
-                a[j] = (uint16_t)mq_add(u, v);
-                a[j + ht] = (uint16_t)mq_sub(u, v);
-            }
-        }
-        t = ht;
-    }
-}
 
 void neon_fwdNTT(int16_t a[FALCON_N])
 {
@@ -51,6 +16,9 @@ void neon_fwdNTT(int16_t a[FALCON_N])
     neon_q = vdupq_n_s16(FALCON_Q);
     unsigned k = 0; 
 
+    zl.val[0] = vld1q_s16(&ntt_mont[k]);
+    zh.val[0] = vld1q_s16(&ntt_qinv_mont[k]);
+    k += 8;
 #if FALCON_N == 512
     // Layer 8, 7
     for (unsigned j = 0; j < 128; j += 32)
@@ -60,32 +28,29 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         vload_s16_x4(v2, &a[j + 256]);
         vload_s16_x4(v3, &a[j + 384]);
 
-        vload_s16_x4(zl, &ntt[k]);
-        vload_s16_x4(zh, &ntt_br[k]);
-
         // Layer 8
         // v0 - v2, v1 - v3 
-        ctbf(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        ctbf(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
-        ctbf(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
-        ctbf(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+        ctbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 1);
+        ctbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 1);
+        ctbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
+        ctbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 1);
 
-        ctbf(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        ctbf(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
-        ctbf(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
-        ctbf(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+        ctbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 1);
+        ctbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 1);
+        ctbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
+        ctbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 1);
 
         // Layer 7
         // v0 - v1, v2 - v3
-        ctbf(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        ctbf(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
-        ctbf(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
-        ctbf(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+        ctbf_bri(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
+        ctbf_bri(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
+        ctbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 2);
+        ctbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 2);
 
-        ctbf(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        ctbf(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1]);
-        ctbf(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2]);
-        ctbf(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3]);
+        ctbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        ctbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 3);
+        ctbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 3);
+        ctbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 3);
 
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 128], v1);
@@ -96,10 +61,6 @@ void neon_fwdNTT(int16_t a[FALCON_N])
     // Layer 9, 8, 7
     int16x8x2_t u0, u1, u2, u3,
                 u4, u5, u6, u7;
-    
-    zl.val[0] = vld1q_s16(&ntt_mont[k]);
-    zh.val[0] = vld1q_s16(&ntt_qinv_mont[k]);
-    k += 8;
 
     for (unsigned j = 0; j < 128; j += 16)
     {
@@ -658,66 +619,6 @@ void neon_invNTT(int16_t a[FALCON_N])
 }
 
 /*
- * Compute the inverse NTT on a ring element, binary case.
- */
-void mq_iNTT(uint16_t *a, unsigned logn)
-{
-    size_t n, t, m;
-    uint32_t ni;
-
-    n = (size_t)1 << logn;
-    t = 1;
-    m = n;
-    while (m > 1)
-    {
-        size_t hm, dt, i, j1;
-
-        hm = m >> 1;
-        dt = t << 1;
-        for (i = 0, j1 = 0; i < hm; i++, j1 += dt)
-        {
-            size_t j, j2;
-            uint32_t s;
-
-            j2 = j1 + t;
-            s = iGMb[hm + i];
-            for (j = j1; j < j2; j++)
-            {
-                uint32_t u, v, w;
-
-                u = a[j];
-                v = a[j + t];
-                a[j] = (uint16_t)mq_add(u, v);
-                w = mq_sub(u, v);
-                a[j + t] = (uint16_t)
-                    mq_montymul(w, s);
-            }
-        }
-        t = dt;
-        m = hm;
-    }
-
-    /*
-	 * To complete the inverse NTT, we must now divide all values by
-	 * n (the vector size). We thus need the inverse of n, i.e. we
-	 * need to divide 1 by 2 logn times. But we also want it in
-	 * Montgomery representation, i.e. we also want to multiply it
-	 * by R = 2^16. In the common case, this should be a simple right
-	 * shift. The loop below is generic and works also in corner cases;
-	 * its computation time is negligible.
-	 */
-    ni = R;
-    for (m = n; m > 1; m >>= 1)
-    {
-        ni = mq_rshift1(ni);
-    }
-    for (m = 0; m < n; m++)
-    {
-        a[m] = (uint16_t)mq_montymul(a[m], ni);
-    }
-}
-
-/*
  * Reduce a small signed integer modulo q. The source integer MUST
  * be between -q/2 and +q/2.
  */
@@ -735,26 +636,6 @@ mq_conv_small(int x)
 }
 
 /*
- * Addition modulo q. Operands must be in the 0..q-1 range.
- */
-static inline uint32_t
-mq_add(uint32_t x, uint32_t y)
-{
-    /*
-	 * We compute x + y - q. If the result is negative, then the
-	 * high bit will be set, and 'd >> 31' will be equal to 1;
-	 * thus '-(d >> 31)' will be an all-one pattern. Otherwise,
-	 * it will be an all-zero pattern. In other words, this
-	 * implements a conditional addition of q.
-	 */
-    uint32_t d;
-
-    d = x + y - Q;
-    d += Q & -(d >> 31);
-    return d;
-}
-
-/*
  * Subtraction modulo q. Operands must be in the 0..q-1 range.
  */
 extern inline uint32_t
@@ -769,16 +650,6 @@ mq_sub(uint32_t x, uint32_t y)
     d = x - y;
     d += Q & -(d >> 31);
     return d;
-}
-
-/*
- * Division by 2 modulo q. Operand must be in the 0..q-1 range.
- */
-static inline uint32_t
-mq_rshift1(uint32_t x)
-{
-    x += Q & -(x & 1);
-    return (x >> 1);
 }
 
 /*
