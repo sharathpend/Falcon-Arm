@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FALCON_LOGN 9
+#define FALCON_LOGN 10
 #define FALCON_N ((1 << FALCON_LOGN))
 
 #define Q 12289
@@ -634,18 +634,22 @@ void ntt_rewrite_forward(uint16_t a[FALCON_N])
     unsigned int len, start, j, k;
     uint16_t zeta, t;
 
-    k = 0;
+    k = 1;
     for (len = FALCON_N / 2; len > 0; len >>= 1)
     {
         for (start = 0; start < FALCON_N; start = j + len)
         {
-            zeta = zetas[++k];
+            zeta = zetas[k];
             for (j = start; j < start + len; ++j)
             {
                 t = ((uint32_t)zeta * a[j + len]) % Q;
                 a[j + len] = (a[j] + Q - t) % Q;
                 a[j] = (a[j] + t) % Q;
+
+                // if (j < 128)
+                // printf("%d: [%d  %d] | %d = *%d\n", len, j, j+len, k, zeta);
             }
+            k++;
         }
     }
 }
@@ -656,26 +660,33 @@ void ntt_rewrite_inverse(uint16_t a[FALCON_N])
     uint16_t t, zeta, w;
 
 #if FALCON_N == 512
+    // const uint16_t f = 12265;
     const uint16_t f = 128;
 #elif FALCON_N == 1024
     const uint16_t f = 64;
+    // const uint16_t f = 12277;
 #else
 #error "See config.h, FALCON_N is not supported"
 #endif
 
-    k = FALCON_N;
+    k = FALCON_N-1;
     for (len = 1; len < FALCON_N; len <<= 1)
     {
         for (start = 0; start < FALCON_N; start = j + len)
         {
-            zeta = Q - zetas[--k];
+            zeta = Q - zetas[k];
             for (j = start; j < start + len; ++j)
             {
                 t = a[j];
                 a[j] = (t + a[j + len]) % Q;
                 w = (t + Q - a[j + len]) % Q;
                 a[j + len] = ((uint32_t)zeta * w) % Q;
+
+                // if (j < 128)
+                // printf("%d: [%d  %d] | %d = *%d\n", len, j, j+len, k+1, zeta);
             }
+            k--;
+
         }
     }
 
@@ -687,7 +698,7 @@ void ntt_rewrite_inverse(uint16_t a[FALCON_N])
 }
 
 
-#define TESTS 1000000
+#define TESTS 10000
 
 // TEST funciton
 int test_ntt(void)
