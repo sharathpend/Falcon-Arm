@@ -1,4 +1,5 @@
 from ntt_br_1024 import *
+from ntt_br_512 import *
 
 FALCON_Q = 12289
 FALCON_QINV = (-12287)
@@ -30,49 +31,45 @@ def dup(a, x):
             b.append(i)
     return b
 
-def gen_table97_ntt(zetas):
-    bar9 = 1 << 0
-    bar8 = 1 << 1
-    bar7 = 1 << 2
-    final_zetas = []
+def gen_table97_ntt(zetas, n):
+    if n == 1024:
+        bar = [0, 1, 2]
+    elif n == 512:
+        bar = [0, 1]
 
-    final_zetas += [0]
+    bar = list(map(lambda x: 1 << x, bar))
+
+    final_zetas = [0]
 
     # Layer 9 = Distance 512
-    final_zetas += zetas[bar9 : bar9 + 1]
+    final_zetas += zetas[bar[0] : bar[0] + 1]
 
     # Layer 8 = Distance 256
-    final_zetas += zetas[bar8 : bar8 + 2]
+    final_zetas += zetas[bar[1] : bar[1] + 2]
 
-    # Layer 7 = Distance 128
-    final_zetas += zetas[bar7 : bar7 + 4]
-
+    if n == 1024: 
+        # Layer 7 = Distance 128
+        final_zetas += zetas[bar[2] : bar[2] + 4]
+    else:
+        # Padding
+        final_zetas += [0]*4
+    
     # print(final_zetas, len(final_zetas))
     assert len(final_zetas) % 8 == 0
 
     return final_zetas
 
-def gen_table87_ntt(zetas):
-    bar8 = 1 << 0
-    bar7 = 1 << 1
-
-    final_zetas = []
-    final_zetas += [0]
-
-    # Layer 8 = Distance 256
-    final_zetas += zetas[bar8: bar8 + 1]
-    
-    # Layer 7 = Distance 128
-    final_zetas += zetas[bar7: bar7 + 2]
-
-    assert len(final_zetas) % 8 == 0
-
-    return zetas
-
 # 1024
-def gen_table60_ntt(zetas):
+# 512
+def gen_table60_ntt(zetas, n):
     final_zetas = []
 
+    if n == 1024: 
+        bar = [3, 4, 5, 6, 7, 8, 9]
+    elif n == 512:
+        bar = [2, 3, 4, 5, 6, 7, 9]
+
+    bar = list(map(lambda x: 1 << x, bar))
     bar6 = 1 << 3
     bar5 = 1 << 4
     bar4 = 1 << 5
@@ -84,40 +81,40 @@ def gen_table60_ntt(zetas):
     for iter in range(0, FALCON_N, 128):
 
         # Layer 6 = Distance 64
-        pool = zetas[bar6 : bar6 + 1]
+        pool = zetas[bar[0] : bar[0] + 1]
 
         block0 = pool
 
         final_zetas += block0
 
-        bar6 += 1
+        bar[0] += 1
 
         # Layer 5 = Distance 32
-        pool = zetas[bar5 : bar5 + 2]
+        pool = zetas[bar[1] : bar[1] + 2]
 
         block1 = pool
 
         final_zetas += block1
 
-        bar5 += 2
+        bar[1] += 2
 
         # Layer 4 = Distance 16
-        pool = zetas[bar4 : bar4 + 4]
+        pool = zetas[bar[2] : bar[2] + 4]
 
         block2 = pool
 
         final_zetas += block2
 
-        bar4 += 4
+        bar[2] += 4
 
         # Layer 3 = Distance 8
-        pool = zetas[bar3 : bar3 + 8]
+        pool = zetas[bar[3] : bar[3] + 8]
 
         block3 = pool
 
         final_zetas += block3
 
-        bar3 += 8
+        bar[3] += 8
 
         # Padding
         final_zetas += [0]
@@ -125,7 +122,7 @@ def gen_table60_ntt(zetas):
         assert len(final_zetas) % 8 == 0
 
         # Layer 2 = Distance 4
-        pool = zetas[bar2 : bar2 + 16]
+        pool = zetas[bar[4] : bar[4] + 16]
 
         block4 = pool[0::2]
         block5 = pool[1::2]
@@ -136,19 +133,19 @@ def gen_table60_ntt(zetas):
         final_zetas += block4
         final_zetas += block5
 
-        bar2 += 16
+        bar[4] += 16
 
         # Layer 1 = Distance 2
-        pool = zetas[bar1 : bar1 + 32]
+        pool = zetas[bar[5] : bar[5] + 32]
 
         block5 = pool
 
         final_zetas += block5
 
-        bar1 += 32
+        bar[5] += 32
 
         # Layer 0 = Distance 1
-        pool = zetas[bar0 : bar0 + 64]
+        pool = zetas[bar[6] : bar[6] + 64]
 
         block6 = pool[0::2]
         block7 = pool[1::2]
@@ -156,20 +153,27 @@ def gen_table60_ntt(zetas):
         final_zetas += block6
         final_zetas += block7
 
-        bar0 += 64
+        bar[6] += 64
 
     assert len(final_zetas) % 8 == 0
 
     return final_zetas
 
 
-table_ntt1024_br = gen_table97_ntt(ntt1024_br)
-table_ntt1024_br += gen_table60_ntt(ntt1024_br)
+table_ntt1024_br = gen_table97_ntt(ntt1024_br, 1024)
+table_ntt1024_br += gen_table60_ntt(ntt1024_br, 1024)
 
-# We compute twisted value for qinv
-table_ntt1024_qinv_br = gen_table97_ntt(ntt1024_qinv_br)
-table_ntt1024_qinv_br += gen_table60_ntt(ntt1024_qinv_br)
+table_ntt1024_qinv_br = gen_table97_ntt(ntt1024_qinv_br, 1024)
+table_ntt1024_qinv_br += gen_table60_ntt(ntt1024_qinv_br, 1024)
 
-print_table(table_ntt1024_br, "ntt_br")
-print_table(table_ntt1024_qinv_br, "ntt_qinv_br")
+# print_table(table_ntt1024_br, "ntt_br")
+# print_table(table_ntt1024_qinv_br, "ntt_qinv_br")
 
+table_ntt512_br = gen_table97_ntt(ntt512_br, 512)
+table_ntt512_br += gen_table60_ntt(ntt512_br, 512)
+
+table_ntt512_qinv_br = gen_table97_ntt(ntt512_qinv_br, 512)
+table_ntt512_qinv_br += gen_table60_ntt(ntt512_qinv_br, 512)
+
+print_table(table_ntt512_br, "ntt_br")
+print_table(table_ntt512_qinv_br, "ntt_qinv_br")
