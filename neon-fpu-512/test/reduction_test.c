@@ -210,7 +210,7 @@ int16_t montgomery_rounding(int16_t a, int16_t b)
  * Rounding work range 
  * a in [-R/2 + 1, R/2]
  * b in [-Q/2, Q/2]
- * c = a * b => c in [-24568, 24568]
+ * c = a * b => c in [-2Q, 2Q]
  */
 int test_montgomery_rounding()
 {
@@ -275,10 +275,10 @@ int16_t barrett_mul(int16_t a, int16_t b)
 }
 
 /* 
- * Output in range [-18431, 18430]
+ * Output in range [-3Q/2, 3Q/2]
  * a in [-R, R]
  * b in [-Q/2, Q/2]
- * c = a * b => c in [-18431, 18430]
+ * c = a * b => c in [-3Q/2, 3Q/2]
  */
 int test_barrett_mul()
 {
