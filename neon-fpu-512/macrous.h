@@ -118,6 +118,16 @@
     a = vqrdmlahq_s16(a, t, Q);
 
 /*
+ * Barrett multiplication via *Rounding* use for Inverse NTT
+ * Input: a, b, zl, zh, Q. a in [-R, R]
+ * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
+ */
+#define barmul_invntt(a, zl, zh, Q, t, i) \
+    t = vmulq_laneq_s16(a, zh, i);        \
+    a = vqrdmulhq_laneq_s16(a, zl, i);    \
+    a = vmlsq_s16(t, a, Q);
+
+/*
  * CT Butterfly with Montgomery *Rounding* reduction
  * Input: a, b < R/2
  * Output: c in [-q, q], c = a * (2bR^-1)
@@ -143,14 +153,14 @@
  */
 #define ctbf_br(a, b, zl, zh, Q, t) \
     t = vmulq_s16(b, zh);           \
-    b = vqrdmlahq_s16(b, zl);       \
+    b = vqrdmulhq_s16(b, zl);       \
     t = vmlsq_s16(t, b, Q);         \
     b = vsubq_s16(a, t);            \
     a = vaddq_s16(a, t);
 
 #define ctbf_bri(a, b, zl, zh, Q, t, i) \
-    t = vmulq_s16(b, zh, i);            \
-    b = vqrdmlahq_s16(b, zl, i);        \
+    t = vmulq_laneq_s16(b, zh, i);      \
+    b = vqrdmulhq_laneq_s16(b, zl, i);  \
     t = vmlsq_s16(t, b, Q);             \
     b = vsubq_s16(a, t);                \
     a = vaddq_s16(a, t);
@@ -169,7 +179,7 @@
     c = vhsubq_u16(c, t);
 
 // ------------ Barrett Reduction ------------
-/* 
+/*
  * Barrett reduction, return [-Q/2, Q/2]
  * `v` = 5461, `n` = 11
  */
