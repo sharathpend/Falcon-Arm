@@ -70,14 +70,7 @@ def gen_table60_ntt(zetas, n):
         bar = [2, 3, 4, 5, 6, 7, 9]
 
     bar = list(map(lambda x: 1 << x, bar))
-    bar6 = 1 << 3
-    bar5 = 1 << 4
-    bar4 = 1 << 5
-    bar3 = 1 << 6
-    bar2 = 1 << 7
-    bar1 = 1 << 8
-    bar0 = 1 << 9
-
+    
     for iter in range(0, FALCON_N, 128):
 
         # Layer 6 = Distance 64
