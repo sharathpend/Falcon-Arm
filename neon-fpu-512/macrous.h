@@ -65,7 +65,7 @@
  *
  * Doubling because
  * - Montgomery Doubling work with two unknown coefficient, no constaint at all
- * => c = a*b. a,b,c in [-R, R]
+ * => c = a*b. a,b in [-R, R] c in [-Q, Q]
  */
 
 // ------------ Forward NTT and Inverse NTT ------------
