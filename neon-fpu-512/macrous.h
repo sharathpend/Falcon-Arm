@@ -127,6 +127,11 @@
     a = vqrdmulhq_laneq_s16(a, zl, i);    \
     a = vmlsq_s16(t, a, Q);
 
+#define barmul_const(a, zl, zh, Q, t) \
+    t = vmulq_s16(a, zh);             \
+    a = vqrdmulhq_s16(a, zl);         \
+    a = vmlsq_s16(t, a, Q);
+
 /*
  * CT Butterfly with Montgomery *Rounding* reduction
  * Input: a, b < R/2

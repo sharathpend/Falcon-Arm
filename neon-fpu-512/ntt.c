@@ -5,7 +5,7 @@
 #include "ntt_consts.h"
 #include "config.h"
 
-void neon_fwdNTT(int16_t a[FALCON_N])
+void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
 {
     // Total SIMD registers 29 = 16 + 12 + 1
     int16x8x4_t v0, v1, v2, v3; // 16
@@ -278,6 +278,33 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         ctbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_q, t.val[2]);
         ctbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_q, t.val[3]);
 
+        if (mont)
+        {
+            int16x8_t mont, mont_qinv;
+            mont = vdupq_n_s16(8190);
+            mont_qinv = vdupq_n_s16(21838);
+
+            barmul_const(v0.val[0], mont, mont_qinv, neon_q, t.val[0]);
+            barmul_const(v0.val[1], mont, mont_qinv, neon_q, t.val[1]);
+            barmul_const(v0.val[2], mont, mont_qinv, neon_q, t.val[2]);
+            barmul_const(v0.val[3], mont, mont_qinv, neon_q, t.val[3]);
+
+            barmul_const(v1.val[0], mont, mont_qinv, neon_q, t.val[0]);
+            barmul_const(v1.val[1], mont, mont_qinv, neon_q, t.val[1]);
+            barmul_const(v1.val[2], mont, mont_qinv, neon_q, t.val[2]);
+            barmul_const(v1.val[3], mont, mont_qinv, neon_q, t.val[3]);
+
+            barmul_const(v2.val[0], mont, mont_qinv, neon_q, t.val[0]);
+            barmul_const(v2.val[1], mont, mont_qinv, neon_q, t.val[1]);
+            barmul_const(v2.val[2], mont, mont_qinv, neon_q, t.val[2]);
+            barmul_const(v2.val[3], mont, mont_qinv, neon_q, t.val[3]);
+
+            barmul_const(v3.val[0], mont, mont_qinv, neon_q, t.val[0]);
+            barmul_const(v3.val[1], mont, mont_qinv, neon_q, t.val[1]);
+            barmul_const(v3.val[2], mont, mont_qinv, neon_q, t.val[2]);
+            barmul_const(v3.val[3], mont, mont_qinv, neon_q, t.val[3]);
+        }
+
         vstore_s16_4(&a[j], v0);
         vstore_s16_4(&a[j + 32], v1);
         vstore_s16_4(&a[j + 64], v2);
@@ -471,11 +498,11 @@ void neon_invNTT(int16_t a[FALCON_N])
         vstore_s16_x4(&a[j + 96], v3);
     }
 
-#if FALCON_N == 512
-    // Layer 7, 8
     zl.val[0] = vld1q_s16(&invntt_br[k]);
     zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
 
+#if FALCON_N == 512
+    // Layer 7, 8
     for (unsigned j = 0; j < 128; j += 32)
     {
         vload_s16_x4(v0, &a[j]);
@@ -525,9 +552,6 @@ void neon_invNTT(int16_t a[FALCON_N])
 #elif FALCON_N == 1024
     // Layer 7, 8, 9
     int16x8x2_t u0, u1, u2, u3, u4, u5, u6, u7;
-
-    zl.val[0] = vld1q_s16(&invntt_br[k]);
-    zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
 
     for (unsigned j = 0; j < 128; j += 16)
     {
