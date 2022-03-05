@@ -7,17 +7,16 @@
 
 void neon_fwdNTT(int16_t a[FALCON_N])
 {
-    // Total SIMD registers: 28
-    int16x8x4_t v0, v1, v2, v3;
-    int16x8x4_t zl, zh;
-    int16x8x2_t zlh, zhh;
-    int16x8x4_t t; 
-    int16x8_t neon_q;
+    // Total SIMD registers 29 = 16 + 12 + 1
+    int16x8x4_t v0, v1, v2, v3; // 16
+    int16x8x4_t zl, zh, t;      // 12
+    int16x8x2_t zlh, zhh;       // 4
+    int16x8_t neon_q;           // 1
     neon_q = vdupq_n_s16(FALCON_Q);
-    unsigned k = 0; 
+    unsigned k = 0;
 
-    zl.val[0] = vld1q_s16(&ntt_mont[k]);
-    zh.val[0] = vld1q_s16(&ntt_qinv_mont[k]);
+    zl.val[0] = vld1q_s16(&ntt_br[k]);
+    zh.val[0] = vld1q_s16(&ntt_qinv_br[k]);
     k += 8;
 #if FALCON_N == 512
     // Layer 8, 7
@@ -29,7 +28,7 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         vload_s16_x4(v3, &a[j + 384]);
 
         // Layer 8
-        // v0 - v2, v1 - v3 
+        // v0 - v2, v1 - v3
         ctbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 1);
         ctbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 1);
         ctbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
@@ -59,8 +58,7 @@ void neon_fwdNTT(int16_t a[FALCON_N])
     }
 #elif FALCON_N == 1024
     // Layer 9, 8, 7
-    int16x8x2_t u0, u1, u2, u3,
-                u4, u5, u6, u7;
+    int16x8x2_t u0, u1, u2, u3, u4, u5, u6, u7;
 
     for (unsigned j = 0; j < 128; j += 16)
     {
@@ -126,7 +124,6 @@ void neon_fwdNTT(int16_t a[FALCON_N])
 #else
 #error "FALCON_N is either 512 or 1024"
 #endif
-    
 
     // Layer 6, 5, 4, 3, 2, 1, 0
     for (unsigned j = 0; j < FALCON_N; j += 128)
@@ -136,8 +133,8 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         vload_s16_x4(v2, &a[j + 64]);
         vload_s16_x4(v3, &a[j + 96]);
 
-        vload_s16_x2(zlh, &ntt_mont[k]);
-        vload_s16_x2(zhh, &ntt_qinv_mont[k]);
+        vload_s16_x2(zlh, &ntt_br[k]);
+        vload_s16_x2(zhh, &ntt_qinv_br[k]);
         k += 16;
 
         // Layer 6
@@ -206,7 +203,7 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         arrange(t, v1, 0, 2, 1, 3, 0, 1, 2, 3);
         v1 = t;
         arrange(t, v2, 0, 2, 1, 3, 0, 1, 2, 3);
-        v2 = t; 
+        v2 = t;
         arrange(t, v3, 0, 2, 1, 3, 0, 1, 2, 3);
         v3 = t;
         // Output:
@@ -214,8 +211,8 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         // 4,  5,  6,  7  | 20, 21, 22, 23
         // 8,  9,  10, 11 | 24, 25, 26, 27
         // 12, 13, 14, 15 | 28, 29, 30, 31
-        vload_s16_x4(zl, &ntt_mont[k]);
-        vload_s16_x4(zh, &ntt_qinv_mont[k]);
+        vload_s16_x4(zl, &ntt_br[k]);
+        vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
         ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
@@ -223,8 +220,8 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         ctbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_q, t.val[2]);
         ctbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_q, t.val[3]);
 
-        vload_s16_x4(zl, &ntt_mont[k]);
-        vload_s16_x4(zh, &ntt_qinv_mont[k]);
+        vload_s16_x4(zl, &ntt_br[k]);
+        vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
         ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0]);
@@ -247,8 +244,8 @@ void neon_fwdNTT(int16_t a[FALCON_N])
         // v0.val[2]: 2, 6, 10, 14 | 18, 22, 26, 30
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
 
-        vload_s16_x4(zl, &ntt_mont[k]);
-        vload_s16_x4(zh, &ntt_qinv_mont[k]);
+        vload_s16_x4(zl, &ntt_br[k]);
+        vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
         ctbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
@@ -263,17 +260,17 @@ void neon_fwdNTT(int16_t a[FALCON_N])
 
         // Layer 0
         // v(0, 2 - 1, 3)
-        vload_s16_x4(zl, &ntt_mont[k]);
-        vload_s16_x4(zh, &ntt_qinv_mont[k]);
+        vload_s16_x4(zl, &ntt_br[k]);
+        vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
         ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
         ctbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_q, t.val[1]);
         ctbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_q, t.val[2]);
         ctbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_q, t.val[3]);
-        
-        vload_s16_x4(zl, &ntt_mont[k]);
-        vload_s16_x4(zh, &ntt_qinv_mont[k]);
+
+        vload_s16_x4(zl, &ntt_br[k]);
+        vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
         ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0]);
@@ -290,13 +287,13 @@ void neon_fwdNTT(int16_t a[FALCON_N])
 
 void neon_invNTT(int16_t a[FALCON_N])
 {
-    // Total SIMD registers: 28 = 16 + 8 + 4
+    // Total SIMD registers: 29 = 16 + 12 + 1
     int16x8x4_t v0, v1, v2, v3; // 16
-    int16x8x4_t zl, zh;          // 8
-    int16x8x4_t t;
-    int16x8_t neon_q;
-
+    int16x8x4_t zl, zh, t;      // 12
+    int16x8x2_t zlh, zhh;       // 4
+    int16x8_t neon_q;           // 1
     neon_q = vdupq_n_s16(FALCON_Q);
+
     unsigned k = 0;
     // TODO: add reduction between NTT level to avoid overflows
     // Layer 0, 1, 2, 3, 4, 5, 6
@@ -312,8 +309,8 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v0.val[1]: 1, 5, 9,  13 | 17, 21, 25, 29
         // v0.val[2]: 2, 6, 10, 14 | 18, 22, 26, 30
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
-        vload_s16_x4(zl, &invntt_mont[k]);
-        vload_s16_x4(zh, &invntt_qinv_mont[k]);
+        vload_s16_x4(zl, &invntt_br[k]);
+        vload_s16_x4(zh, &invntt_qinv_br[k]);
         k += 32;
 
         // 0 - 1, 2 - 3
@@ -321,9 +318,9 @@ void neon_invNTT(int16_t a[FALCON_N])
         gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_q, t.val[1]);
         gsbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_q, t.val[2]);
         gsbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_q, t.val[3]);
-        
-        vload_s16_x4(zl, &invntt_mont[k]);
-        vload_s16_x4(zh, &invntt_qinv_mont[k]);
+
+        vload_s16_x4(zl, &invntt_br[k]);
+        vload_s16_x4(zh, &invntt_qinv_br[k]);
         k += 32;
 
         gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0]);
@@ -338,8 +335,8 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
         // 0 - 2, 1 - 3
 
-        vload_s16_x4(zl, &invntt_mont[k]);
-        vload_s16_x4(zh, &invntt_qinv_mont[k]);
+        vload_s16_x4(zl, &invntt_br[k]);
+        vload_s16_x4(zh, &invntt_qinv_br[k]);
         k += 32;
 
         gsbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
@@ -354,6 +351,10 @@ void neon_invNTT(int16_t a[FALCON_N])
 
         // Layer 2
         // Transpose
+        vload_s16_x4(zl, &invntt_br[k]);
+        vload_s16_x4(zh, &invntt_qinv_br[k]);
+        k += 32;
+
         transpose(v0, t);
         transpose(v1, t);
         transpose(v2, t);
@@ -365,17 +366,14 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
         // 0 - 1, 2 - 3
 
-        vload_s16_x4(zl, &invntt_mont[k]);
-        vload_s16_x4(zh, &invntt_qinv_mont[k]);
-        k += 32;
 
         gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
         gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_q, t.val[1]);
         gsbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_q, t.val[2]);
         gsbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_q, t.val[3]);
-        
-        vload_s16_x4(zl, &invntt_mont[k]);
-        vload_s16_x4(zh, &invntt_qinv_mont[k]);
+
+        vload_s16_x4(zl, &invntt_br[k]);
+        vload_s16_x4(zh, &invntt_qinv_br[k]);
         k += 32;
 
         gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0]);
@@ -384,33 +382,11 @@ void neon_invNTT(int16_t a[FALCON_N])
         gsbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_q, t.val[3]);
 
         // Layer 3
-        // v0.val[0]: 0,  1,  2,  3  | 16,  17,  18,  19
-        // v0.val[1]: 4,  5,  6,  7  | 20,  21,  22,  23
-        // v0.val[2]: 8,  9,  10, 11 | 24,  25,  26,  27
-        // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
-        // 0 - 2, 1 - 3
-
-        vload_s16_x4(zl, &invntt_mont[k]);
-        vload_s16_x4(zh, &invntt_qinv_mont[k]);
-        k += 32;
-
-        gsbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        gsbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
-        gsbf_br(v1.val[0], v1.val[2], zl.val[1], zh.val[1], neon_q, t.val[2]);
-        gsbf_br(v1.val[1], v1.val[3], zl.val[1], zh.val[1], neon_q, t.val[3]);
-
-        gsbf_br(v2.val[0], v2.val[2], zl.val[2], zh.val[2], neon_q, t.val[0]);
-        gsbf_br(v2.val[1], v2.val[3], zl.val[2], zh.val[2], neon_q, t.val[1]);
-        gsbf_br(v3.val[0], v3.val[2], zl.val[3], zh.val[3], neon_q, t.val[2]);
-        gsbf_br(v3.val[1], v3.val[3], zl.val[3], zh.val[3], neon_q, t.val[3]);
-
-        // Layer 4
         // Re-arrange vector from 
         // v0.val[0]: 0,  1,  2,  3  | 16,  17,  18,  19
         // v0.val[1]: 4,  5,  6,  7  | 20,  21,  22,  23
         // v0.val[2]: 8,  9,  10, 11 | 24,  25,  26,  27
         // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
-
         // Compiler will handle register re-naming
         arrange(t, v0, 0, 1, 2, 3, 0, 2, 1, 3);
         v0 = t;
@@ -426,53 +402,68 @@ void neon_invNTT(int16_t a[FALCON_N])
         // Compiler will handle register re-naming
         arrange(t, v3, 0, 1, 2, 3, 0, 2, 1, 3);
         v3 = t;
+        // To
+        // v0.val[0]: 0,  1,  2,  3  | 4,  5,  6,  7
+        // v0.val[1]: 8,  9,  10, 11 | 12, 13, 14, 15
+        // v0.val[2]: 16, 17, 18, 19 | 20, 21, 22, 23
+        // v0.val[3]: 24, 25, 26, 27 | 28, 29, 30, 31
+        // 0 - 1, 2 - 3
+        vload_s16_x2(zlh, &invntt_br[k]);
+        vload_s16_x2(zhh, &invntt_qinv_br[k]);
+        k += 16;
 
-        // to 
+        gsbf_bri(v0.val[0], v0.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[0], 0);
+        gsbf_bri(v0.val[2], v0.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[1], 1);
+        gsbf_bri(v1.val[0], v1.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[2], 2);
+        gsbf_bri(v1.val[2], v1.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[3], 3);
+
+        gsbf_bri(v2.val[0], v2.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[0], 4);
+        gsbf_bri(v2.val[2], v2.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[1], 5);
+        gsbf_bri(v3.val[0], v3.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[2], 6);
+        gsbf_bri(v3.val[2], v3.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[3], 7);
+
+        // Layer 4
         // v0.val[0]: 0,  1,  2,  3  | 4,  5,  6,  7
         // v0.val[1]: 8,  9,  10, 11 | 12, 13, 14, 15
         // v0.val[2]: 16, 17, 18, 19 | 20, 21, 22, 23
         // v0.val[3]: 24, 25, 26, 27 | 28, 29, 30, 31
         // 0 - 2, 1 - 3
 
-        zl.val[0] = vld1q_s16(&invntt_mont[k]);
-        zh.val[0] = vld1q_s16(&invntt_qinv_mont[k]);
-        k += 8;
+        gsbf_bri(v0.val[0], v0.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[0], 0);
+        gsbf_bri(v0.val[1], v0.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[1], 0);
+        gsbf_bri(v1.val[0], v1.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 1);
+        gsbf_bri(v1.val[1], v1.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 1);
 
-        gsbf_bri(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0], 0);
-        gsbf_bri(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1], 0);
-        gsbf_bri(v1.val[0], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
-        gsbf_bri(v1.val[1], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 1);
-
-        gsbf_bri(v2.val[0], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
-        gsbf_bri(v2.val[1], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
-        gsbf_bri(v3.val[0], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 3);
-        gsbf_bri(v3.val[1], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 3);
+        gsbf_bri(v2.val[0], v2.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[0], 2);
+        gsbf_bri(v2.val[1], v2.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[1], 2);
+        gsbf_bri(v3.val[0], v3.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 3);
+        gsbf_bri(v3.val[1], v3.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 3);
 
         // Layer 5
         // Cross block
         // v0.0->3 - v1.0->3
-        gsbf_bri(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 4);
-        gsbf_bri(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 4);
-        gsbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 4);
-        gsbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 4);
+        gsbf_bri(v0.val[0], v1.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 4);
+        gsbf_bri(v0.val[1], v1.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 4);
+        gsbf_bri(v0.val[2], v1.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 4);
+        gsbf_bri(v0.val[3], v1.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 4);
 
-        gsbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 5);
-        gsbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 5);
-        gsbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 5);
-        gsbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 5);
+        gsbf_bri(v2.val[0], v3.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 5);
+        gsbf_bri(v2.val[1], v3.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 5);
+        gsbf_bri(v2.val[2], v3.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 5);
+        gsbf_bri(v2.val[3], v3.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 5);
 
         // Layer 6
         // Cross block
         // v0.0->3 - v2.0->3
-        gsbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 6);
-        gsbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 6);
-        gsbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 6);
-        gsbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 6);
+        gsbf_bri(v0.val[0], v2.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 6);
+        gsbf_bri(v0.val[1], v2.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 6);
+        gsbf_bri(v0.val[2], v2.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 6);
+        gsbf_bri(v0.val[3], v2.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 6);
 
-        gsbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 6);
-        gsbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 6);
-        gsbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 6);
-        gsbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 6);
+        gsbf_bri(v1.val[0], v3.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 6);
+        gsbf_bri(v1.val[1], v3.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 6);
+        gsbf_bri(v1.val[2], v3.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 6);
+        gsbf_bri(v1.val[3], v3.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 6);
 
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 32], v1);
@@ -480,11 +471,10 @@ void neon_invNTT(int16_t a[FALCON_N])
         vstore_s16_x4(&a[j + 96], v3);
     }
 
-
 #if FALCON_N == 512
     // Layer 7, 8
-    zl.val[0] = vld1q_s16(&invntt_mont[k]);
-    zh.val[0] = vld1q_s16(&invntt_qinv_mont[k]);
+    zl.val[0] = vld1q_s16(&invntt_br[k]);
+    zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
 
     for (unsigned j = 0; j < 128; j += 32)
     {
@@ -494,40 +484,38 @@ void neon_invNTT(int16_t a[FALCON_N])
         vload_s16_x4(v3, &a[j + 384]);
 
         // Layer 7
-        // v0 - v1, v2 - v3 
+        // v0 - v1, v2 - v3
         gsbf_bri(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 0);
         gsbf_bri(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 0);
-        gsbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
-        gsbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 1);
+        gsbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 0);
+        gsbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 0);
 
-        gsbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
-        gsbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
-        gsbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 3);
-        gsbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 3);
-
+        gsbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 1);
+        gsbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 1);
+        gsbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
+        gsbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 1);
 
         // Layer 8
         // v0 - v2, v1 - v3
-        gsbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 4);
-        gsbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 4);
-        gsbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 4);
-        gsbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 4);
+        gsbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
+        gsbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
+        gsbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 2);
+        gsbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 2);
 
-        gsbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 5);
-        gsbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 5);
-        gsbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 5);
-        gsbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 5);
+        gsbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
+        gsbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
+        gsbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 2);
+        gsbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 2);
 
-        // TODO: add MUL with n^-1 here
-        montmul_invntt(v0.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7;
-        montmul_invntt(v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7;
-        montmul_invntt(v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7;
-        montmul_invntt(v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7;
+        barmul_invntt(v0.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
 
-        montmul_invntt(v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
 
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 128], v1);
@@ -536,11 +524,10 @@ void neon_invNTT(int16_t a[FALCON_N])
     }
 #elif FALCON_N == 1024
     // Layer 7, 8, 9
-    int16x8x2_t u0, u1, u2, u3,
-                u4, u5, u6, u7;
+    int16x8x2_t u0, u1, u2, u3, u4, u5, u6, u7;
 
-    zl.val[0] = vld1q_s16(&invntt_mont[k]);
-    zh.val[0] = vld1q_s16(&invntt_qinv_mont[k]);
+    zl.val[0] = vld1q_s16(&invntt_br[k]);
+    zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
 
     for (unsigned j = 0; j < 128; j += 16)
     {
@@ -555,7 +542,7 @@ void neon_invNTT(int16_t a[FALCON_N])
         vload_s16_x2(u7, &a[j + 896]);
 
         // Layer 7
-        // u0 - u1, u2 - u3 
+        // u0 - u1, u2 - u3
         // u4 - u5, u6 - u7
         gsbf_bri(u0.val[0], u1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 0);
         gsbf_bri(u0.val[1], u1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 0);
@@ -566,7 +553,7 @@ void neon_invNTT(int16_t a[FALCON_N])
         gsbf_bri(u4.val[1], u5.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
         gsbf_bri(u6.val[0], u7.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 3);
         gsbf_bri(u6.val[1], u7.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 3);
-        
+
         // Layer 8
         // u0 - u2, u1 - u3
         // u4 - u6, u5 - u7
@@ -593,15 +580,15 @@ void neon_invNTT(int16_t a[FALCON_N])
         gsbf_bri(u3.val[0], u7.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 6);
         gsbf_bri(u3.val[1], u7.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 6);
 
-        montmul_invntt(u0.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(u0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(u1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(u1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u0.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
 
-        montmul_invntt(u2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(u2.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(u3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        montmul_invntt(u3.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u2.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u3.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
 
         vstore_s16_x2(&a[j], u0);
         vstore_s16_x2(&a[j + 128], u1);
@@ -626,8 +613,8 @@ extern inline uint32_t
 mq_conv_small(int x)
 {
     /*
-	 * If x < 0, the cast to uint32_t will set the high bit to 1.
-	 */
+     * If x < 0, the cast to uint32_t will set the high bit to 1.
+     */
     uint32_t y;
 
     y = (uint32_t)x;
@@ -642,9 +629,9 @@ extern inline uint32_t
 mq_sub(uint32_t x, uint32_t y)
 {
     /*
-	 * As in mq_add(), we use a conditional addition to ensure the
-	 * result is in the 0..q-1 range.
-	 */
+     * As in mq_add(), we use a conditional addition to ensure the
+     * result is in the 0..q-1 range.
+     */
     uint32_t d;
 
     d = x - y;
@@ -663,28 +650,28 @@ mq_montymul(uint32_t x, uint32_t y)
     uint32_t z, w;
 
     /*
-	 * We compute x*y + k*q with a value of k chosen so that the 16
-	 * low bits of the result are 0. We can then shift the value.
-	 * After the shift, result may still be larger than q, but it
-	 * will be lower than 2*q, so a conditional subtraction works.
-	 */
+     * We compute x*y + k*q with a value of k chosen so that the 16
+     * low bits of the result are 0. We can then shift the value.
+     * After the shift, result may still be larger than q, but it
+     * will be lower than 2*q, so a conditional subtraction works.
+     */
 
     z = x * y;
     w = ((z * Q0I) & 0xFFFF) * Q;
 
     /*
-	 * When adding z and w, the result will have its low 16 bits
-	 * equal to 0. Since x, y and z are lower than q, the sum will
-	 * be no more than (2^15 - 1) * q + (q - 1)^2, which will
-	 * fit on 29 bits.
-	 */
+     * When adding z and w, the result will have its low 16 bits
+     * equal to 0. Since x, y and z are lower than q, the sum will
+     * be no more than (2^15 - 1) * q + (q - 1)^2, which will
+     * fit on 29 bits.
+     */
     z = (z + w) >> 16;
 
     /*
-	 * After the shift, analysis shows that the value will be less
-	 * than 2q. We do a subtraction then conditional subtraction to
-	 * ensure the result is in the expected range.
-	 */
+     * After the shift, analysis shows that the value will be less
+     * than 2q. We do a subtraction then conditional subtraction to
+     * ensure the result is in the expected range.
+     */
     z -= Q;
     z += Q & -(z >> 31);
     return z;
@@ -706,35 +693,35 @@ extern inline uint32_t
 mq_div_12289(uint32_t x, uint32_t y)
 {
     /*
-	 * We invert y by computing y^(q-2) mod q.
-	 *
-	 * We use the following addition chain for exponent e = 12287:
-	 *
-	 *   e0 = 1
-	 *   e1 = 2 * e0 = 2
-	 *   e2 = e1 + e0 = 3
-	 *   e3 = e2 + e1 = 5
-	 *   e4 = 2 * e3 = 10
-	 *   e5 = 2 * e4 = 20
-	 *   e6 = 2 * e5 = 40
-	 *   e7 = 2 * e6 = 80
-	 *   e8 = 2 * e7 = 160
-	 *   e9 = e8 + e2 = 163
-	 *   e10 = e9 + e8 = 323
-	 *   e11 = 2 * e10 = 646
-	 *   e12 = 2 * e11 = 1292
-	 *   e13 = e12 + e9 = 1455
-	 *   e14 = 2 * e13 = 2910
-	 *   e15 = 2 * e14 = 5820
-	 *   e16 = e15 + e10 = 6143
-	 *   e17 = 2 * e16 = 12286
-	 *   e18 = e17 + e0 = 12287
-	 *
-	 * Additions on exponents are converted to Montgomery
-	 * multiplications. We define all intermediate results as so
-	 * many local variables, and let the C compiler work out which
-	 * must be kept around.
-	 */
+     * We invert y by computing y^(q-2) mod q.
+     *
+     * We use the following addition chain for exponent e = 12287:
+     *
+     *   e0 = 1
+     *   e1 = 2 * e0 = 2
+     *   e2 = e1 + e0 = 3
+     *   e3 = e2 + e1 = 5
+     *   e4 = 2 * e3 = 10
+     *   e5 = 2 * e4 = 20
+     *   e6 = 2 * e5 = 40
+     *   e7 = 2 * e6 = 80
+     *   e8 = 2 * e7 = 160
+     *   e9 = e8 + e2 = 163
+     *   e10 = e9 + e8 = 323
+     *   e11 = 2 * e10 = 646
+     *   e12 = 2 * e11 = 1292
+     *   e13 = e12 + e9 = 1455
+     *   e14 = 2 * e13 = 2910
+     *   e15 = 2 * e14 = 5820
+     *   e16 = e15 + e10 = 6143
+     *   e17 = 2 * e16 = 12286
+     *   e18 = e17 + e0 = 12287
+     *
+     * Additions on exponents are converted to Montgomery
+     * multiplications. We define all intermediate results as so
+     * many local variables, and let the C compiler work out which
+     * must be kept around.
+     */
     uint32_t y0, y1, y2, y3, y4, y5, y6, y7, y8, y9;
     uint32_t y10, y11, y12, y13, y14, y15, y16, y17, y18;
 
@@ -759,9 +746,9 @@ mq_div_12289(uint32_t x, uint32_t y)
     y18 = mq_montymul(y17, y0);
 
     /*
-	 * Final multiplication with x, which is not in Montgomery
-	 * representation, computes the correct division result.
-	 */
+     * Final multiplication with x, which is not in Montgomery
+     * representation, computes the correct division result.
+     */
     return mq_montymul(y18, x);
 }
 
