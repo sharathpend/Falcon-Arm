@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "config.h"
 
+extern const int16_t qmvq[8];
 
 /*
  * Table for NTT, binary case:
