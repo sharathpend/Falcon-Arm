@@ -50,7 +50,7 @@ int16_t barrett_simd(int16_t a)
     return z[0];
 }
 
-/* 
+/*
  * Output in [-Q/2, Q/2]
  * a in [-R, R]
  * c = a % Q => c in [-Q/2, Q/2]
@@ -207,7 +207,7 @@ int16_t montgomery_rounding(int16_t a, int16_t b)
 }
 
 /*
- * Rounding work range 
+ * Rounding work range
  * a in [-R/2 + 1, R/2]
  * b in [-Q/2, Q/2]
  * c = a * b => c in [-2Q, 2Q]
@@ -220,7 +220,7 @@ int test_montgomery_rounding()
     int16_t min = INT16_MAX, max = INT16_MIN;
     for (int16_t a = INT16_MIN / 2 + 1; a < INT16_MAX / 2; a++)
     {
-        for (int16_t b = -FALCON_Q/2; b < FALCON_Q/2; b++)
+        for (int16_t b = -FALCON_Q / 2; b < FALCON_Q / 2; b++)
         {
             gold = mul(a, b);
             test = montgomery_rounding(a, b);
@@ -274,7 +274,7 @@ int16_t barrett_mul(int16_t a, int16_t b)
     return neon_z[0];
 }
 
-/* 
+/*
  * Output in range [-3Q/2, 3Q/2]
  * a in [-R, R]
  * b in [-Q/2, Q/2]
@@ -314,6 +314,91 @@ int test_barrett_mul()
     return 0;
 }
 
+/* 
+ * Conclusion: Barrett reduction is way better, 12 cycles compare with this: 16 cycles
+ */
+int16_t kred_red(int16_t a)
+{
+    // uint16_t c0, c1, c2;
+    int16_t c0, c1, c2;
+
+    // 12 bit (really bad)
+    // c0 = a & 0xfff;
+    // c1 = a >> 12;
+    // return (3*c0 - c1);
+
+    // 14 bit var (2Q)
+    c0 = (a & 0x1fff);
+    c1 = (a >> 13) & 1;
+    c2 = (a >> 14);
+    // printf("c1, c2 = %2x, %2x\n", c1, c2);
+    // printf("c1, c2 = %x, %x\n", c2 - c1 , -(c2 + c1));
+    // return 4095*c2 - 4097*c1 + c0;
+    // return 4095*(c2 - c1) + c0 - (c1 << 1);
+    return 4095*c2 - 4097*c1 + c0;
+    // return ((c2 - c1) << 12) + (-(c2 + c1)) + c0;
+
+    /* 
+     * Available instructions:
+     * and: 3 - 2
+     * sshr: 3 - 1
+     * shl: 3 - 1
+     * 3 + 3*2 = 9 cycles
+     * add: 3 - 2
+     * Shift left and insert: 3 - 1
+     * Shift right and insert: 3 - 1
+     * Shift right and accumulate: 4 - 1
+     * bsl: 3 - 2
+     * vmla: 4 - 1
+     */
+
+    // 13 bit (3Q) (2Q)
+    // c0 = a & 0x1fff;
+    // c1 = a >> 13;
+    // printf("c1 = %x\n", c1);
+    // if (c1 < 1) return -4097*c1 + c0 - FALCON_Q;
+    // return -4097*c1 + c0;
+
+    // 13 bit var
+    // c0 = a & 0x1fff;
+    // c1 = a >> 13;
+    // return c0 - (c1 << 12) - c1;
+}
+
+int test_kred_red()
+{
+    printf("test_kred_red: ");
+    int16_t gold, test;
+    int16_t min = INT16_MAX, max = INT16_MIN;
+
+    int count = 0;
+    for (int16_t a = INT16_MIN; a < INT16_MAX; ++a)
+    {
+        test = kred_red(a);
+        gold = a % FALCON_Q;
+
+        if (test < min)
+            min = test;
+        if (max < test)
+            max = test;
+
+        // printf("a %d -> gold, test = %d, %d\n", a, gold, test);
+
+        if ((gold != test) && (gold + FALCON_Q != test) && (gold - FALCON_Q != test))
+        {
+            printf("%d Error %d: %d != %d\n\n", count, a, gold, test);
+            return 1;
+        }
+        else
+        {
+            count++;
+        }
+    }
+
+    printf("OK\n");
+    printf("min, max = %d, %d, |%f| [%d]\n", min, max, (float64_t)(max - min) / FALCON_Q, count);
+    return 0;
+}
 int main()
 {
 
@@ -323,6 +408,7 @@ int main()
     ret |= test_montgomery_doubling();
     ret |= test_barret_red();
     ret |= test_barrett_mul();
+    ret |= test_kred_red();
 
     if (ret)
         return 1;
@@ -331,7 +417,7 @@ int main()
 }
 
 /*
-❯ gcc -o reduction_test reduction_test.c -O3; ./reduction_test 
+❯ gcc -o reduction_test reduction_test.c -O3; ./reduction_test
 test_montgomery_rounding: OK
 min, max = -24568, 24568
 test_montgomery_doubling: OK
