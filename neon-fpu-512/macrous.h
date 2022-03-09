@@ -98,14 +98,14 @@
     a = vaddq_s16(a, b);            \
     b = vmulq_s16(t, zh);           \
     t = vqrdmulhq_s16(t, zl);       \
-    b = vmlsq_s16(b, t, Q);
+    b = vmlsq_laneq_s16(b, t, Q, 0);
 
 #define gsbf_bri(a, b, zl, zh, Q, t, i) \
     t = vsubq_s16(a, b);                \
     a = vaddq_s16(a, b);                \
     b = vmulq_laneq_s16(t, zh, i);      \
     t = vqrdmulhq_laneq_s16(t, zl, i);  \
-    b = vmlsq_s16(b, t, Q);
+    b = vmlsq_laneq_s16(b, t, Q, 0);
 
 /*
  * Montgomery multiplication via *Rounding* use only for Inverse NTT
@@ -193,10 +193,10 @@
  * Barrett reduction, return [-Q/2, Q/2]
  * `v` = 5461, `n` = 11
  */
-#define barrett(a, t, V, Q)  \
-    t = vqdmulhq_s16(a, V);  \
-    t = vrshrq_n_s16(t, 11); \
-    a = vmlsq_s16(a, t, Q);
+#define barrett(a, t, QV)             \
+    t = vqdmulhq_laneq_s16(a, QV, 4); \
+    t = vrshrq_n_s16(t, 11);          \
+    a = vmlsq_laneq_s16(a, t, QV, 0);
 
 #define barrett_x4(a, t, QV)                               \
     t.val[0] = vqdmulhq_laneq_s16(a.val[0], QV, 4);        \
@@ -212,13 +212,24 @@
     a.val[2] = vmlsq_laneq_s16(a.val[2], t.val[2], QV, 0); \
     a.val[3] = vmlsq_laneq_s16(a.val[3], t.val[3], QV, 0);
 
-#define barrett_x2(a, t, QV)                               \
-    t.val[0] = vqdmulhq_laneq_s16(a.val[0], QV, 4);        \
-    t.val[1] = vqdmulhq_laneq_s16(a.val[1], QV, 4);        \
-    t.val[0] = vrshrq_n_s16(t.val[0], 11);                 \
-    t.val[1] = vrshrq_n_s16(t.val[1], 11);                 \
-    a.val[0] = vmlsq_laneq_s16(a.val[0], t.val[0], QV, 0); \
-    a.val[1] = vmlsq_laneq_s16(a.val[1], t.val[1], QV, 0); \
+#define barrett_x2(a, t, QV, i, j)                         \
+    t.val[i] = vqdmulhq_laneq_s16(a.val[i], QV, 4);        \
+    t.val[j] = vqdmulhq_laneq_s16(a.val[j], QV, 4);        \
+    t.val[i] = vrshrq_n_s16(t.val[i], 11);                 \
+    t.val[j] = vrshrq_n_s16(t.val[j], 11);                 \
+    a.val[i] = vmlsq_laneq_s16(a.val[i], t.val[i], QV, 0); \
+    a.val[j] = vmlsq_laneq_s16(a.val[j], t.val[j], QV, 0);
+
+#define barrett_x3(a, t, QV, i, j, k)                      \
+    t.val[i] = vqdmulhq_laneq_s16(a.val[i], QV, 4);        \
+    t.val[j] = vqdmulhq_laneq_s16(a.val[j], QV, 4);        \
+    t.val[k] = vqdmulhq_laneq_s16(a.val[k], QV, 4);        \
+    t.val[i] = vrshrq_n_s16(t.val[i], 11);                 \
+    t.val[j] = vrshrq_n_s16(t.val[j], 11);                 \
+    t.val[k] = vrshrq_n_s16(t.val[k], 11);                 \
+    a.val[i] = vmlsq_laneq_s16(a.val[i], t.val[i], QV, 0); \
+    a.val[j] = vmlsq_laneq_s16(a.val[j], t.val[j], QV, 0); \
+    a.val[k] = vmlsq_laneq_s16(a.val[k], t.val[k], QV, 0);
 
 // ------------ Matrix Transpose ------------
 /*

@@ -11,10 +11,10 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
     int16x8x4_t v0, v1, v2, v3; // 16
     int16x8x4_t zl, zh, t;      // 12
     int16x8x2_t zlh, zhh;       // 4
-    int16x8_t neon_qvmq;        // 1
+    int16x8_t neon_qmvq;        // 1
     unsigned k = 0;
 
-    neon_qvmq = vld1q_s16(qmvq);
+    neon_qmvq = vld1q_s16(qmvq);
     zl.val[0] = vld1q_s16(&ntt_br[k]);
     zh.val[0] = vld1q_s16(&ntt_qinv_br[k]);
     k += 8;
@@ -29,37 +29,37 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
 
         // Layer 8
         // v0 - v2, v1 - v3
-        ctbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 1);
-        ctbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 1);
-        ctbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 1);
-        ctbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 1);
+        ctbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 1);
+        ctbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 1);
+        ctbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 1);
+        ctbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 1);
 
-        ctbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 1);
-        ctbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 1);
-        ctbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 1);
-        ctbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 1);
+        ctbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 1);
+        ctbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 1);
+        ctbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 1);
+        ctbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 1);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 7
         // v0 - v1, v2 - v3
-        ctbf_bri(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 2);
-        ctbf_bri(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 2);
-        ctbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 2);
-        ctbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 2);
+        ctbf_bri(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 2);
+        ctbf_bri(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 2);
+        ctbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 2);
+        ctbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 2);
 
-        ctbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 3);
-        ctbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 3);
-        ctbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 3);
-        ctbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 3);
+        ctbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        ctbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 3);
+        ctbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 3);
+        ctbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 3);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 128], v1);
@@ -85,71 +85,71 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
         // Layer 9
         // u0 - u4, u1 - u5
         // u2 - u6, u3 - u7
-        ctbf_bri(u0.val[0], u4.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 1);
-        ctbf_bri(u0.val[1], u4.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 1);
-        ctbf_bri(u1.val[0], u5.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 1);
-        ctbf_bri(u1.val[1], u5.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 1);
+        ctbf_bri(u0.val[0], u4.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 1);
+        ctbf_bri(u0.val[1], u4.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 1);
+        ctbf_bri(u1.val[0], u5.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 1);
+        ctbf_bri(u1.val[1], u5.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 1);
 
-        ctbf_bri(u2.val[0], u6.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 1);
-        ctbf_bri(u2.val[1], u6.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 1);
-        ctbf_bri(u3.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 1);
-        ctbf_bri(u3.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 1);
+        ctbf_bri(u2.val[0], u6.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 1);
+        ctbf_bri(u2.val[1], u6.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 1);
+        ctbf_bri(u3.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 1);
+        ctbf_bri(u3.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 1);
 
-        barrett_x2(u0, t, neon_qvmq);
-        barrett_x2(u1, t, neon_qvmq);
-        barrett_x2(u2, t, neon_qvmq);
-        barrett_x2(u3, t, neon_qvmq);
+        barrett_x2(u0, t, neon_qmvq, 0, 1);
+        barrett_x2(u1, t, neon_qmvq, 0, 1);
+        barrett_x2(u2, t, neon_qmvq, 0, 1);
+        barrett_x2(u3, t, neon_qmvq, 0, 1);
 
-        barrett_x2(u4, t, neon_qvmq);
-        barrett_x2(u5, t, neon_qvmq);
-        barrett_x2(u6, t, neon_qvmq);
-        barrett_x2(u7, t, neon_qvmq);
+        barrett_x2(u4, t, neon_qmvq, 0, 1);
+        barrett_x2(u5, t, neon_qmvq, 0, 1);
+        barrett_x2(u6, t, neon_qmvq, 0, 1);
+        barrett_x2(u7, t, neon_qmvq, 0, 1);
 
         // Layer 8
         // u0 - u2, u1 - u3
         // u4 - u6, u5 - u7
-        ctbf_bri(u0.val[0], u2.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 2);
-        ctbf_bri(u0.val[1], u2.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 2);
-        ctbf_bri(u1.val[0], u3.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 2);
-        ctbf_bri(u1.val[1], u3.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 2);
+        ctbf_bri(u0.val[0], u2.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 2);
+        ctbf_bri(u0.val[1], u2.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 2);
+        ctbf_bri(u1.val[0], u3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 2);
+        ctbf_bri(u1.val[1], u3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 2);
 
-        ctbf_bri(u4.val[0], u6.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 3);
-        ctbf_bri(u4.val[1], u6.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 3);
-        ctbf_bri(u5.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 3);
-        ctbf_bri(u5.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 3);
+        ctbf_bri(u4.val[0], u6.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        ctbf_bri(u4.val[1], u6.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 3);
+        ctbf_bri(u5.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 3);
+        ctbf_bri(u5.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 3);
 
-        barrett_x2(u0, t, neon_qvmq);
-        barrett_x2(u1, t, neon_qvmq);
-        barrett_x2(u2, t, neon_qvmq);
-        barrett_x2(u3, t, neon_qvmq);
+        barrett_x2(u0, t, neon_qmvq, 0, 1);
+        barrett_x2(u1, t, neon_qmvq, 0, 1);
+        barrett_x2(u2, t, neon_qmvq, 0, 1);
+        barrett_x2(u3, t, neon_qmvq, 0, 1);
 
-        barrett_x2(u4, t, neon_qvmq);
-        barrett_x2(u5, t, neon_qvmq);
-        barrett_x2(u6, t, neon_qvmq);
-        barrett_x2(u7, t, neon_qvmq);
+        barrett_x2(u4, t, neon_qmvq, 0, 1);
+        barrett_x2(u5, t, neon_qmvq, 0, 1);
+        barrett_x2(u6, t, neon_qmvq, 0, 1);
+        barrett_x2(u7, t, neon_qmvq, 0, 1);
 
         // Layer 7
         // u0 - u1, u2 - u3
         // u4 - u5, u6 - u7
-        ctbf_bri(u0.val[0], u1.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 4);
-        ctbf_bri(u0.val[1], u1.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 4);
-        ctbf_bri(u2.val[0], u3.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 5);
-        ctbf_bri(u2.val[1], u3.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 5);
+        ctbf_bri(u0.val[0], u1.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 4);
+        ctbf_bri(u0.val[1], u1.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 4);
+        ctbf_bri(u2.val[0], u3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 5);
+        ctbf_bri(u2.val[1], u3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 5);
 
-        ctbf_bri(u4.val[0], u5.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[0], 6);
-        ctbf_bri(u4.val[1], u5.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[1], 6);
-        ctbf_bri(u6.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qvmq, t.val[2], 7);
-        ctbf_bri(u6.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[3], 7);
+        ctbf_bri(u4.val[0], u5.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 6);
+        ctbf_bri(u4.val[1], u5.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 6);
+        ctbf_bri(u6.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 7);
+        ctbf_bri(u6.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 7);
 
-        barrett_x2(u0, t, neon_qvmq);
-        barrett_x2(u1, t, neon_qvmq);
-        barrett_x2(u2, t, neon_qvmq);
-        barrett_x2(u3, t, neon_qvmq);
+        barrett_x2(u0, t, neon_qmvq, 0, 1);
+        barrett_x2(u1, t, neon_qmvq, 0, 1);
+        barrett_x2(u2, t, neon_qmvq, 0, 1);
+        barrett_x2(u3, t, neon_qmvq, 0, 1);
 
-        barrett_x2(u4, t, neon_qvmq);
-        barrett_x2(u5, t, neon_qvmq);
-        barrett_x2(u6, t, neon_qvmq);
-        barrett_x2(u7, t, neon_qvmq);
+        barrett_x2(u4, t, neon_qmvq, 0, 1);
+        barrett_x2(u5, t, neon_qmvq, 0, 1);
+        barrett_x2(u6, t, neon_qmvq, 0, 1);
+        barrett_x2(u7, t, neon_qmvq, 0, 1);
 
         vstore_s16_x2(&a[j], u0);
         vstore_s16_x2(&a[j + 128], u1);
@@ -180,77 +180,77 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
         // Layer 6
         // v0 - v2, v1 - v3
 
-        ctbf_bri(v0.val[0], v2.val[0], zlh.val[0], zhh.val[0], neon_qvmq, t.val[0], 0);
-        ctbf_bri(v0.val[1], v2.val[1], zlh.val[0], zhh.val[0], neon_qvmq, t.val[1], 0);
-        ctbf_bri(v0.val[2], v2.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[2], 0);
-        ctbf_bri(v0.val[3], v2.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[3], 0);
+        ctbf_bri(v0.val[0], v2.val[0], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 0);
+        ctbf_bri(v0.val[1], v2.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 0);
+        ctbf_bri(v0.val[2], v2.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 0);
+        ctbf_bri(v0.val[3], v2.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 0);
 
-        ctbf_bri(v1.val[0], v3.val[0], zlh.val[0], zhh.val[0], neon_qvmq, t.val[0], 0);
-        ctbf_bri(v1.val[1], v3.val[1], zlh.val[0], zhh.val[0], neon_qvmq, t.val[1], 0);
-        ctbf_bri(v1.val[2], v3.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[2], 0);
-        ctbf_bri(v1.val[3], v3.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[3], 0);
+        ctbf_bri(v1.val[0], v3.val[0], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 0);
+        ctbf_bri(v1.val[1], v3.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 0);
+        ctbf_bri(v1.val[2], v3.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 0);
+        ctbf_bri(v1.val[3], v3.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 0);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 5
         // v0 - v1, v2 - v3
-        ctbf_bri(v0.val[0], v1.val[0], zlh.val[0], zhh.val[0], neon_qvmq, t.val[0], 1);
-        ctbf_bri(v0.val[1], v1.val[1], zlh.val[0], zhh.val[0], neon_qvmq, t.val[1], 1);
-        ctbf_bri(v0.val[2], v1.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[2], 1);
-        ctbf_bri(v0.val[3], v1.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[3], 1);
+        ctbf_bri(v0.val[0], v1.val[0], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 1);
+        ctbf_bri(v0.val[1], v1.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 1);
+        ctbf_bri(v0.val[2], v1.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 1);
+        ctbf_bri(v0.val[3], v1.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 1);
 
-        ctbf_bri(v2.val[0], v3.val[0], zlh.val[0], zhh.val[0], neon_qvmq, t.val[0], 2);
-        ctbf_bri(v2.val[1], v3.val[1], zlh.val[0], zhh.val[0], neon_qvmq, t.val[1], 2);
-        ctbf_bri(v2.val[2], v3.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[2], 2);
-        ctbf_bri(v2.val[3], v3.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[3], 2);
+        ctbf_bri(v2.val[0], v3.val[0], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 2);
+        ctbf_bri(v2.val[1], v3.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 2);
+        ctbf_bri(v2.val[2], v3.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 2);
+        ctbf_bri(v2.val[3], v3.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 2);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 4
         // v0(0, 1 - 2, 3)
         // v1(0, 1 - 2, 3)
         // v2(0, 1 - 2, 3)
         // v3(0, 1 - 2, 3)
-        ctbf_bri(v0.val[0], v0.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[0], 3);
-        ctbf_bri(v0.val[1], v0.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[1], 3);
-        ctbf_bri(v1.val[0], v1.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[2], 4);
-        ctbf_bri(v1.val[1], v1.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[3], 4);
+        ctbf_bri(v0.val[0], v0.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 3);
+        ctbf_bri(v0.val[1], v0.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 3);
+        ctbf_bri(v1.val[0], v1.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 4);
+        ctbf_bri(v1.val[1], v1.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 4);
 
-        ctbf_bri(v2.val[0], v2.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[0], 5);
-        ctbf_bri(v2.val[1], v2.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[1], 5);
-        ctbf_bri(v3.val[0], v3.val[2], zlh.val[0], zhh.val[0], neon_qvmq, t.val[2], 6);
-        ctbf_bri(v3.val[1], v3.val[3], zlh.val[0], zhh.val[0], neon_qvmq, t.val[3], 6);
+        ctbf_bri(v2.val[0], v2.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 5);
+        ctbf_bri(v2.val[1], v2.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 5);
+        ctbf_bri(v3.val[0], v3.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 6);
+        ctbf_bri(v3.val[1], v3.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 6);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 3
         // v0(0, 2 - 1, 3)
         // v1(0, 2 - 1, 3)
         // v2(0, 2 - 1, 3)
         // v3(0, 2 - 1, 3)
-        ctbf_bri(v0.val[0], v0.val[1], zlh.val[0], zhh.val[0], neon_qvmq, t.val[0], 7);
-        ctbf_bri(v0.val[2], v0.val[3], zlh.val[1], zhh.val[1], neon_qvmq, t.val[1], 0);
-        ctbf_bri(v1.val[0], v1.val[1], zlh.val[1], zhh.val[1], neon_qvmq, t.val[2], 1);
-        ctbf_bri(v1.val[2], v1.val[3], zlh.val[1], zhh.val[1], neon_qvmq, t.val[3], 2);
+        ctbf_bri(v0.val[0], v0.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 7);
+        ctbf_bri(v0.val[2], v0.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 0);
+        ctbf_bri(v1.val[0], v1.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 1);
+        ctbf_bri(v1.val[2], v1.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 2);
 
-        ctbf_bri(v2.val[0], v2.val[1], zlh.val[1], zhh.val[1], neon_qvmq, t.val[0], 3);
-        ctbf_bri(v2.val[2], v2.val[3], zlh.val[1], zhh.val[1], neon_qvmq, t.val[1], 4);
-        ctbf_bri(v3.val[0], v3.val[1], zlh.val[1], zhh.val[1], neon_qvmq, t.val[2], 5);
-        ctbf_bri(v3.val[2], v3.val[3], zlh.val[1], zhh.val[1], neon_qvmq, t.val[3], 6);
+        ctbf_bri(v2.val[0], v2.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[0], 3);
+        ctbf_bri(v2.val[2], v2.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 4);
+        ctbf_bri(v3.val[0], v3.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 5);
+        ctbf_bri(v3.val[2], v3.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 6);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 2
         // Input:
@@ -275,24 +275,24 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
         vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
-        ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[0]);
-        ctbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qvmq, t.val[1]);
-        ctbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_qvmq, t.val[2]);
-        ctbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_qvmq, t.val[3]);
+        ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        ctbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        ctbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        ctbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
         vload_s16_x4(zl, &ntt_br[k]);
         vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
-        ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qvmq, t.val[0]);
-        ctbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qvmq, t.val[1]);
-        ctbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qvmq, t.val[2]);
-        ctbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qvmq, t.val[3]);
+        ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        ctbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        ctbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        ctbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 1: v0.val[0] x v0.val[2] | v0.val[1] x v0.val[3]
         // v0.val[0]: 0,  1,  2,  3  | 16, 17, 18, 19
@@ -313,20 +313,20 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
         vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
-        ctbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_qvmq, t.val[0]);
-        ctbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_qvmq, t.val[1]);
-        ctbf_br(v1.val[0], v1.val[2], zl.val[1], zh.val[1], neon_qvmq, t.val[2]);
-        ctbf_br(v1.val[1], v1.val[3], zl.val[1], zh.val[1], neon_qvmq, t.val[3]);
+        ctbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        ctbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[1]);
+        ctbf_br(v1.val[0], v1.val[2], zl.val[1], zh.val[1], neon_qmvq, t.val[2]);
+        ctbf_br(v1.val[1], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[3]);
 
-        ctbf_br(v2.val[0], v2.val[2], zl.val[2], zh.val[2], neon_qvmq, t.val[0]);
-        ctbf_br(v2.val[1], v2.val[3], zl.val[2], zh.val[2], neon_qvmq, t.val[1]);
-        ctbf_br(v3.val[0], v3.val[2], zl.val[3], zh.val[3], neon_qvmq, t.val[2]);
-        ctbf_br(v3.val[1], v3.val[3], zl.val[3], zh.val[3], neon_qvmq, t.val[3]);
+        ctbf_br(v2.val[0], v2.val[2], zl.val[2], zh.val[2], neon_qmvq, t.val[0]);
+        ctbf_br(v2.val[1], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[1]);
+        ctbf_br(v3.val[0], v3.val[2], zl.val[3], zh.val[3], neon_qmvq, t.val[2]);
+        ctbf_br(v3.val[1], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        barrett_x4(v0, t, neon_qvmq);
-        barrett_x4(v1, t, neon_qvmq);
-        barrett_x4(v2, t, neon_qvmq);
-        barrett_x4(v3, t, neon_qvmq);
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 0
         // v(0, 2 - 1, 3)
@@ -334,41 +334,42 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
         vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
-        ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qvmq, t.val[0]);
-        ctbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qvmq, t.val[1]);
-        ctbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_qvmq, t.val[2]);
-        ctbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_qvmq, t.val[3]);
+        ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        ctbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        ctbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        ctbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
         vload_s16_x4(zl, &ntt_br[k]);
         vload_s16_x4(zh, &ntt_qinv_br[k]);
         k += 32;
 
-        ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qvmq, t.val[0]);
-        ctbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qvmq, t.val[1]);
-        ctbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qvmq, t.val[2]);
-        ctbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qvmq, t.val[3]);
+        ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        ctbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        ctbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        ctbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
         if (mont)
         {
-            barmuli_const(v0.val[0], neon_qvmq, t.val[0]);
-            barmuli_const(v0.val[1], neon_qvmq, t.val[1]);
-            barmuli_const(v0.val[2], neon_qvmq, t.val[2]);
-            barmuli_const(v0.val[3], neon_qvmq, t.val[3]);
+            // Convert to Montgomery domain by multiply with FALCON_MONT
+            barmuli_const(v0.val[0], neon_qmvq, t.val[0]);
+            barmuli_const(v0.val[1], neon_qmvq, t.val[1]);
+            barmuli_const(v0.val[2], neon_qmvq, t.val[2]);
+            barmuli_const(v0.val[3], neon_qmvq, t.val[3]);
 
-            barmuli_const(v1.val[0], neon_qvmq, t.val[0]);
-            barmuli_const(v1.val[1], neon_qvmq, t.val[1]);
-            barmuli_const(v1.val[2], neon_qvmq, t.val[2]);
-            barmuli_const(v1.val[3], neon_qvmq, t.val[3]);
+            barmuli_const(v1.val[0], neon_qmvq, t.val[0]);
+            barmuli_const(v1.val[1], neon_qmvq, t.val[1]);
+            barmuli_const(v1.val[2], neon_qmvq, t.val[2]);
+            barmuli_const(v1.val[3], neon_qmvq, t.val[3]);
 
-            barmuli_const(v2.val[0], neon_qvmq, t.val[0]);
-            barmuli_const(v2.val[1], neon_qvmq, t.val[1]);
-            barmuli_const(v2.val[2], neon_qvmq, t.val[2]);
-            barmuli_const(v2.val[3], neon_qvmq, t.val[3]);
+            barmuli_const(v2.val[0], neon_qmvq, t.val[0]);
+            barmuli_const(v2.val[1], neon_qmvq, t.val[1]);
+            barmuli_const(v2.val[2], neon_qmvq, t.val[2]);
+            barmuli_const(v2.val[3], neon_qmvq, t.val[3]);
 
-            barmuli_const(v3.val[0], neon_qvmq, t.val[0]);
-            barmuli_const(v3.val[1], neon_qvmq, t.val[1]);
-            barmuli_const(v3.val[2], neon_qvmq, t.val[2]);
-            barmuli_const(v3.val[3], neon_qvmq, t.val[3]);
+            barmuli_const(v3.val[0], neon_qmvq, t.val[0]);
+            barmuli_const(v3.val[1], neon_qmvq, t.val[1]);
+            barmuli_const(v3.val[2], neon_qmvq, t.val[2]);
+            barmuli_const(v3.val[3], neon_qmvq, t.val[3]);
         }
 
         vstore_s16_4(&a[j], v0);
@@ -385,12 +386,10 @@ void neon_invNTT(int16_t a[FALCON_N])
     int16x8x4_t zl, zh, t;      // 12
     int16x8x2_t zlh, zhh;       // 4
     int16x8_t neon_qmvq;        // 1
-    int16x8_t neon_q;           // 1
-    neon_qmvq = vld1q_s16(qmvq);
-    neon_q = vdupq_n_s16(FALCON_Q);
 
+    neon_qmvq = vld1q_s16(qmvq);
     unsigned k = 0;
-    // TODO: add reduction between NTT level to avoid overflows
+    
     // Layer 0, 1, 2, 3, 4, 5, 6
     for (unsigned j = 0; j < FALCON_N; j += 128)
     {
@@ -409,19 +408,24 @@ void neon_invNTT(int16_t a[FALCON_N])
         k += 32;
 
         // 0 - 1, 2 - 3
-        gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_q, t.val[1]);
-        gsbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_q, t.val[2]);
-        gsbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_q, t.val[3]);
+        gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        gsbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        gsbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
         vload_s16_x4(zl, &invntt_br[k]);
         vload_s16_x4(zh, &invntt_qinv_br[k]);
         k += 32;
 
-        gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_q, t.val[1]);
-        gsbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_q, t.val[2]);
-        gsbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_q, t.val[3]);
+        gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        gsbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        gsbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
+
+        barrett_x2(v0, t, neon_qmvq, 0, 1);
+        barrett_x2(v1, t, neon_qmvq, 0, 1);
+        barrett_x2(v2, t, neon_qmvq, 0, 1);
+        barrett_x2(v3, t, neon_qmvq, 0, 1);
 
         // Layer 1
         // v0.val[0]: 0, 4, 8,  12 | 16, 20, 24, 28
@@ -434,15 +438,20 @@ void neon_invNTT(int16_t a[FALCON_N])
         vload_s16_x4(zh, &invntt_qinv_br[k]);
         k += 32;
 
-        gsbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        gsbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[1]);
-        gsbf_br(v1.val[0], v1.val[2], zl.val[1], zh.val[1], neon_q, t.val[2]);
-        gsbf_br(v1.val[1], v1.val[3], zl.val[1], zh.val[1], neon_q, t.val[3]);
+        gsbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[1]);
+        gsbf_br(v1.val[0], v1.val[2], zl.val[1], zh.val[1], neon_qmvq, t.val[2]);
+        gsbf_br(v1.val[1], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[3]);
 
-        gsbf_br(v2.val[0], v2.val[2], zl.val[2], zh.val[2], neon_q, t.val[0]);
-        gsbf_br(v2.val[1], v2.val[3], zl.val[2], zh.val[2], neon_q, t.val[1]);
-        gsbf_br(v3.val[0], v3.val[2], zl.val[3], zh.val[3], neon_q, t.val[2]);
-        gsbf_br(v3.val[1], v3.val[3], zl.val[3], zh.val[3], neon_q, t.val[3]);
+        gsbf_br(v2.val[0], v2.val[2], zl.val[2], zh.val[2], neon_qmvq, t.val[0]);
+        gsbf_br(v2.val[1], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[1]);
+        gsbf_br(v3.val[0], v3.val[2], zl.val[3], zh.val[3], neon_qmvq, t.val[2]);
+        gsbf_br(v3.val[1], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
+
+        barrett_x4(v0, t, neon_qmvq);
+        barrett_x4(v1, t, neon_qmvq);
+        barrett_x4(v2, t, neon_qmvq);
+        barrett_x4(v3, t, neon_qmvq);
 
         // Layer 2
         // Transpose
@@ -461,19 +470,24 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
         // 0 - 1, 2 - 3
 
-        gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_q, t.val[1]);
-        gsbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_q, t.val[2]);
-        gsbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_q, t.val[3]);
+        gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        gsbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        gsbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
         vload_s16_x4(zl, &invntt_br[k]);
         vload_s16_x4(zh, &invntt_qinv_br[k]);
         k += 32;
 
-        gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0]);
-        gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_q, t.val[1]);
-        gsbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_q, t.val[2]);
-        gsbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_q, t.val[3]);
+        gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        gsbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        gsbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
+
+        barrett(v0.val[1], t.val[0], neon_qmvq);
+        barrett(v1.val[1], t.val[1], neon_qmvq);
+        barrett(v2.val[1], t.val[2], neon_qmvq);
+        barrett(v3.val[1], t.val[3], neon_qmvq);
 
         // Layer 3
         // Re-arrange vector from
@@ -506,15 +520,20 @@ void neon_invNTT(int16_t a[FALCON_N])
         vload_s16_x2(zhh, &invntt_qinv_br[k]);
         k += 16;
 
-        gsbf_bri(v0.val[0], v0.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[0], 0);
-        gsbf_bri(v0.val[2], v0.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[1], 1);
-        gsbf_bri(v1.val[0], v1.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[2], 2);
-        gsbf_bri(v1.val[2], v1.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[3], 3);
+        gsbf_bri(v0.val[0], v0.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 0);
+        gsbf_bri(v0.val[2], v0.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 1);
+        gsbf_bri(v1.val[0], v1.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 2);
+        gsbf_bri(v1.val[2], v1.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 3);
 
-        gsbf_bri(v2.val[0], v2.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[0], 4);
-        gsbf_bri(v2.val[2], v2.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[1], 5);
-        gsbf_bri(v3.val[0], v3.val[1], zlh.val[0], zhh.val[0], neon_q, t.val[2], 6);
-        gsbf_bri(v3.val[2], v3.val[3], zlh.val[0], zhh.val[0], neon_q, t.val[3], 7);
+        gsbf_bri(v2.val[0], v2.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0], 4);
+        gsbf_bri(v2.val[2], v2.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1], 5);
+        gsbf_bri(v3.val[0], v3.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2], 6);
+        gsbf_bri(v3.val[2], v3.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[3], 7);
+
+        barrett_x3(v0, t, neon_qmvq, 0, 1, 2);
+        barrett_x3(v1, t, neon_qmvq, 0, 1, 2);
+        barrett_x3(v2, t, neon_qmvq, 0, 1, 2);
+        barrett_x3(v3, t, neon_qmvq, 0, 1, 2);
 
         // Layer 4
         // v0.val[0]: 0,  1,  2,  3  | 4,  5,  6,  7
@@ -523,41 +542,46 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v0.val[3]: 24, 25, 26, 27 | 28, 29, 30, 31
         // 0 - 2, 1 - 3
 
-        gsbf_bri(v0.val[0], v0.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[0], 0);
-        gsbf_bri(v0.val[1], v0.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[1], 0);
-        gsbf_bri(v1.val[0], v1.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 1);
-        gsbf_bri(v1.val[1], v1.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 1);
+        gsbf_bri(v0.val[0], v0.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[0], 0);
+        gsbf_bri(v0.val[1], v0.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 0);
+        gsbf_bri(v1.val[0], v1.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 1);
+        gsbf_bri(v1.val[1], v1.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 1);
 
-        gsbf_bri(v2.val[0], v2.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[0], 2);
-        gsbf_bri(v2.val[1], v2.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[1], 2);
-        gsbf_bri(v3.val[0], v3.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 3);
-        gsbf_bri(v3.val[1], v3.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 3);
+        gsbf_bri(v2.val[0], v2.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[0], 2);
+        gsbf_bri(v2.val[1], v2.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 2);
+        gsbf_bri(v3.val[0], v3.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 3);
+        gsbf_bri(v3.val[1], v3.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 3);
+
+        barrett_x3(v0, t, neon_qmvq, 1, 2, 3);
+        barrett_x3(v1, t, neon_qmvq, 1, 2, 3);
+        barrett_x3(v2, t, neon_qmvq, 1, 2, 3);
+        barrett_x3(v3, t, neon_qmvq, 1, 2, 3);
 
         // Layer 5
         // Cross block
         // v0.0->3 - v1.0->3
-        gsbf_bri(v0.val[0], v1.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 4);
-        gsbf_bri(v0.val[1], v1.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 4);
-        gsbf_bri(v0.val[2], v1.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 4);
-        gsbf_bri(v0.val[3], v1.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 4);
+        gsbf_bri(v0.val[0], v1.val[0], zlh.val[1], zhh.val[1], neon_qmvq, t.val[0], 4);
+        gsbf_bri(v0.val[1], v1.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 4);
+        gsbf_bri(v0.val[2], v1.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 4);
+        gsbf_bri(v0.val[3], v1.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 4);
 
-        gsbf_bri(v2.val[0], v3.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 5);
-        gsbf_bri(v2.val[1], v3.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 5);
-        gsbf_bri(v2.val[2], v3.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 5);
-        gsbf_bri(v2.val[3], v3.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 5);
+        gsbf_bri(v2.val[0], v3.val[0], zlh.val[1], zhh.val[1], neon_qmvq, t.val[0], 5);
+        gsbf_bri(v2.val[1], v3.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 5);
+        gsbf_bri(v2.val[2], v3.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 5);
+        gsbf_bri(v2.val[3], v3.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 5);
 
         // Layer 6
         // Cross block
         // v0.0->3 - v2.0->3
-        gsbf_bri(v0.val[0], v2.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 6);
-        gsbf_bri(v0.val[1], v2.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 6);
-        gsbf_bri(v0.val[2], v2.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 6);
-        gsbf_bri(v0.val[3], v2.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 6);
+        gsbf_bri(v0.val[0], v2.val[0], zlh.val[1], zhh.val[1], neon_qmvq, t.val[0], 6);
+        gsbf_bri(v0.val[1], v2.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 6);
+        gsbf_bri(v0.val[2], v2.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 6);
+        gsbf_bri(v0.val[3], v2.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 6);
 
-        gsbf_bri(v1.val[0], v3.val[0], zlh.val[1], zhh.val[1], neon_q, t.val[0], 6);
-        gsbf_bri(v1.val[1], v3.val[1], zlh.val[1], zhh.val[1], neon_q, t.val[1], 6);
-        gsbf_bri(v1.val[2], v3.val[2], zlh.val[1], zhh.val[1], neon_q, t.val[2], 6);
-        gsbf_bri(v1.val[3], v3.val[3], zlh.val[1], zhh.val[1], neon_q, t.val[3], 6);
+        gsbf_bri(v1.val[0], v3.val[0], zlh.val[1], zhh.val[1], neon_qmvq, t.val[0], 6);
+        gsbf_bri(v1.val[1], v3.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1], 6);
+        gsbf_bri(v1.val[2], v3.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2], 6);
+        gsbf_bri(v1.val[3], v3.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3], 6);
 
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 32], v1);
@@ -579,37 +603,37 @@ void neon_invNTT(int16_t a[FALCON_N])
 
         // Layer 7
         // v0 - v1, v2 - v3
-        gsbf_bri(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 0);
-        gsbf_bri(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 0);
-        gsbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 0);
-        gsbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 0);
+        gsbf_bri(v0.val[0], v1.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 0);
+        gsbf_bri(v0.val[1], v1.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 0);
+        gsbf_bri(v0.val[2], v1.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 0);
+        gsbf_bri(v0.val[3], v1.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 0);
 
-        gsbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 1);
-        gsbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 1);
-        gsbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
-        gsbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 1);
+        gsbf_bri(v2.val[0], v3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 1);
+        gsbf_bri(v2.val[1], v3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 1);
+        gsbf_bri(v2.val[2], v3.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 1);
+        gsbf_bri(v2.val[3], v3.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 1);
 
         // Layer 8
         // v0 - v2, v1 - v3
-        gsbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
-        gsbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
-        gsbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 2);
-        gsbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 2);
+        gsbf_bri(v0.val[0], v2.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 2);
+        gsbf_bri(v0.val[1], v2.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 2);
+        gsbf_bri(v0.val[2], v2.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 2);
+        gsbf_bri(v0.val[3], v2.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 2);
 
-        gsbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
-        gsbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
-        gsbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_q, t.val[2], 2);
-        gsbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_q, t.val[3], 2);
+        gsbf_bri(v1.val[0], v3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 2);
+        gsbf_bri(v1.val[1], v3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 2);
+        gsbf_bri(v1.val[2], v3.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 2);
+        gsbf_bri(v1.val[3], v3.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 2);
 
-        barmul_invntt(v0.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
-        barmul_invntt(v0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
-        barmul_invntt(v0.val[2], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
-        barmul_invntt(v0.val[3], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v0.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt(v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt(v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
 
-        barmul_invntt(v1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
-        barmul_invntt(v1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
-        barmul_invntt(v1.val[2], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
-        barmul_invntt(v1.val[3], zl.val[0], zh.val[0], neon_q, t.val[0], 3);
+        barmul_invntt(v1.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt(v1.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt(v1.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt(v1.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
 
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 128], v1);
@@ -635,51 +659,51 @@ void neon_invNTT(int16_t a[FALCON_N])
         // Layer 7
         // u0 - u1, u2 - u3
         // u4 - u5, u6 - u7
-        gsbf_bri(u0.val[0], u1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 0);
-        gsbf_bri(u0.val[1], u1.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 0);
-        gsbf_bri(u2.val[0], u3.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 1);
-        gsbf_bri(u2.val[1], u3.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 1);
+        gsbf_bri(u0.val[0], u1.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 0);
+        gsbf_bri(u0.val[1], u1.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 0);
+        gsbf_bri(u2.val[0], u3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 1);
+        gsbf_bri(u2.val[1], u3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 1);
 
-        gsbf_bri(u4.val[0], u5.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 2);
-        gsbf_bri(u4.val[1], u5.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 2);
-        gsbf_bri(u6.val[0], u7.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 3);
-        gsbf_bri(u6.val[1], u7.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 3);
+        gsbf_bri(u4.val[0], u5.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 2);
+        gsbf_bri(u4.val[1], u5.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 2);
+        gsbf_bri(u6.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 3);
+        gsbf_bri(u6.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 3);
 
         // Layer 8
         // u0 - u2, u1 - u3
         // u4 - u6, u5 - u7
-        gsbf_bri(u0.val[0], u2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 4);
-        gsbf_bri(u0.val[1], u2.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 4);
-        gsbf_bri(u1.val[0], u3.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 4);
-        gsbf_bri(u1.val[1], u3.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 4);
+        gsbf_bri(u0.val[0], u2.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 4);
+        gsbf_bri(u0.val[1], u2.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 4);
+        gsbf_bri(u1.val[0], u3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 4);
+        gsbf_bri(u1.val[1], u3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 4);
 
-        gsbf_bri(u4.val[0], u6.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 5);
-        gsbf_bri(u4.val[1], u6.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 5);
-        gsbf_bri(u5.val[0], u7.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 5);
-        gsbf_bri(u5.val[1], u7.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 5);
+        gsbf_bri(u4.val[0], u6.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 5);
+        gsbf_bri(u4.val[1], u6.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 5);
+        gsbf_bri(u5.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 5);
+        gsbf_bri(u5.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 5);
 
         // Layer 9
         // u0 - u4, u1 - u5
         // u2 - u6, u3 - u7
-        gsbf_bri(u0.val[0], u4.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 6);
-        gsbf_bri(u0.val[1], u4.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 6);
-        gsbf_bri(u1.val[0], u5.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 6);
-        gsbf_bri(u1.val[1], u5.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 6);
+        gsbf_bri(u0.val[0], u4.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 6);
+        gsbf_bri(u0.val[1], u4.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 6);
+        gsbf_bri(u1.val[0], u5.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 6);
+        gsbf_bri(u1.val[1], u5.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 6);
 
-        gsbf_bri(u2.val[0], u6.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 6);
-        gsbf_bri(u2.val[1], u6.val[1], zl.val[0], zh.val[0], neon_q, t.val[1], 6);
-        gsbf_bri(u3.val[0], u7.val[0], zl.val[0], zh.val[0], neon_q, t.val[2], 6);
-        gsbf_bri(u3.val[1], u7.val[1], zl.val[0], zh.val[0], neon_q, t.val[3], 6);
+        gsbf_bri(u2.val[0], u6.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 6);
+        gsbf_bri(u2.val[1], u6.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[1], 6);
+        gsbf_bri(u3.val[0], u7.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[2], 6);
+        gsbf_bri(u3.val[1], u7.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[3], 6);
 
-        barmul_invntt(u0.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        barmul_invntt(u0.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        barmul_invntt(u1.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        barmul_invntt(u1.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u0.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
+        barmul_invntt(u0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
+        barmul_invntt(u1.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
+        barmul_invntt(u1.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
 
-        barmul_invntt(u2.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        barmul_invntt(u2.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        barmul_invntt(u3.val[0], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
-        barmul_invntt(u3.val[1], zl.val[0], zh.val[0], neon_q, t.val[0], 7);
+        barmul_invntt(u2.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
+        barmul_invntt(u2.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
+        barmul_invntt(u3.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
+        barmul_invntt(u3.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 7);
 
         vstore_s16_x2(&a[j], u0);
         vstore_s16_x2(&a[j + 128], u1);
@@ -691,6 +715,8 @@ void neon_invNTT(int16_t a[FALCON_N])
         vstore_s16_x2(&a[j + 768], u6);
         vstore_s16_x2(&a[j + 896], u7);
     }
+
+    // TODO: write a symbolic script 
 #else
 #error "FALCON_N is either 512 or 1024"
 #endif
