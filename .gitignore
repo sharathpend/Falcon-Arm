@@ -23,3 +23,13 @@ neon-fpu-512/test_ntt
 neon-fpu-512/test/genroot
 neon-fpu-512/inv_ntt.coeffs
 neon-fpu-512/check_ntt
+neon-fpu-512/test/check_ntt
+neon-fpu-512/test/const-barrett-1
+neon-fpu-512/test/const-barrett-2
+neon-fpu-512/test/generate_root
+neon-fpu-512/test/generate_root_br
+neon-fpu-512/test/reduction_test
+neon-fpu-512/fwd_ntt.coeff
+neon-fpu-512/test/unsigned_red
+neon-fpu-512/ntt.coeffs
+neon-fpu-512/test/bla
