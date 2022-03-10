@@ -399,6 +399,60 @@ int test_kred_red()
     printf("min, max = %d, %d, |%f| [%d]\n", min, max, (float64_t)(max - min) / FALCON_Q, count);
     return 0;
 }
+
+int16_t csub(int16_t value)
+{
+    if (value > 0)
+    {
+        value -= FALCON_Q;
+        value += (value >> 15) & FALCON_Q;
+    }
+    else
+    {
+        value += FALCON_Q;
+        value -= (value >> 15) & FALCON_Q;
+    }
+        
+
+    return value;
+}
+
+
+int test_csub()
+{
+    printf("test_csub: ");
+    int16_t gold, test;
+    int16_t min = INT16_MAX, max = INT16_MIN;
+
+    int count = 0;
+    for (int16_t a = -FALCON_Q*2 + 1; a < INT16_MAX; ++a)
+    {
+        test = csub(a);
+        gold = a % FALCON_Q;
+
+        if (test < min)
+            min = test;
+        if (max < test)
+            max = test;
+
+        // printf("a %d -> gold, test = %d, %d\n", a, gold, test);
+
+        if ((gold != test) && (gold + FALCON_Q != test) && (gold - FALCON_Q != test))
+        {
+            printf("%d Error %d: %d != %d\n\n", count, a, gold, test);
+            return 1;
+        }
+        else
+        {
+            count++;
+        }
+    }
+
+    printf("OK\n");
+    printf("min, max = %d, %d, |%f| [%d]\n", min, max, (float64_t)(max - min) / FALCON_Q, count);
+    return 0;
+}
+
 int main()
 {
 
@@ -409,6 +463,7 @@ int main()
     ret |= test_barret_red();
     ret |= test_barrett_mul();
     ret |= test_kred_red();
+    // ret |= test_csub();
 
     if (ret)
         return 1;
