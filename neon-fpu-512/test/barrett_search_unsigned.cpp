@@ -185,6 +185,7 @@ int main()
 
     ret |= search_barrett_red();
     ret |= test_barrett_red(14, 28089, 0, 1, 0);
+    ret |= test_barrett_red(13, 21843, 1, 0, 1);
 
     if (ret)
         return 1;
@@ -194,7 +195,7 @@ int main()
 
 /*
 g++ -o barrett_search_unsigned barrett_search_unsigned.cpp -O3; ./barrett_search_unsigned
-TODO: Unsigned bound check q = 12289
+Unsigned bound check q = 12289
 
 DONE: Center around 0 bound check, q = 12289:
 test_montgomery_rounding: OK
