@@ -55,20 +55,25 @@ uint16_t barrett_simd(uint16_t a, int k, int ROUNDING, int SHIFT_ROUNDING, int S
 
 int search(uint16_t k, uint16_t (*func)(uint16_t, int, int, int, int), const char *string, int ROUNDING, int SHIFT_ROUNDING, int SHIFT_SIGNED, int verbose)
 {
-    if (verbose)
-        printf("test_barrett_reduction: %s\n", string);
+    // if (verbose)
+    //     printf("test_barrett_reduction: %s\n", string);
 
     uint16_t gold, test;
     int count = 0;
     uint16_t start, end;
     unsigned already_set = 0;
     unsigned already_print = 0;
+    uint16_t min = UINT16_MAX, max = 0;
 
     for (uint16_t i = 0; i < 5*FALCON_Q; i++)
     {
         gold = i % FALCON_Q;
         test = func(i, k, ROUNDING, SHIFT_ROUNDING, SHIFT_SIGNED);
 
+        if (test < min) min = test;
+        if (max < test) max = test;
+
+        // if ( (((uint16_t) gold + FALCON_Q) == test) || ( ((uint16_t)test + FALCON_Q) == gold) || (gold == test))
         if (gold == test)
         {
             // printf("%u : %u == %u\n\n", i & 0xffff, gold &0xffff, test & 0xffff);
@@ -85,7 +90,7 @@ int search(uint16_t k, uint16_t (*func)(uint16_t, int, int, int, int), const cha
             end = i;
             if (verbose)
             {
-                // printf("%u : %u != %u |%u|\n\n", i & 0xffff, gold &0xffff, test & 0xffff, (gold - test) & 0xffff);
+                printf("%u : %u != %u |%u|\n\n", i & 0xffff, gold &0xffff, test & 0xffff, (gold - test) & 0xffff);
                 if (!already_print)
                 {
                     printf("%d: %d -> %d | %d | \n", i, start, end, end - start);
@@ -97,7 +102,10 @@ int search(uint16_t k, uint16_t (*func)(uint16_t, int, int, int, int), const cha
     }
 
     if (verbose)
+    {
         printf("k = %d, count = %d\n", k, count);
+        printf("min = %d, max = %d\n\n", min, max);
+    }
     return count;
 }
 
@@ -162,16 +170,28 @@ int search_barrett_red()
         }
         printf("ROUNDING, SHIFT_ROUNDING, SHIFT_SIGNED = %d, %d, %d:\n", i, j, m);
         printf("11: score = %d [k = %d]\n", s11, k11);
+        test_barrett_red(11, k11, i, j, m);
+
         printf("12: score = %d [k = %d]\n", s12, k12);
+        test_barrett_red(12, k12, i, j, m);
+
         printf("13: score = %d [k = %d]\n", s13, k13);
+        test_barrett_red(13, k13, i, j, m);
+
         printf("14: score = %d [k = %d]\n", s14, k14);
+        test_barrett_red(14, k14, i, j, m);
+
         printf("15: score = %d [k = %d]\n", s15, k15);
+        test_barrett_red(15, k15, i, j, m);
+        
+        
         s11 = 0; k11 = 0;
         s12 = 0; k12 = 0;
         s13 = 0; k13 = 0;
         s14 = 0; k14 = 0;
         s15 = 0; k15 = 0;
     }
+
 
 
     return 0;
@@ -183,9 +203,10 @@ int main()
 
     int ret = 0;
 
-    ret |= search_barrett_red();
+    // ret |= search_barrett_red();
     ret |= test_barrett_red(14, 28089, 0, 1, 0);
-    ret |= test_barrett_red(13, 21843, 1, 0, 1);
+    // ret |= test_barrett_red(13, 21843, 0, 0, 1);
+    // ret |= test_barrett_red(14, 32767, 0, 0, 0);
 
     if (ret)
         return 1;
