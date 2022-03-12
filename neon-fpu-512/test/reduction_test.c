@@ -52,6 +52,7 @@ int16_t barrett_simd(int16_t a)
 
 /*
  * Output in [-Q/2, Q/2]
+ * R = 2**15
  * a in [-R, R]
  * c = a % Q => c in [-Q/2, Q/2]
  */
@@ -321,8 +322,9 @@ int16_t barrett_mul(int16_t a, int16_t b)
 
 /*
  * Output in range [-3Q/2, 3Q/2]
+ * R = 2^15
  * a in [-R, R]
- * b in [-Q/2, Q/2]
+ * b in [-Q, Q]
  * c = a * b => c in [-3Q/2, 3Q/2]
  */
 int test_barrett_mul()
@@ -334,7 +336,7 @@ int test_barrett_mul()
 
     for (int16_t a = INT16_MIN; a < INT16_MAX; a++)
     {
-        for (int16_t b = -FALCON_Q / 2; b < FALCON_Q; b++)
+        for (int16_t b = -FALCON_Q; b < FALCON_Q; b++)
         {
             gold = mul(a, b);
             test = barrett_mul(a, b);
@@ -344,13 +346,12 @@ int test_barrett_mul()
             if (max < test)
                 max = test;
 
-            // if ((gold != test) && (gold != test + FALCON_Q) && (gold != test - FALCON_Q))
-            if (gold != test)
+            if ((gold != test) && (gold != test + FALCON_Q) && (gold != test - FALCON_Q))
             {
                 printf("\n");
                 printf("Error %d * %d: %d != %d\n", b, a, gold, test);
                 printf("Error %d * %d: %d != %d\n", b, a, gold, test + FALCON_Q);
-                // return 1;
+                return 1;
             }
         }
     }
@@ -505,9 +506,9 @@ int main()
     int ret = 0;
 
     // ret |= test_montgomery_rounding();
-    ret |= test_montgomery_doubling();
+    // ret |= test_montgomery_doubling();
     // ret |= test_barret_red();
-    // ret |= test_barrett_mul();
+    ret |= test_barrett_mul();
     // ret |= test_kred_red();
     // ret |= test_csub();
 
