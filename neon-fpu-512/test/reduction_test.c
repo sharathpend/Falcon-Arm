@@ -77,7 +77,7 @@ int test_barret_red()
         }
     }
 
-    printf("OK\n");
+    printf("OK [%d -> %d]\n", INT16_MIN, INT16_MAX);
     printf("min, max = %d, %d\n", min, max);
     return 0;
 }
@@ -173,12 +173,12 @@ int test_montgomery_doubling()
                 already_set = 0;
                 all_true = 0;
 
-                break;
+                return 1;
             }
         }
         count += all_true;
     }
-    printf("OK\n");
+    printf("OK [%d -> %d] x [%d -> %d]\n", INT16_MIN, INT16_MAX, INT16_MIN, INT16_MAX);
 
     printf("count, min, max = %d, %d, %d\n", count, min, max);
     return 0;
@@ -283,12 +283,12 @@ int test_montgomery_rounding()
                 already_set = 0;
                 all_true = 0;
 
-                break;
+                return 1;
             }
         }
         count += all_true;
     }
-    printf("OK\n");
+    printf("OK [%d -> %d] x [%d -> %d]\n", INT16_MIN / 2 + 1, INT16_MAX / 2, -FALCON_Q / 2, FALCON_Q / 2);
 
     printf("count, min, max = %d, %d, %d\n", count, min, max);
     return 0;
@@ -355,7 +355,7 @@ int test_barrett_mul()
             }
         }
     }
-    printf("OK\n");
+    printf("OK [%d -> %d] x [%d -> %d]\n", INT16_MIN, INT16_MAX, -FALCON_Q, FALCON_Q);
 
     printf("min, max = %d, %d\n", min, max);
     return 0;
@@ -429,10 +429,7 @@ int test_kred_red()
         if (max < test)
             max = test;
 
-        // printf("a %d -> gold, test = %d, %d\n", a, gold, test);
-
-        // if ((gold != test) && (gold + FALCON_Q != test) && (gold - FALCON_Q != test))
-        if (gold != test)
+        if ((gold != test) && (gold + FALCON_Q != test) && (gold - FALCON_Q != test))
         {
             printf("%d Error %d: %d != %d\n\n", count, a, gold, test);
             return 1;
@@ -443,59 +440,7 @@ int test_kred_red()
         }
     }
 
-    printf("OK\n");
-    printf("min, max = %d, %d, |%f| [%d]\n", min, max, (float64_t)(max - min) / FALCON_Q, count);
-    return 0;
-}
-
-int16_t csub(int16_t value)
-{
-    if (value > 0)
-    {
-        value -= FALCON_Q;
-        value += (value >> 15) & FALCON_Q;
-    }
-    else
-    {
-        value += FALCON_Q;
-        value -= (value >> 15) & FALCON_Q;
-    }
-
-    return value;
-}
-
-int test_csub()
-{
-    printf("test_csub: ");
-    int16_t gold, test;
-    int16_t min = INT16_MAX, max = INT16_MIN;
-
-    int count = 0;
-    for (int16_t a = -FALCON_Q * 2 + 1; a < INT16_MAX; ++a)
-    {
-        test = csub(a);
-        gold = a % FALCON_Q;
-
-        if (test < min)
-            min = test;
-        if (max < test)
-            max = test;
-
-        // printf("a %d -> gold, test = %d, %d\n", a, gold, test);
-
-        // if ((gold != test) && (gold + FALCON_Q != test) && (gold - FALCON_Q != test))
-        if (gold != test)
-        {
-            printf("%d Error %d: %d != %d\n\n", count, a, gold, test);
-            return 1;
-        }
-        else
-        {
-            count++;
-        }
-    }
-
-    printf("OK\n");
+    printf("OK [%d -> %d]\n", INT16_MIN, INT16_MAX);
     printf("min, max = %d, %d, |%f| [%d]\n", min, max, (float64_t)(max - min) / FALCON_Q, count);
     return 0;
 }
@@ -505,12 +450,11 @@ int main()
 
     int ret = 0;
 
-    // ret |= test_montgomery_rounding();
-    // ret |= test_montgomery_doubling();
-    // ret |= test_barret_red();
+    ret |= test_montgomery_rounding();
+    ret |= test_montgomery_doubling();
+    ret |= test_barret_red();
     ret |= test_barrett_mul();
-    // ret |= test_kred_red();
-    // ret |= test_csub();
+    ret |= test_kred_red();
 
     if (ret)
         return 1;
@@ -520,12 +464,18 @@ int main()
 
 /*
 ❯ gcc -o reduction_test reduction_test.c -O3; ./reduction_test
-test_montgomery_rounding: OK
-min, max = -24568, 24568
-test_montgomery_doubling: OK
-min, max = -12285, 12288
-test_barrett_reduction: OK
+test_montgomery_rounding: OK [-16383 -> 16383] x [-6144 -> 6144]
+count, min, max = 32766, -24568, 24568
+
+test_montgomery_doubling: OK [-32768 -> 32767] x [-32768 -> 32767]
+count, min, max = 65535, -12285, 12288
+
+test_barrett_reduction: OK [-32768 -> 32767]
 min, max = -6145, 6145
-test_barrett_mul: OK
+
+test_barrett_mul: OK [-32768 -> 32767] x [-12289 -> 12289]
 min, max = -18431, 18430
+
+test_kred_red: OK [-32768 -> 32767]
+min, max = -12287, 12286, |1.999593| [65535]
  */
