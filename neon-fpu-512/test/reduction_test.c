@@ -121,17 +121,26 @@ int16_t montgomery_doubling(int16_t a, int16_t b)
 
 /*
  * Doubling work full range [-R, R]
+ * R = 2^15
  * a in [-R, R]
  * b in [-R, R]
- * c = a*b => c in [-R, R]
+ * c = a*b => c in [-Q, Q]
  */
 int test_montgomery_doubling()
 {
     printf("test_montgomery_doubling: ");
+
     int16_t gold, test;
+    unsigned count = 0, all_true;
+    int16_t start, end;
+    unsigned already_set = 0;
+    unsigned already_print = 0;
     int16_t min = INT16_MAX, max = INT16_MIN;
+    count = 0;
+
     for (int16_t a = INT16_MIN; a < INT16_MAX; a++)
     {
+        all_true = 1;
         for (int16_t b = INT16_MIN; b < INT16_MAX; b++)
         {
             gold = mul(a, b);
@@ -142,22 +151,35 @@ int test_montgomery_doubling()
             if (max < test)
                 max = test;
 
-            // gold = (gold + FALCON_Q) % FALCON_Q;
-            // test = (test + FALCON_Q) % FALCON_Q;
-
-            // if ((gold != test) && (gold != test + FALCON_Q))
-            if (gold != test)
+            if ((gold == test) || (gold == test + FALCON_Q) || (gold == test - FALCON_Q))
             {
-                printf("\n");
+                if (!already_set)
+                {
+                    start = b;
+                    already_set = 1;
+                    already_print = 0;
+                }
+            }
+            else
+            {
+                end = b;
                 printf("Error %d * %d: %d != %d\n", a, b, gold, test);
-                printf("Error %d * %d: %d != %d\n", a, b, gold, test + FALCON_Q);
-                // return 1;
+                if (!already_print)
+                {
+                    printf("%d, %d: %d -> %d |%d|\n", a, b, start, end - 1, end - start);
+                }
+                already_print = 1;
+                already_set = 0;
+                all_true = 0;
+
+                break;
             }
         }
+        count += all_true;
     }
     printf("OK\n");
-    printf("min, max = %d, %d\n", min, max);
 
+    printf("count, min, max = %d, %d, %d\n", count, min, max);
     return 0;
 }
 
@@ -239,7 +261,7 @@ int test_montgomery_rounding()
             if (max < test)
                 max = test;
 
-            if ((gold == test) || (gold == test + FALCON_Q) || (gold == test - FALCON_Q) || (gold == test + 2*FALCON_Q) || (gold == test - 2*FALCON_Q) )
+            if ((gold == test) || (gold == test + FALCON_Q) || (gold == test - FALCON_Q) || (gold == test + 2 * FALCON_Q) || (gold == test - 2 * FALCON_Q))
             {
                 if (!already_set)
                 {
@@ -312,7 +334,7 @@ int test_barrett_mul()
 
     for (int16_t a = INT16_MIN; a < INT16_MAX; a++)
     {
-        for (int16_t b = -FALCON_Q/2; b < FALCON_Q; b++)
+        for (int16_t b = -FALCON_Q / 2; b < FALCON_Q; b++)
         {
             gold = mul(a, b);
             test = barrett_mul(a, b);
@@ -338,7 +360,7 @@ int test_barrett_mul()
     return 0;
 }
 
-/* 
+/*
  * Conclusion: Barrett reduction is way better, 12 cycles compare with this: 16 cycles
  */
 int16_t kred_red(int16_t a)
@@ -359,10 +381,10 @@ int16_t kred_red(int16_t a)
     // printf("c1, c2 = %x, %x\n", c2 - c1 , -(c2 + c1));
     // return 4095*c2 - 4097*c1 + c0;
     // return 4095*(c2 - c1) + c0 - (c1 << 1);
-    return 4095*c2 - 4097*c1 + c0;
+    return 4095 * c2 - 4097 * c1 + c0;
     // return ((c2 - c1) << 12) + (-(c2 + c1)) + c0;
 
-    /* 
+    /*
      * Available instructions:
      * and: 3 - 2
      * sshr: 3 - 1
@@ -437,11 +459,9 @@ int16_t csub(int16_t value)
         value += FALCON_Q;
         value -= (value >> 15) & FALCON_Q;
     }
-        
 
     return value;
 }
-
 
 int test_csub()
 {
@@ -450,7 +470,7 @@ int test_csub()
     int16_t min = INT16_MAX, max = INT16_MIN;
 
     int count = 0;
-    for (int16_t a = -FALCON_Q*2 + 1; a < INT16_MAX; ++a)
+    for (int16_t a = -FALCON_Q * 2 + 1; a < INT16_MAX; ++a)
     {
         test = csub(a);
         gold = a % FALCON_Q;
@@ -484,8 +504,8 @@ int main()
 
     int ret = 0;
 
-    ret |= test_montgomery_rounding();
-    // ret |= test_montgomery_doubling();
+    // ret |= test_montgomery_rounding();
+    ret |= test_montgomery_doubling();
     // ret |= test_barret_red();
     // ret |= test_barrett_mul();
     // ret |= test_kred_red();
