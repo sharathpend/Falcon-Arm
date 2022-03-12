@@ -8,6 +8,13 @@ def reduce(array, start, end):
         array[i] = 1
         global_reduce += 1
 
+def reduce_signed(array, start, end):
+    global global_reduce
+    for i in range(start, end):
+        array[i][0] = -0.5
+        array[i][1] = 0.5
+        global_reduce += 1
+
 def printa(a, gap):
     count = 0
     for i, j in enumerate(a):
@@ -240,8 +247,10 @@ def check(a):
     for index, item in enumerate(a):
         i, j = item
         if i < -2.5 or i > 2.5 or j < -2.5 or j > 2.5:
-            print("[{}] = {},{}".format(index, i, j))
-            return False
+            # print("[{}] = {},{}".format(index, i, j))
+            print(f"{index}", end= ', ')
+            # return False
+    print()
     return True
 
 def ntt_signed(a):
@@ -257,7 +266,7 @@ def ntt_signed(a):
             while j < start + len:
                 bound = [-1.5, 1.5]
                 
-                a[j + len] = sub(a[j], bound)
+                a[j + len] = add(a[j], bound)
                 a[j] = add(a[j], bound)
                 
                 # print(a[j], bound, add(a[j], bound))
@@ -266,13 +275,46 @@ def ntt_signed(a):
             start = j + len
 
         if len == FALCON_N//2:
-            # print(a)
+            # check(a)
+            reduce_signed(a, 0, FALCON_N)
             pass
+
+        if len == FALCON_N//4:
+            reduce_signed(a, 0, FALCON_N)
+            pass
+
+        if len == FALCON_N//8:
+            reduce_signed(a, 0, FALCON_N)
+            pass
+
+        if len == FALCON_N//16:
+            reduce_signed(a, 0, FALCON_N)
+            # print(a)
         
+        if len == FALCON_N//32:
+            reduce_signed(a, 0, FALCON_N)
+            # print(a)
+
+        if len == FALCON_N//64:
+            # print(a)
+            reduce_signed(a, 0, FALCON_N)
+        
+        if len == FALCON_N//128:
+            # print(a)
+            reduce_signed(a, 0, FALCON_N)
+
+        if len == FALCON_N//256:
+            # print(a)
+            reduce_signed(a, 0, FALCON_N)
+        
+        if len == FALCON_N//512:
+            # print(a)
+            reduce_signed(a, 0, FALCON_N)
+            
         if len != 1:
             if check(a) != True:
-                print(a[:32])
-                print("stop at len = ", len)
+                # print(a[:4])
+                # print("stop at len = ", len)
                 return None
 
         layer += 1
@@ -283,3 +325,8 @@ def ntt_signed(a):
 global_reduce = 0
 a = [[-0.5, 0.5] for i in range(FALCON_N)]
 ntt_signed(a)
+
+# TODO: convert to Unsigned again. 
+# Create barrett for Unsigned 
+# Create Mont for Unsigned
+
