@@ -127,11 +127,6 @@
     a = vqrdmulhq_laneq_s16(a, zl, i);    \
     a = vmlsq_s16(t, a, Q);
 
-// #define barmul_const(a, zl, zh, Q, t) \
-//     t = vmulq_s16(a, zh);             \
-//     a = vqrdmulhq_s16(a, zl);         \
-//     a = vmlsq_s16(t, a, Q);
-
 #define barmuli_const(a, QMVM, t)        \
     t = vmulq_laneq_s16(a, QMVM, 6);     \
     a = vqrdmulhq_laneq_s16(a, QMVM, 2); \
@@ -212,24 +207,13 @@
     a.val[2] = vmlsq_laneq_s16(a.val[2], t.val[2], QV, 0); \
     a.val[3] = vmlsq_laneq_s16(a.val[3], t.val[3], QV, 0);
 
-#define barrett_x2(a, t, QV, i, j)                         \
-    t.val[i] = vqdmulhq_laneq_s16(a.val[i], QV, 4);        \
-    t.val[j] = vqdmulhq_laneq_s16(a.val[j], QV, 4);        \
-    t.val[i] = vrshrq_n_s16(t.val[i], 11);                 \
-    t.val[j] = vrshrq_n_s16(t.val[j], 11);                 \
-    a.val[i] = vmlsq_laneq_s16(a.val[i], t.val[i], QV, 0); \
-    a.val[j] = vmlsq_laneq_s16(a.val[j], t.val[j], QV, 0);
-
-#define barrett_x3(a, t, QV, i, j, k)                      \
-    t.val[i] = vqdmulhq_laneq_s16(a.val[i], QV, 4);        \
-    t.val[j] = vqdmulhq_laneq_s16(a.val[j], QV, 4);        \
-    t.val[k] = vqdmulhq_laneq_s16(a.val[k], QV, 4);        \
-    t.val[i] = vrshrq_n_s16(t.val[i], 11);                 \
-    t.val[j] = vrshrq_n_s16(t.val[j], 11);                 \
-    t.val[k] = vrshrq_n_s16(t.val[k], 11);                 \
-    a.val[i] = vmlsq_laneq_s16(a.val[i], t.val[i], QV, 0); \
-    a.val[j] = vmlsq_laneq_s16(a.val[j], t.val[j], QV, 0); \
-    a.val[k] = vmlsq_laneq_s16(a.val[k], t.val[k], QV, 0);
+#define barrett_x2(a, t, QV, i, j, m, n)                   \
+    t.val[m] = vqdmulhq_laneq_s16(a.val[i], QV, 4);        \
+    t.val[n] = vqdmulhq_laneq_s16(a.val[j], QV, 4);        \
+    t.val[m] = vrshrq_n_s16(t.val[m], 11);                 \
+    t.val[n] = vrshrq_n_s16(t.val[n], 11);                 \
+    a.val[i] = vmlsq_laneq_s16(a.val[i], t.val[m], QV, 0); \
+    a.val[j] = vmlsq_laneq_s16(a.val[j], t.val[n], QV, 0);
 
 // ------------ Matrix Transpose ------------
 /*
