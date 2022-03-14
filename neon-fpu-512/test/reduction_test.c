@@ -334,9 +334,21 @@ int test_barrett_mul()
     int16_t gold, test;
     int16_t min = INT16_MAX, max = INT16_MIN;
 
-    for (int16_t a = INT16_MIN; a < INT16_MAX; a++)
+    // const float factor = 2.5; // -> 1.44
+    // const float factor = 2.3; // -> 1.36
+    // const float factor = 0.5; // -> 0.69
+    // const float factor = 1.0; // -> 0.87
+    // const float factor = 2.0; // -> 1.25
+    // const float factor = 1.75;// -> 1.15
+    // const float factor = 1.15; // -> 0.93
+    // const float factor = 1.25; // -> 0.97
+    // const float factor = .87; // -> 0.83
+    const float factor = 1.2; // -> 0.95
+    
+    // for (int16_t a = INT16_MIN; a < INT16_MAX; a++) // 1.5
+    for (int16_t a = -FALCON_Q*factor + 1; a < FALCON_Q*factor; a++)
     {
-        for (int16_t b = -FALCON_Q; b < FALCON_Q; b++)
+        for (int16_t b = -FALCON_Q/2 + 1; b < FALCON_Q/2; b++)
         {
             gold = mul(a, b);
             test = barrett_mul(a, b);
@@ -357,7 +369,7 @@ int test_barrett_mul()
     }
     printf("OK [%d -> %d] x [%d -> %d]\n", INT16_MIN, INT16_MAX, -FALCON_Q, FALCON_Q);
 
-    printf("min, max = %d, %d\n", min, max);
+    printf("min, max = %d, %d | %f |\n", min, max, (float) (max)/FALCON_Q);
     return 0;
 }
 
