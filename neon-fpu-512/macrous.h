@@ -128,6 +128,28 @@
     a = vqrdmulhq_laneq_s16(a, zh, i);    \
     a = vmlsq_laneq_s16(t, a, Q, 0);
 
+#define barmul_invntt_x2(a, zl, zh, Q, t, i)              \
+    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);          \
+    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);          \
+    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);      \
+    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);      \
+    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], Q, 0); \
+    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], Q, 0);
+
+#define barmul_invntt_x4(a, zl, zh, Q, t, i)              \
+    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);          \
+    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);          \
+    t.val[2] = vmulq_laneq_s16(a.val[2], zl, i);          \
+    t.val[3] = vmulq_laneq_s16(a.val[3], zl, i);          \
+    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);      \
+    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);      \
+    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], zh, i);      \
+    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], zh, i);      \
+    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], Q, 0); \
+    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], Q, 0); \
+    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], Q, 0); \
+    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], Q, 0);
+
 #define barmuli_const(a, QMVM, t)        \
     t = vmulq_laneq_s16(a, QMVM, 2);     \
     a = vqrdmulhq_laneq_s16(a, QMVM, 6); \
