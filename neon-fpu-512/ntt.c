@@ -399,25 +399,10 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
         if (mont)
         {
             // Convert to Montgomery domain by multiply with FALCON_MONT
-            barmuli_const(v0.val[0], neon_qmvq, t.val[0]);
-            barmuli_const(v0.val[1], neon_qmvq, t.val[1]);
-            barmuli_const(v0.val[2], neon_qmvq, t.val[2]);
-            barmuli_const(v0.val[3], neon_qmvq, t.val[3]);
-
-            barmuli_const(v1.val[0], neon_qmvq, t.val[0]);
-            barmuli_const(v1.val[1], neon_qmvq, t.val[1]);
-            barmuli_const(v1.val[2], neon_qmvq, t.val[2]);
-            barmuli_const(v1.val[3], neon_qmvq, t.val[3]);
-
-            barmuli_const(v2.val[0], neon_qmvq, t.val[0]);
-            barmuli_const(v2.val[1], neon_qmvq, t.val[1]);
-            barmuli_const(v2.val[2], neon_qmvq, t.val[2]);
-            barmuli_const(v2.val[3], neon_qmvq, t.val[3]);
-
-            barmuli_const(v3.val[0], neon_qmvq, t.val[0]);
-            barmuli_const(v3.val[1], neon_qmvq, t.val[1]);
-            barmuli_const(v3.val[2], neon_qmvq, t.val[2]);
-            barmuli_const(v3.val[3], neon_qmvq, t.val[3]);
+            barmuli_const_x4(v0, neon_qmvq, t);
+            barmuli_const_x4(v1, neon_qmvq, t);
+            barmuli_const_x4(v2, neon_qmvq, t);
+            barmuli_const_x4(v3, neon_qmvq, t);
         }
 
         vstore_s16_4(&a[j], v0);

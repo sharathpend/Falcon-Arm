@@ -129,9 +129,23 @@
     a = vmlsq_laneq_s16(t, a, Q, 0);
 
 #define barmuli_const(a, QMVM, t)        \
-    t = vmulq_laneq_s16(a, QMVM, 6);     \
-    a = vqrdmulhq_laneq_s16(a, QMVM, 2); \
+    t = vmulq_laneq_s16(a, QMVM, 2);     \
+    a = vqrdmulhq_laneq_s16(a, QMVM, 6); \
     a = vmlsq_laneq_s16(t, a, QMVM, 0);
+
+#define barmuli_const_x4(a, QMVM, t)                         \
+    t.val[0] = vmulq_laneq_s16(a.val[0], QMVM, 2);           \
+    t.val[1] = vmulq_laneq_s16(a.val[1], QMVM, 2);           \
+    t.val[2] = vmulq_laneq_s16(a.val[2], QMVM, 2);           \
+    t.val[3] = vmulq_laneq_s16(a.val[3], QMVM, 2);           \
+    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 6);       \
+    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 6);       \
+    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 6);       \
+    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 6);       \
+    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVM, 0); \
+    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVM, 0); \
+    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVM, 0); \
+    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVM, 0);
 
 /*
  * CT Butterfly with Montgomery *Rounding* reduction
