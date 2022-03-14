@@ -7,6 +7,7 @@
 
 /* 
  * Assume Input in the range [-Q/2, Q/2]
+ * Total Barrett point for N = 512, 1024: 2048, 4096
  */
 void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
 {
@@ -428,6 +429,7 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont)
 
 /* 
  * Assume input in range [-Q, Q]
+ * Total Barrett point N = 512, 1024: 1792, 3840
  */
 void neon_invNTT(int16_t a[FALCON_N])
 {
@@ -1068,6 +1070,7 @@ void neon_invNTT(int16_t a[FALCON_N])
 /*
  * Reduce a small signed integer modulo q. The source integer MUST
  * be between -q/2 and +q/2.
+ * TODO: remove this function 
  */
 extern inline uint32_t
 mq_conv_small(int x)
@@ -1081,7 +1084,6 @@ mq_conv_small(int x)
     y += Q & -(y >> 31);
     return y;
 }
-
 /*
  * Subtraction modulo q. Operands must be in the 0..q-1 range.
  */

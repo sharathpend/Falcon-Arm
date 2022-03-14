@@ -45,6 +45,7 @@
 
 #define vstore_s16_x4(addr, c) vst1q_s16_x4(addr, c);
 #define vstore_s16_x2(addr, c) vst1q_s16_x2(addr, c);
+#define vstore_s16_4(add, c) vst4q_s16(add, c);
 
 /*
  * Strategy for NTT:

@@ -1,6 +1,9 @@
 #ifndef NTT_H
 #define NTT_H
 
+#include "config.h"
+
+
 /*
  * Constants for NTT.
  *
@@ -17,9 +20,11 @@
 #define R 4091
 #define R2 10952
 
-void mq_NTT(uint16_t *a, unsigned logn);
+// void mq_NTT(uint16_t *a, unsigned logn);
+void neon_fwdNTT(int16_t a[FALCON_N], const char mont);
 
-void mq_iNTT(uint16_t *a, unsigned logn);
+// void mq_iNTT(uint16_t *a, unsigned logn);
+void neon_invNTT(int16_t a[FALCON_N]);
 
 extern inline uint32_t
 mq_conv_small(int x);
@@ -27,8 +32,8 @@ mq_conv_small(int x);
 extern inline uint32_t
 mq_div_12289(uint32_t x, uint32_t y);
 
-extern inline uint32_t
-mq_sub(uint32_t x, uint32_t y);
+// extern inline uint32_t
+// mq_sub(uint32_t x, uint32_t y);
 
 void mq_poly_tomonty(uint16_t *f, unsigned logn);
 
