@@ -11,6 +11,19 @@
 #define R 4091
 #define R2 10952
 
+int16_t barrett_reduce(int16_t a)
+{
+    int16_t t;
+    const int sl = 25;
+    const int sr = 26;
+    const int16_t v = ((1 << sr) + FALCON_Q / 2) / FALCON_Q;
+
+    t = ((int32_t)v * a + (1 << sl)) >> sr;
+    t *= FALCON_Q;
+    return a - t;
+}
+
+
 /*
  * Division by 2 modulo q. Operand must be in the 0..q-1 range.
  */
@@ -481,12 +494,13 @@ int16_t center_q(uint16_t a)
     return c;
 }
 
-void print_array(uint16_t *a, int bound)
+void print_array(int16_t *a, int bound)
 {
     for (int i = 0; i < bound; i++)
     {
-        printf("%u,", a[i] & 0xffff);
+        printf("%d,", center_q(a[i]));
     }
+    printf("\n");
 }
 
 int compare_array(uint16_t *a, int16_t *b, int bound)
@@ -512,7 +526,7 @@ int compare_array_int(int16_t *a, int16_t *b, int bound)
     {
         a[i] %= FALCON_Q;
         b[i] %= FALCON_Q;
-        if (a[i] != b[i])
+        if ( (a[i] != b[i]) && (a[i] + FALCON_Q != b[i]) && (a[i] - FALCON_Q != b[i]) )
         {
             printf("ERROR %d: %d != %d\n", i, a[i], b[i]);
             return 1;
@@ -539,25 +553,47 @@ void ntt_rewrite_forward(int16_t a[FALCON_N])
             zeta = ntt1024_br[k];
             for (j = start; j < start + len; ++j)
             {
+                /* 
+                if (len == 256)
+                {
+                    if (j < 16)
+                    {
+                    printf("%d: [%6d  %6d] | [%d] | ", len, a[j], a[j+len], k);
+                    }
+                } */
+                
                 t = ((int32_t)zeta * a[j + len]) % Q;
+                // t = center_q(t);
                 a[j + len] = (a[j] - t) % Q;
                 a[j] = (a[j] + t) % Q;
-
-                // if (j < 128)
-                // printf("%d: [%d  %d] | %d = *%d\n", len, j, j+len, k, zeta);
+                // t = barrett_reduce((int32_t)zeta * a[j + len]);
+                // a[j + len] = barrett_reduce(a[j] - t);
+                // a[j] = barrett_reduce(a[j] + t);
+                // barrett_reduce
+                /* 
+                if (len == 256)
+                {
+                    if (j < 16)
+                    {
+                    printf("[%6d  %6d] | %d = %d\n", a[j], a[j+len], zeta, t);
+                    }
+                } */
             }
             k++;
         }
-        printf("%d:\n", len);
-        for (int m = 0; m < 128; m+=8)
+        /* if (len == 256)
         {
-            for (int mm = 0; mm < 8; mm++)
+            printf("%d:\n", len);
+            for (int m = 0; m < 128; m+=8)
             {
-                printf("%6d, ", a[m + mm] % FALCON_Q);
+                for (int mm = 0; mm < 8; mm++)
+                {
+                    printf("%6d, ", a[m + mm] % FALCON_Q);
+                }
+                printf("\n");
             }
             printf("\n");
-        }
-        printf("\n");
+        } */
     }
 }
 
@@ -575,6 +611,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
 #endif
 
     k = FALCON_N-1;
+    const int distance = 123;
     for (len = 1; len < FALCON_N; len <<= 1)
     {
         for (start = 0; start < FALCON_N; start = j + len)
@@ -582,16 +619,48 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
             zeta = -ntt1024_br[k];
             for (j = start; j < start + len; ++j)
             {
+                
+                if (len == distance)
+                {
+                    if (j < 16)
+                    {
+                    printf("%d: [%6d  %6d] | [%d] | ", len, a[j], a[j+len], k);
+                    }
+                }
+
+
                 t = a[j];
                 a[j] = (t + a[j + len]) % Q;
                 w = (t - a[j + len]) % Q;
                 a[j + len] = ((int32_t)zeta * w) % Q;
 
-                // if (j < 128)
-                // printf("%d: [%d  %d] | %d = *%d\n", len, j, j+len, k+1, zeta);
+                a[j] = center_q(a[j]);
+                a[j + len] = center_q(a[j + len]);
+
+                
+                if (len == distance)
+                {
+                    if (j < 16)
+                    {
+                    printf("[%6d  %6d] | (%d) * %d\n", a[j], a[j+len], zeta, w);
+                    }
+                }
             }
             k--;
 
+        }
+        if (len == distance)
+        {
+            printf("%d:\n", len);
+            for (int m = 0; m < 16; m+=8)
+            {
+                for (int mm = 0; mm < 8; mm++)
+                {
+                    printf("%6d, ", a[m + mm]);
+                }
+                printf("\n");
+            }
+            printf("\n");
         }
     }
 
@@ -599,10 +668,21 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
     {
         a[j] = ((int32_t)f * a[j]) % Q;
     }
+    
+    // printf("%d:\n", len);
+    // for (int m = 0; m < 16; m+=8)
+    // {
+    //     for (int mm = 0; mm < 8; mm++)
+    //     {
+    //         printf("%6d, ", a[m + mm]);
+    //     }
+    //     printf("\n");
+    // }
+    // printf("\n");
 }
 
 
-#define TESTS 1
+#define TESTS 10000
 
 
 // TEST funciton
@@ -626,7 +706,6 @@ int test_ntt(void)
         if (compare_array(gold, test, FALCON_N))
             return 1;
     }
-
     return 0;
 }
 
@@ -660,16 +739,9 @@ int test_neon_ntt(void)
     int16_t temp;
     for (int k = 0; k < TESTS; k++)
     {
-        // for (uint16_t i = 0; i < FALCON_N; i++)
-        // {
-        //     temp = rand() % Q;
-        //     gold[i] = temp;
-        //     test[i] = center_q(temp);
-        // }
         for (int16_t i = 0; i < FALCON_N; i++)
         {
-            // temp = rand() % Q;
-            temp = i % FALCON_Q;
+            temp = rand() % Q;
             gold[i] = temp;
             test[i] = temp;
         }
@@ -677,10 +749,12 @@ int test_neon_ntt(void)
         ntt_rewrite_forward(gold);
         neon_fwdNTT(test, 0);
 
+        // print_array(gold, FALCON_N);
+        // print_array(test, FALCON_N);
+
         if (compare_array_int(gold, test, FALCON_N))
             return 1;
     }
-
     return 0;
 }
 
@@ -691,21 +765,19 @@ int test_neon_invntt()
     int16_t temp;
     for (int k = 0; k < TESTS; k++)
     {
-        // for (uint16_t i = 0; i < FALCON_N; i++)
-        // {
-        //     temp = rand() % Q;
-        //     gold[i] = temp;
-        //     test[i] = center_q(temp);
-        // }
         for (int16_t i = 0; i < FALCON_N; i++)
         {
             temp = rand() % Q;
+            // temp = i;
             gold[i] = temp;
             test[i] = temp;
         }
 
         ntt_rewrite_inverse(gold);
         neon_invNTT(test);
+
+        // print_array(gold, FALCON_N);
+        // print_array(test, FALCON_N);
 
         if (compare_array_int(gold, test, FALCON_N))
             return 1;
@@ -715,20 +787,24 @@ int test_neon_invntt()
 
 int main()
 {
+    srand(0);
     int ret = 0;
     printf("TEST for FALCON_N = %d\n", FALCON_N);
 
-    // ret |= test_ntt();
-    // if (!ret) printf("ntt_rewrite_forward is equal to mq_NTT\n");
-    // ret |= test_invntt();
-    // if (!ret) printf("ntt_rewrite_inverse is equal to mq_iNTT\n");
+    ret |= test_ntt();
+    if (!ret) printf("ntt_rewrite_forward is equal to mq_NTT\n");
+    ret |= test_invntt();
+    if (!ret) printf("ntt_rewrite_inverse is equal to mq_iNTT\n");
     ret |= test_neon_ntt();
-    if (!ret) printf("neon_fwdNTT is equal to mq_NTT\n");
-    // ret |= test_neon_invntt();
-    // if (!ret) printf("neon_invNTT is equal to mq_iNTT\n");
+    if (!ret) printf("neon_fwdNTT is equal to ntt_rewrite_forward\n");
+    ret |= test_neon_invntt();
+    if (!ret) printf("neon_invNTT is equal to ntt_rewrite_inverse\n");
 
     if (ret)
+    {
+        printf("ERROR\n");
         return 1;
+    }
 
     printf("OK\n");
     return 0;

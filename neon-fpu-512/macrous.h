@@ -97,15 +97,15 @@
 #define gsbf_br(a, b, zl, zh, Q, t) \
     t = vsubq_s16(a, b);            \
     a = vaddq_s16(a, b);            \
-    b = vmulq_s16(t, zh);           \
-    t = vqrdmulhq_s16(t, zl);       \
+    b = vmulq_s16(t, zl);           \
+    t = vqrdmulhq_s16(t, zh);       \
     b = vmlsq_laneq_s16(b, t, Q, 0);
 
 #define gsbf_bri(a, b, zl, zh, Q, t, i) \
     t = vsubq_s16(a, b);                \
     a = vaddq_s16(a, b);                \
-    b = vmulq_laneq_s16(t, zh, i);      \
-    t = vqrdmulhq_laneq_s16(t, zl, i);  \
+    b = vmulq_laneq_s16(t, zl, i);      \
+    t = vqrdmulhq_laneq_s16(t, zh, i);  \
     b = vmlsq_laneq_s16(b, t, Q, 0);
 
 /*
@@ -124,9 +124,9 @@
  * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
  */
 #define barmul_invntt(a, zl, zh, Q, t, i) \
-    t = vmulq_laneq_s16(a, zh, i);        \
-    a = vqrdmulhq_laneq_s16(a, zl, i);    \
-    a = vmlsq_s16(t, a, Q);
+    t = vmulq_laneq_s16(a, zl, i);        \
+    a = vqrdmulhq_laneq_s16(a, zh, i);    \
+    a = vmlsq_laneq_s16(t, a, Q, 0);
 
 #define barmuli_const(a, QMVM, t)        \
     t = vmulq_laneq_s16(a, QMVM, 6);     \
@@ -158,15 +158,15 @@
  * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
  */
 #define ctbf_br(a, b, zl, zh, Q, t)  \
-    t = vmulq_s16(b, zh);            \
-    b = vqrdmulhq_s16(b, zl);        \
+    t = vmulq_s16(b, zl);            \
+    b = vqrdmulhq_s16(b, zh);        \
     t = vmlsq_laneq_s16(t, b, Q, 0); \
     b = vsubq_s16(a, t);             \
     a = vaddq_s16(a, t);
 
 #define ctbf_bri(a, b, zl, zh, Q, t, i) \
-    t = vmulq_laneq_s16(b, zh, i);      \
-    b = vqrdmulhq_laneq_s16(b, zl, i);  \
+    t = vmulq_laneq_s16(b, zl, i);      \
+    b = vqrdmulhq_laneq_s16(b, zh, i);  \
     t = vmlsq_laneq_s16(t, b, Q, 0);    \
     b = vsubq_s16(a, t);                \
     a = vaddq_s16(a, t);

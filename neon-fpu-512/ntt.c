@@ -445,10 +445,10 @@ void neon_invNTT(int16_t a[FALCON_N])
     // Layer 0, 1, 2, 3, 4, 5, 6
     for (j = 0; j < FALCON_N; j += 128)
     {
-        vload_s16_x4(v0, &a[j]);
-        vload_s16_x4(v1, &a[j + 32]);
-        vload_s16_x4(v2, &a[j + 64]);
-        vload_s16_x4(v3, &a[j + 96]);
+        vload_s16_4(v0, &a[j]);
+        vload_s16_4(v1, &a[j + 32]);
+        vload_s16_4(v2, &a[j + 64]);
+        vload_s16_4(v3, &a[j + 96]);
 
         // Layer 0
         // v0.val[0]: 0, 4, 8,  12 | 16, 20, 24, 28
