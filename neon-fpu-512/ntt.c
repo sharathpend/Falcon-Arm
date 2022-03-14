@@ -735,8 +735,8 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v1: 1.75
         // v2: 1.25
         // v3: 1.25
-        barmul_invntt_x4(v0, zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
-        barmul_invntt_x4(v1, zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt_x4(v0, zl.val[0], zh.val[0], neon_qmvq, t, 3);
+        barmul_invntt_x4(v1, zl.val[0], zh.val[0], neon_qmvq, t, 3);
 
         // barmul_invntt(v0.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
         // barmul_invntt(v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
@@ -812,8 +812,8 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v1: 1
         // v2: .87
         // v3: .87
-        barmul_invntt_x4(v0, zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
-        barmul_invntt_x4(v1, zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
+        barmul_invntt_x4(v0, zl.val[0], zh.val[0], neon_qmvq, t, 3);
+        barmul_invntt_x4(v1, zl.val[0], zh.val[0], neon_qmvq, t, 3);
 
         // barmul_invntt(v0.val[0], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);
         // barmul_invntt(v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0], 3);

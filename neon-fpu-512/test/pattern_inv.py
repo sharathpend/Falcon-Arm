@@ -193,7 +193,7 @@ def gen_table79_invntt(zetas, n, twisted=None):
 table_invntt512_br = gen_table06_invntt(ntt512_br, 512)
 table_invntt512_br += gen_table79_invntt(ntt512_br, 512)
 
-table_invntt512_qinv_br = gen_table06_invntt(ntt512_br, 512)
+table_invntt512_qinv_br = gen_table06_invntt(ntt512_qinv_br, 512)
 table_invntt512_qinv_br += gen_table79_invntt(ntt512_qinv_br, 512)
 
 

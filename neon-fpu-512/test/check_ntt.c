@@ -611,7 +611,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
 #endif
 
     k = FALCON_N-1;
-    const int distance = 123;
+    const int distance = 123123;
     for (len = 1; len < FALCON_N; len <<= 1)
     {
         for (start = 0; start < FALCON_N; start = j + len)
@@ -622,7 +622,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
                 
                 if (len == distance)
                 {
-                    if (j < 16)
+                    if (j < 32)
                     {
                     printf("%d: [%6d  %6d] | [%d] | ", len, a[j], a[j+len], k);
                     }
@@ -640,7 +640,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
                 
                 if (len == distance)
                 {
-                    if (j < 16)
+                    if (j < 32)
                     {
                     printf("[%6d  %6d] | (%d) * %d\n", a[j], a[j+len], zeta, w);
                     }
@@ -652,7 +652,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
         if (len == distance)
         {
             printf("%d:\n", len);
-            for (int m = 0; m < 16; m+=8)
+            for (int m = 0; m < 32; m+=8)
             {
                 for (int mm = 0; mm < 8; mm++)
                 {
@@ -670,7 +670,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
     }
     
     // printf("%d:\n", len);
-    // for (int m = 0; m < 16; m+=8)
+    // for (int m = 0; m < 32; m+=8)
     // {
     //     for (int mm = 0; mm < 8; mm++)
     //     {
@@ -682,7 +682,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
 }
 
 
-#define TESTS 10000
+#define TESTS 100000
 
 
 // TEST funciton
@@ -719,6 +719,7 @@ int test_invntt()
         for (uint16_t i = 0; i < FALCON_N; i++)
         {
             temp = rand() % Q;
+            // temp = i;
             gold[i] = temp;
             test[i] = center_q(temp);
         }
