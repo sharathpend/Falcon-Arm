@@ -1106,7 +1106,7 @@ mq_div_12289(uint32_t x, uint32_t y)
      *   e16 = e15 + e10 = 6143
      *   e17 = 2 * e16 = 12286
      *   e18 = e17 + e0 = 12287
-     * 
+     *
      * Additions on exponents are converted to Montgomery
      * multiplications. We define all intermediate results as so
      * many local variables, and let the C compiler work out which
@@ -1144,68 +1144,71 @@ mq_div_12289(uint32_t x, uint32_t y)
 
 /*
  * Return f[] = f[]/g[] % 12289
+ * See assembly https://godbolt.org/z/G59vo4crY
  */
+
 void neon_div_12289(int16_t f[FALCON_N], const int16_t g[FALCON_N])
 {
-    // Total SIMD registers: 23 = 4 + 19
-    int16x8_t src, dst, neon_qmvm, t; // 4
-    int16x8_t y0, y1, y2, y3, y4, y5, y6, y7, y8, y9,
-        y10, y11, y12, y13, y14, y15, y16, y17, y18; // 19
+    // Total SIMD registers: 24 = 4 + 19 + 1
+    int16x8x4_t src, dst, t, k; // 4
+    int16x8x4_t y0, y1, y2, y3, y4, y5,
+        y6, y7, y8, y9, y10, y11, y12,
+        y13, y14, y15, y16, y17, y18; // 19
+    int16x8_t neon_qmvm;              // 1
 
     neon_qmvm = vld1q_s16(qmvq);
 
-    for (int i = 0; i < FALCON_N; i += 8)
+    for (int i = 0; i < FALCON_N; i += 32)
     {
-        // TODO: try x2, see assembly
         // Find y0 = g^12287
-        y0 = vld1q_s16(&g[i]);
+        vload_s16_x4(y0, &g[i]);
 
         // y0 = y0 * mont
-        barmuli_mont(y0, neon_qmvm, t);
+        barmuli_mont_x4(y0, neon_qmvm, t);
 
         // y1 = mq_montysqr(y0);
-        montmul(y1, y0, y0, neon_qmvm, t);
+        montmul_x4(y1, y0, y0, neon_qmvm, t, k);
         // y2 = mq_montymul(y1, y0);
-        montmul(y2, y1, y0, neon_qmvm, t);
+        montmul_x4(y2, y1, y0, neon_qmvm, t, k);
         // y3 = mq_montymul(y2, y1);
-        montmul(y3, y2, y1, neon_qmvm, t);
+        montmul_x4(y3, y2, y1, neon_qmvm, t, k);
         // y4 = mq_montysqr(y3);
-        montmul(y4, y3, y3, neon_qmvm, t);
+        montmul_x4(y4, y3, y3, neon_qmvm, t, k);
         // y5 = mq_montysqr(y4);
-        montmul(y5, y4, y4, neon_qmvm, t);
+        montmul_x4(y5, y4, y4, neon_qmvm, t, k);
         // y6 = mq_montysqr(y5);
-        montmul(y6, y5, y5, neon_qmvm, t);
+        montmul_x4(y6, y5, y5, neon_qmvm, t, k);
         // y7 = mq_montysqr(y6);
-        montmul(y7, y6, y6, neon_qmvm, t);
+        montmul_x4(y7, y6, y6, neon_qmvm, t, k);
         // y8 = mq_montysqr(y7);
-        montmul(y8, y7, y7, neon_qmvm, t);
+        montmul_x4(y8, y7, y7, neon_qmvm, t, k);
         // y9 = mq_montymul(y8, y2);
-        montmul(y9, y8, y2, neon_qmvm, t);
+        montmul_x4(y9, y8, y2, neon_qmvm, t, k);
         // y10 = mq_montymul(y9, y8);
-        montmul(y10, y9, y8, neon_qmvm, t);
+        montmul_x4(y10, y9, y8, neon_qmvm, t, k);
         // y11 = mq_montysqr(y10);
-        montmul(y11, y10, y10, neon_qmvm, t);
+        montmul_x4(y11, y10, y10, neon_qmvm, t, k);
         // y12 = mq_montysqr(y11);
-        montmul(y12, y11, y11, neon_qmvm, t);
+        montmul_x4(y12, y11, y11, neon_qmvm, t, k);
         // y13 = mq_montymul(y12, y9);
-        montmul(y13, y12, y9, neon_qmvm, t);
+        montmul_x4(y13, y12, y9, neon_qmvm, t, k);
         // y14 = mq_montysqr(y13);
-        montmul(y14, y13, y13, neon_qmvm, t);
+        montmul_x4(y14, y13, y13, neon_qmvm, t, k);
         // y15 = mq_montysqr(y14);
-        montmul(y15, y14, y14, neon_qmvm, t);
+        montmul_x4(y15, y14, y14, neon_qmvm, t, k);
         // y16 = mq_montymul(y15, y10);
-        montmul(y16, y15, y10, neon_qmvm, t);
+        montmul_x4(y16, y15, y10, neon_qmvm, t, k);
         // y17 = mq_montysqr(y16);
-        montmul(y17, y16, y16, neon_qmvm, t);
+        montmul_x4(y17, y16, y16, neon_qmvm, t, k);
 
-        src = vld1q_s16(&f[i]);
+        vload_s16_x4(src, &f[i]);
 
         // y18 = mq_montymul(y17, y0);
-        montmul(y18, y17, y10, neon_qmvm, t);
+        montmul_x4(y18, y17, y10, neon_qmvm, t, k);
         // mq_montymul(y18, x)
-        montmul(dst, y18, src, neon_qmvm, t);
+        montmul_x4(dst, y18, src, neon_qmvm, t, k);
 
-        vst1q_s16(&f[i], dst);
+        vstore_s16_x4(&f[i], dst);
     }
 }
 
