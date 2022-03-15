@@ -26,19 +26,26 @@ void neon_fwdNTT(int16_t a[FALCON_N], const char mont);
 // void mq_iNTT(uint16_t *a, unsigned logn);
 void neon_invNTT(int16_t a[FALCON_N]);
 
-extern inline uint32_t
-mq_conv_small(int x);
+// extern inline uint32_t
+// mq_conv_small(int x);
+void neon_conv_small(int16_t out[FALCON_N], int8_t in[FALCON_N]);
 
-extern inline uint32_t
-mq_div_12289(uint32_t x, uint32_t y);
+// extern inline uint32_t
+// mq_div_12289(uint32_t x, uint32_t y);
+void neon_div_12289(int16_t f[FALCON_N], const int16_t g[FALCON_N]);
 
 // extern inline uint32_t
 // mq_sub(uint32_t x, uint32_t y);
 
-void mq_poly_tomonty(uint16_t *f, unsigned logn);
+// void mq_poly_tomonty(uint16_t *f, unsigned logn);
 
-void mq_poly_montymul_ntt(uint16_t *f, const uint16_t *g, unsigned logn);
 
-void mq_poly_sub(uint16_t *f, const uint16_t *g, unsigned logn);
+uint16_t neon_compare_with_zero(int16_t f[FALCON_N]);
+
+// void mq_poly_montymul_ntt(uint16_t *f, const uint16_t *g, unsigned logn);
+void neon_poly_montymul_ntt(int16_t *f, const int16_t *g);
+
+// void mq_poly_sub(uint16_t *f, const uint16_t *g, unsigned logn);
+void neon_poly_sub_barrett(int16_t *f, const int16_t *g);
 
 #endif
