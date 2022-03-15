@@ -67,95 +67,89 @@
  * Doubling because
  * - Montgomery Doubling work with two unknown coefficient, no constaint at all
  * => c = a*b. a,b in [-R, R] c in [-Q, Q]
+ * TODO: update this document
  */
 
 // ------------ Forward NTT and Inverse NTT ------------
-/*
- * GS Butterfly with Montgomery *Rounding* reduction
- * Input: a, b < R/2
- * Output: c in [-q, q], c = a * (2bR^-1)
- */
-#define gsbf_mt(a, b, zl, zh, N, t) \
-    t = vsubq_s16(a, b);            \
-    a = vaddq_s16(a, b);            \
-    b = vqrdmulhq_s16(t, zl);       \
-    t = vmulq_s16(t, zh);           \
-    b = vqrdmlahq_s16(b, t, N);
-
-#define gsbf_mti(a, b, zl, zh, N, t, i) \
-    t = vsubq_s16(a, b);                \
-    a = vaddq_s16(a, b);                \
-    b = vqrdmulhq_laneq_s16(t, zl, i);  \
-    t = vmulq_laneq_s16(t, zh, i);      \
-    b = vqrdmlahq_s16(b, t, N);
-
 /*
  * GS Butterfly with Barrett *Rounding* reduction
  * Input: a in [-R, R], zl = w, zh = precomp_w, N, t
  * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
  */
-#define gsbf_br(a, b, zl, zh, Q, t) \
-    t = vsubq_s16(a, b);            \
-    a = vaddq_s16(a, b);            \
-    b = vmulq_s16(t, zl);           \
-    t = vqrdmulhq_s16(t, zh);       \
-    b = vmlsq_laneq_s16(b, t, Q, 0);
+#define gsbf_br(a, b, zl, zh, QMVQ, t) \
+    t = vsubq_s16(a, b);               \
+    a = vaddq_s16(a, b);               \
+    b = vmulq_s16(t, zl);              \
+    t = vqrdmulhq_s16(t, zh);          \
+    b = vmlsq_laneq_s16(b, t, QMVQ, 0);
 
-#define gsbf_bri(a, b, zl, zh, Q, t, i) \
-    t = vsubq_s16(a, b);                \
-    a = vaddq_s16(a, b);                \
-    b = vmulq_laneq_s16(t, zl, i);      \
-    t = vqrdmulhq_laneq_s16(t, zh, i);  \
-    b = vmlsq_laneq_s16(b, t, Q, 0);
+#define gsbf_bri(a, b, zl, zh, i, QMVQ, t) \
+    t = vsubq_s16(a, b);                   \
+    a = vaddq_s16(a, b);                   \
+    b = vmulq_laneq_s16(t, zl, i);         \
+    t = vqrdmulhq_laneq_s16(t, zh, i);     \
+    b = vmlsq_laneq_s16(b, t, QMVQ, 0);
 
-/*
- * Montgomery multiplication via *Rounding* use only for Inverse NTT
- * Input: a, b, bNinv, Q
- * Output: c = ab * R^-1
- */
-#define montmul_invntt(a, zl, zh, Q, t, i) \
-    a = vqrdmulhq_laneq_s16(a, zl, i);     \
-    t = vmulq_laneq_s16(a, zh, i);         \
-    a = vqrdmlahq_s16(a, t, Q);
+#define gsbf_bri_x4(a, b, zl, zh, i0, i1, i2, i3, QMVQ, t)   \
+    t.val[0] = vsubq_s16(a.val[0], b.val[0]);                \
+    t.val[1] = vsubq_s16(a.val[1], b.val[1]);                \
+    t.val[2] = vsubq_s16(a.val[2], b.val[2]);                \
+    t.val[3] = vsubq_s16(a.val[3], b.val[3]);                \
+    a.val[0] = vaddq_s16(a.val[0], b.val[0]);                \
+    a.val[1] = vaddq_s16(a.val[1], b.val[1]);                \
+    a.val[2] = vaddq_s16(a.val[2], b.val[2]);                \
+    a.val[3] = vaddq_s16(a.val[3], b.val[3]);                \
+    b.val[0] = vmulq_laneq_s16(t.val[0], zl, i0);            \
+    b.val[1] = vmulq_laneq_s16(t.val[1], zl, i1);            \
+    b.val[2] = vmulq_laneq_s16(t.val[2], zl, i2);            \
+    b.val[3] = vmulq_laneq_s16(t.val[3], zl, i3);            \
+    t.val[0] = vqrdmulhq_laneq_s16(t.val[0], zh, i0);        \
+    t.val[1] = vqrdmulhq_laneq_s16(t.val[1], zh, i1);        \
+    t.val[2] = vqrdmulhq_laneq_s16(t.val[2], zh, i2);        \
+    t.val[3] = vqrdmulhq_laneq_s16(t.val[3], zh, i3);        \
+    b.val[0] = vmlsq_laneq_s16(b.val[0], t.val[0], QMVQ, 0); \
+    b.val[1] = vmlsq_laneq_s16(b.val[1], t.val[1], QMVQ, 0); \
+    b.val[2] = vmlsq_laneq_s16(b.val[2], t.val[2], QMVQ, 0); \
+    b.val[3] = vmlsq_laneq_s16(b.val[3], t.val[3], QMVQ, 0);
 
 /*
  * Barrett multiplication via *Rounding* use for Inverse NTT
  * Input: a, b, zl, zh, Q. a in [-R, R]
  * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
  */
-#define barmul_invntt(a, zl, zh, Q, t, i) \
-    t = vmulq_laneq_s16(a, zl, i);        \
-    a = vqrdmulhq_laneq_s16(a, zh, i);    \
-    a = vmlsq_laneq_s16(t, a, Q, 0);
+#define barmul_invntt(a, zl, zh, i, QMVQ, t) \
+    t = vmulq_laneq_s16(a, zl, i);           \
+    a = vqrdmulhq_laneq_s16(a, zh, i);       \
+    a = vmlsq_laneq_s16(t, a, QMVQ, 0);
 
-#define barmul_invntt_x2(a, zl, zh, Q, t, i)              \
-    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);          \
-    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);          \
-    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);      \
-    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);      \
-    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], Q, 0); \
-    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], Q, 0);
+#define barmul_invntt_x2(a, zl, zh, i, QMVQ, t)              \
+    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);             \
+    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);             \
+    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);         \
+    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);         \
+    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVQ, 0); \
+    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVQ, 0);
 
-#define barmul_invntt_x4(a, zl, zh, Q, t, i)              \
-    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);          \
-    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);          \
-    t.val[2] = vmulq_laneq_s16(a.val[2], zl, i);          \
-    t.val[3] = vmulq_laneq_s16(a.val[3], zl, i);          \
-    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);      \
-    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);      \
-    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], zh, i);      \
-    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], zh, i);      \
-    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], Q, 0); \
-    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], Q, 0); \
-    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], Q, 0); \
-    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], Q, 0);
+#define barmul_invntt_x4(a, zl, zh, i, QMVQ, t)              \
+    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);             \
+    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);             \
+    t.val[2] = vmulq_laneq_s16(a.val[2], zl, i);             \
+    t.val[3] = vmulq_laneq_s16(a.val[3], zl, i);             \
+    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);         \
+    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);         \
+    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], zh, i);         \
+    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], zh, i);         \
+    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVQ, 0); \
+    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVQ, 0); \
+    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVQ, 0); \
+    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVQ, 0);
 
-#define barmuli_const(a, QMVM, t)        \
+#define barmuli_mont(a, QMVM, t)         \
     t = vmulq_laneq_s16(a, QMVM, 2);     \
     a = vqrdmulhq_laneq_s16(a, QMVM, 6); \
     a = vmlsq_laneq_s16(t, a, QMVM, 0);
 
-#define barmuli_const_x4(a, QMVM, t)                         \
+#define barmuli_mont_x4(a, QMVM, t)                          \
     t.val[0] = vmulq_laneq_s16(a.val[0], QMVM, 2);           \
     t.val[1] = vmulq_laneq_s16(a.val[1], QMVM, 2);           \
     t.val[2] = vmulq_laneq_s16(a.val[2], QMVM, 2);           \
@@ -170,54 +164,58 @@
     a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVM, 0);
 
 /*
- * CT Butterfly with Montgomery *Rounding* reduction
- * Input: a, b < R/2
- * Output: c in [-q, q], c = a * (2bR^-1)
- */
-#define ctbf_mt(a, b, zl, zh, Q, t) \
-    t = vqrdmulhq_s16(b, zl);       \
-    b = vmulq_s16(b, zh);           \
-    t = vqrdmlahq_s16(t, b, Q);     \
-    b = vsubq_s16(a, t);            \
-    a = vaddq_s16(a, t);
-
-#define ctbf_mti(a, b, zl, zh, Q, t, i) \
-    t = vqrdmulhq_laneq_s16(b, zl, i);  \
-    b = vmulq_laneq_s16(b, zh, i);      \
-    t = vqrdmlahq_s16(t, b, Q);         \
-    b = vsubq_s16(a, t);                \
-    a = vaddq_s16(a, t);
-
-/*
  * CT Butterfly with Barrett *Rounding* reduction
  * Input: a in [-R, R], zl = w, zh = precomp_w, N, t
  * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
  */
-#define ctbf_br(a, b, zl, zh, Q, t)  \
-    t = vmulq_s16(b, zl);            \
-    b = vqrdmulhq_s16(b, zh);        \
-    t = vmlsq_laneq_s16(t, b, Q, 0); \
-    b = vsubq_s16(a, t);             \
-    a = vaddq_s16(a, t);
-
-#define ctbf_bri(a, b, zl, zh, Q, t, i) \
-    t = vmulq_laneq_s16(b, zl, i);      \
-    b = vqrdmulhq_laneq_s16(b, zh, i);  \
-    t = vmlsq_laneq_s16(t, b, Q, 0);    \
+#define ctbf_br(a, b, zl, zh, QMVQ, t)  \
+    t = vmulq_s16(b, zl);               \
+    b = vqrdmulhq_s16(b, zh);           \
+    t = vmlsq_laneq_s16(t, b, QMVQ, 0); \
     b = vsubq_s16(a, t);                \
     a = vaddq_s16(a, t);
+
+#define ctbf_bri(a, b, zl, zh, i, QMVQ, t) \
+    t = vmulq_laneq_s16(b, zl, i);         \
+    b = vqrdmulhq_laneq_s16(b, zh, i);     \
+    t = vmlsq_laneq_s16(t, b, QMVQ, 0);    \
+    b = vsubq_s16(a, t);                   \
+    a = vaddq_s16(a, t);
+
+#define ctbf_bri_x4(a, b, zl, zh, i0, i1, i2, i3, QMVQ, t)   \
+    t.val[0] = vmulq_laneq_s16(b.val[0], zl, i0);            \
+    t.val[1] = vmulq_laneq_s16(b.val[1], zl, i1);            \
+    t.val[2] = vmulq_laneq_s16(b.val[2], zl, i2);            \
+    t.val[3] = vmulq_laneq_s16(b.val[3], zl, i3);            \
+    b.val[0] = vqrdmulhq_laneq_s16(b.val[0], zh, i0);        \
+    b.val[1] = vqrdmulhq_laneq_s16(b.val[1], zh, i1);        \
+    b.val[2] = vqrdmulhq_laneq_s16(b.val[2], zh, i2);        \
+    b.val[3] = vqrdmulhq_laneq_s16(b.val[3], zh, i3);        \
+    t.val[0] = vmlsq_laneq_s16(t.val[0], b.val[0], QMVQ, 0); \
+    t.val[1] = vmlsq_laneq_s16(t.val[1], b.val[1], QMVQ, 0); \
+    t.val[2] = vmlsq_laneq_s16(t.val[2], b.val[2], QMVQ, 0); \
+    t.val[3] = vmlsq_laneq_s16(t.val[3], b.val[3], QMVQ, 0); \
+    b.val[0] = vsubq_s16(a.val[0], t.val[0]);                \
+    b.val[1] = vsubq_s16(a.val[1], t.val[1]);                \
+    b.val[2] = vsubq_s16(a.val[2], t.val[2]);                \
+    b.val[3] = vsubq_s16(a.val[3], t.val[3]);                \
+    a.val[0] = vaddq_s16(a.val[0], t.val[0]);                \
+    a.val[1] = vaddq_s16(a.val[1], t.val[1]);                \
+    a.val[2] = vaddq_s16(a.val[2], t.val[2]);                \
+    a.val[3] = vaddq_s16(a.val[3], t.val[3]);
 
 // ------------ Pointwise Multiplication ------------
 /*
  * Montgomery multiplication via *Doubling*
  * Input: a, b, bNinv, Q
  * Output: c = ab * R^-1
+ * TODO: update this
  */
-#define montmul(c, a, b, t, Q, Qinv) \
-    c = vqdmulhq_s16(a, b);          \
-    t = vmulq_s16(b, Qinv);          \
-    t = vmulq_s16(a, t);             \
-    t = vqdmulhq_s16(t, Q);          \
+#define montmul(c, a, b, QMVM, t)       \
+    c = vqdmulhq_s16(a, b);             \
+    t = vmulq_laneq_s16(b, QMVM, 1);    \
+    t = vmulq_s16(a, t);                \
+    t = vqdmulhq_laneq_s16(t, QMVM, 0); \
     c = vhsubq_u16(c, t);
 
 // ------------ Barrett Reduction ------------
@@ -225,32 +223,32 @@
  * Barrett reduction, return [-Q/2, Q/2]
  * `v` = 5461, `n` = 11
  */
-#define barrett(a, t, QV)             \
-    t = vqdmulhq_laneq_s16(a, QV, 4); \
-    t = vrshrq_n_s16(t, 11);          \
-    a = vmlsq_laneq_s16(a, t, QV, 0);
+#define barrett(a, QMVQ, t)             \
+    t = vqdmulhq_laneq_s16(a, QMVQ, 4); \
+    t = vrshrq_n_s16(t, 11);            \
+    a = vmlsq_laneq_s16(a, t, QMVQ, 0);
 
-#define barrett_x4(a, t, QV)                               \
-    t.val[0] = vqdmulhq_laneq_s16(a.val[0], QV, 4);        \
-    t.val[1] = vqdmulhq_laneq_s16(a.val[1], QV, 4);        \
-    t.val[2] = vqdmulhq_laneq_s16(a.val[2], QV, 4);        \
-    t.val[3] = vqdmulhq_laneq_s16(a.val[3], QV, 4);        \
-    t.val[0] = vrshrq_n_s16(t.val[0], 11);                 \
-    t.val[1] = vrshrq_n_s16(t.val[1], 11);                 \
-    t.val[2] = vrshrq_n_s16(t.val[2], 11);                 \
-    t.val[3] = vrshrq_n_s16(t.val[3], 11);                 \
-    a.val[0] = vmlsq_laneq_s16(a.val[0], t.val[0], QV, 0); \
-    a.val[1] = vmlsq_laneq_s16(a.val[1], t.val[1], QV, 0); \
-    a.val[2] = vmlsq_laneq_s16(a.val[2], t.val[2], QV, 0); \
-    a.val[3] = vmlsq_laneq_s16(a.val[3], t.val[3], QV, 0);
+#define barrett_x2(a, i, j, m, n, QMVQ, t)                   \
+    t.val[m] = vqdmulhq_laneq_s16(a.val[i], QMVQ, 4);        \
+    t.val[n] = vqdmulhq_laneq_s16(a.val[j], QMVQ, 4);        \
+    t.val[m] = vrshrq_n_s16(t.val[m], 11);                   \
+    t.val[n] = vrshrq_n_s16(t.val[n], 11);                   \
+    a.val[i] = vmlsq_laneq_s16(a.val[i], t.val[m], QMVQ, 0); \
+    a.val[j] = vmlsq_laneq_s16(a.val[j], t.val[n], QMVQ, 0);
 
-#define barrett_x2(a, t, QV, i, j, m, n)                   \
-    t.val[m] = vqdmulhq_laneq_s16(a.val[i], QV, 4);        \
-    t.val[n] = vqdmulhq_laneq_s16(a.val[j], QV, 4);        \
-    t.val[m] = vrshrq_n_s16(t.val[m], 11);                 \
-    t.val[n] = vrshrq_n_s16(t.val[n], 11);                 \
-    a.val[i] = vmlsq_laneq_s16(a.val[i], t.val[m], QV, 0); \
-    a.val[j] = vmlsq_laneq_s16(a.val[j], t.val[n], QV, 0);
+#define barrett_x4(a, QMVQ, t)                               \
+    t.val[0] = vqdmulhq_laneq_s16(a.val[0], QMVQ, 4);        \
+    t.val[1] = vqdmulhq_laneq_s16(a.val[1], QMVQ, 4);        \
+    t.val[2] = vqdmulhq_laneq_s16(a.val[2], QMVQ, 4);        \
+    t.val[3] = vqdmulhq_laneq_s16(a.val[3], QMVQ, 4);        \
+    t.val[0] = vrshrq_n_s16(t.val[0], 11);                   \
+    t.val[1] = vrshrq_n_s16(t.val[1], 11);                   \
+    t.val[2] = vrshrq_n_s16(t.val[2], 11);                   \
+    t.val[3] = vrshrq_n_s16(t.val[3], 11);                   \
+    a.val[0] = vmlsq_laneq_s16(a.val[0], t.val[0], QMVQ, 0); \
+    a.val[1] = vmlsq_laneq_s16(a.val[1], t.val[1], QMVQ, 0); \
+    a.val[2] = vmlsq_laneq_s16(a.val[2], t.val[2], QMVQ, 0); \
+    a.val[3] = vmlsq_laneq_s16(a.val[3], t.val[3], QMVQ, 0);
 
 // ------------ Matrix Transpose ------------
 /*
