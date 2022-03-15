@@ -2,7 +2,7 @@
 
 #define PADDING 0
 
-extern const int16_t qmvq[8] = {FALCON_Q, FALCON_Q,
+extern const int16_t qmvq[8] = {FALCON_Q, FALCON_QINV,
                                 FALCON_MONT, FALCON_MONT,
                                 FALCON_V, FALCON_V,
                                 FALCON_MONT_QINV, FALCON_MONT_QINV};
