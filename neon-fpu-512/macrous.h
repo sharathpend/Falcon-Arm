@@ -216,7 +216,29 @@
     t = vmulq_laneq_s16(b, QMVM, 1);    \
     t = vmulq_s16(a, t);                \
     t = vqdmulhq_laneq_s16(t, QMVM, 0); \
-    c = vhsubq_u16(c, t);
+    c = vhsubq_s16(c, t);
+
+#define montmul_x4(z, a, b, QMVM, t, k)               \
+    z.val[0] = vqdmulhq_s16(a.val[0], b.val[0]);      \
+    z.val[1] = vqdmulhq_s16(a.val[1], b.val[1]);      \
+    z.val[2] = vqdmulhq_s16(a.val[2], b.val[2]);      \
+    z.val[3] = vqdmulhq_s16(a.val[3], b.val[3]);      \
+    t.val[0] = vmulq_laneq_s16(b.val[0], QMVM, 1);    \
+    t.val[1] = vmulq_laneq_s16(b.val[1], QMVM, 1);    \
+    t.val[2] = vmulq_laneq_s16(b.val[2], QMVM, 1);    \
+    t.val[3] = vmulq_laneq_s16(b.val[3], QMVM, 1);    \
+    k.val[0] = vmulq_s16(a.val[0], t.val[0]);         \
+    k.val[1] = vmulq_s16(a.val[1], t.val[1]);         \
+    k.val[2] = vmulq_s16(a.val[2], t.val[2]);         \
+    k.val[3] = vmulq_s16(a.val[3], t.val[3]);         \
+    t.val[0] = vqdmulhq_laneq_s16(k.val[0], QMVM, 0); \
+    t.val[1] = vqdmulhq_laneq_s16(k.val[1], QMVM, 0); \
+    t.val[2] = vqdmulhq_laneq_s16(k.val[2], QMVM, 0); \
+    t.val[3] = vqdmulhq_laneq_s16(k.val[3], QMVM, 0); \
+    z.val[0] = vhsubq_s16(z.val[0], t.val[0]);        \
+    z.val[1] = vhsubq_s16(z.val[1], t.val[1]);        \
+    z.val[2] = vhsubq_s16(z.val[2], t.val[2]);        \
+    z.val[3] = vhsubq_s16(z.val[3], t.val[3]);
 
 // ------------ Barrett Reduction ------------
 /*
