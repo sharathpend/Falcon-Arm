@@ -959,19 +959,59 @@ void neon_invNTT(int16_t a[FALCON_N])
  * Reduce a small signed integer modulo q. The source integer MUST
  * be between -q/2 and +q/2.
  * TODO: remove this function
+ * Input: int8_t
+ * Output: int16_t
  */
-extern inline uint32_t
-mq_conv_small(int x)
-{
-    /*
-     * If x < 0, the cast to uint32_t will set the high bit to 1.
-     */
-    uint32_t y;
+// extern inline uint32_t
+// mq_conv_small(int x)
+// {
+//     /*
+//      * If x < 0, the cast to uint32_t will set the high bit to 1.
+//      */
+//     uint32_t y;
 
-    y = (uint32_t)x;
-    y += Q & -(y >> 31);
-    return y;
+//     y = (uint32_t)x;
+//     y += Q & -(y >> 31);
+//     return y;
+// }
+
+void neon_conv_small(int16_t out[FALCON_N], int8_t in[FALCON_N])
+{
+    int16x8x4_t a, b, e, f;
+    int8x16x4_t c, d;
+
+    for (int i = 0; i < FALCON_N; i += 128)
+    {
+        c = vld1q_s8_x4(&in[i]);
+        d = vld1q_s8_x4(&in[i + 64]);
+
+        a.val[0] = vmovl_s8(vget_low_s8(c.val[0]));
+        a.val[2] = vmovl_s8(vget_low_s8(c.val[1]));
+        b.val[0] = vmovl_s8(vget_low_s8(c.val[2]));
+        b.val[2] = vmovl_s8(vget_low_s8(c.val[3]));
+
+        a.val[1] = vmovl_high_s8(c.val[0]);
+        a.val[3] = vmovl_high_s8(c.val[1]);
+        b.val[1] = vmovl_high_s8(c.val[2]);
+        b.val[3] = vmovl_high_s8(c.val[3]);
+
+        e.val[0] = vmovl_s8(vget_low_s8(d.val[0]));
+        e.val[2] = vmovl_s8(vget_low_s8(d.val[1]));
+        f.val[0] = vmovl_s8(vget_low_s8(d.val[2]));
+        f.val[2] = vmovl_s8(vget_low_s8(d.val[3]));
+
+        e.val[1] = vmovl_high_s8(d.val[0]);
+        e.val[3] = vmovl_high_s8(d.val[1]);
+        f.val[1] = vmovl_high_s8(d.val[2]);
+        f.val[3] = vmovl_high_s8(d.val[3]);
+
+        vst1q_s16_x4(&out[i], a);
+        vst1q_s16_x4(&out[i + 32], b);
+        vst1q_s16_x4(&out[i + 64], e);
+        vst1q_s16_x4(&out[i + 96], f);
+    }
 }
+
 /*
  * Subtraction modulo q. Operands must be in the 0..q-1 range.
  */
@@ -1066,7 +1106,7 @@ mq_div_12289(uint32_t x, uint32_t y)
      *   e16 = e15 + e10 = 6143
      *   e17 = 2 * e16 = 12286
      *   e18 = e17 + e0 = 12287
-     *
+     * 
      * Additions on exponents are converted to Montgomery
      * multiplications. We define all intermediate results as so
      * many local variables, and let the C compiler work out which
@@ -1103,46 +1143,236 @@ mq_div_12289(uint32_t x, uint32_t y)
 }
 
 /*
- * Convert a polynomial (mod q) to Montgomery representation.
+ * Return f[] = f[]/g[] % 12289
  */
-void mq_poly_tomonty(uint16_t *f, unsigned logn)
+void neon_div_12289(int16_t f[FALCON_N], const int16_t g[FALCON_N])
 {
-    size_t u, n;
+    // Total SIMD registers: 23 = 4 + 19
+    int16x8_t src, dst, neon_qmvm, t; // 4
+    int16x8_t y0, y1, y2, y3, y4, y5, y6, y7, y8, y9,
+        y10, y11, y12, y13, y14, y15, y16, y17, y18; // 19
 
-    n = (size_t)1 << logn;
-    for (u = 0; u < n; u++)
+    neon_qmvm = vld1q_s16(qmvq);
+
+    for (int i = 0; i < FALCON_N; i += 8)
     {
-        f[u] = (uint16_t)mq_montymul(f[u], R2);
+        // TODO: try x2, see assembly
+        // Find y0 = g^12287
+        y0 = vld1q_s16(&g[i]);
+
+        // y0 = y0 * mont
+        barmuli_mont(y0, neon_qmvm, t);
+
+        // y1 = mq_montysqr(y0);
+        montmul(y1, y0, y0, neon_qmvm, t);
+        // y2 = mq_montymul(y1, y0);
+        montmul(y2, y1, y0, neon_qmvm, t);
+        // y3 = mq_montymul(y2, y1);
+        montmul(y3, y2, y1, neon_qmvm, t);
+        // y4 = mq_montysqr(y3);
+        montmul(y4, y3, y3, neon_qmvm, t);
+        // y5 = mq_montysqr(y4);
+        montmul(y5, y4, y4, neon_qmvm, t);
+        // y6 = mq_montysqr(y5);
+        montmul(y6, y5, y5, neon_qmvm, t);
+        // y7 = mq_montysqr(y6);
+        montmul(y7, y6, y6, neon_qmvm, t);
+        // y8 = mq_montysqr(y7);
+        montmul(y8, y7, y7, neon_qmvm, t);
+        // y9 = mq_montymul(y8, y2);
+        montmul(y9, y8, y2, neon_qmvm, t);
+        // y10 = mq_montymul(y9, y8);
+        montmul(y10, y9, y8, neon_qmvm, t);
+        // y11 = mq_montysqr(y10);
+        montmul(y11, y10, y10, neon_qmvm, t);
+        // y12 = mq_montysqr(y11);
+        montmul(y12, y11, y11, neon_qmvm, t);
+        // y13 = mq_montymul(y12, y9);
+        montmul(y13, y12, y9, neon_qmvm, t);
+        // y14 = mq_montysqr(y13);
+        montmul(y14, y13, y13, neon_qmvm, t);
+        // y15 = mq_montysqr(y14);
+        montmul(y15, y14, y14, neon_qmvm, t);
+        // y16 = mq_montymul(y15, y10);
+        montmul(y16, y15, y10, neon_qmvm, t);
+        // y17 = mq_montysqr(y16);
+        montmul(y17, y16, y16, neon_qmvm, t);
+
+        src = vld1q_s16(&f[i]);
+
+        // y18 = mq_montymul(y17, y0);
+        montmul(y18, y17, y10, neon_qmvm, t);
+        // mq_montymul(y18, x)
+        montmul(dst, y18, src, neon_qmvm, t);
+
+        vst1q_s16(&f[i], dst);
     }
 }
 
-/*
- * Multiply two polynomials together (NTT representation, and using
- * a Montgomery multiplication). Result f*g is written over f.
- */
-void mq_poly_montymul_ntt(uint16_t *f, const uint16_t *g, unsigned logn)
-{
-    size_t u, n;
+// /*
+//  * Convert a polynomial (mod q) to Montgomery representation.
+//  */
+// void mq_poly_tomonty(uint16_t *f, unsigned logn)
+// {
+//     size_t u, n;
 
-    n = (size_t)1 << logn;
-    for (u = 0; u < n; u++)
+//     n = (size_t)1 << logn;
+//     for (u = 0; u < n; u++)
+//     {
+//         f[u] = (uint16_t)mq_montymul(f[u], R2);
+//     }
+// }
+
+// /*
+//  * Multiply two polynomials together (NTT representation, and using
+//  * a Montgomery multiplication). Result f*g is written over f.
+//  */
+// void mq_poly_montymul_ntt(uint16_t *f, const uint16_t *g, unsigned logn)
+// {
+//     size_t u, n;
+
+//     n = (size_t)1 << logn;
+//     for (u = 0; u < n; u++)
+//     {
+//         f[u] = (uint16_t)mq_montymul(f[u], g[u]);
+//     }
+// }
+
+void neon_poly_montymul_ntt(int16_t *f, const int16_t *g)
+{
+    // Total SIMD registers: 33 = 32 + 1
+    int16x8x4_t a, b, c, d, e, f, t, k; // 32
+    int16x8_t neon_qmvm;                // 1
+    neon_qmvm = vld1q_s16(qmvq);
+
+    for (int i = 0; i < FALCON_N; i += 64)
     {
-        f[u] = (uint16_t)mq_montymul(f[u], g[u]);
+        vload_s16_x4(a, &f[i]);
+        vload_s16_x4(b, &g[i]);
+        vload_s16_x4(c, &f[i + 32]);
+        vload_s16_x4(d, &g[i + 32]);
+
+        montmul_x4(e, a, b, neon_qmvm, t, k);
+        montmul_x4(f, c, d, neon_qmvm, t, k);
+
+        vstore_s16_x4(&f[i], e);
+        vstore_s16_x4(&f[i + 32], f);
     }
 }
 
 /*
  * Subtract polynomial g from polynomial f.
  */
-void mq_poly_sub(uint16_t *f, const uint16_t *g, unsigned logn)
-{
-    size_t u, n;
+// void mq_poly_sub(uint16_t *f, const uint16_t *g, unsigned logn)
+// {
+//     size_t u, n;
 
-    n = (size_t)1 << logn;
-    for (u = 0; u < n; u++)
+//     n = (size_t)1 << logn;
+//     for (u = 0; u < n; u++)
+//     {
+//         f[u] = (uint16_t)mq_sub(f[u], g[u]);
+//     }
+// }
+void neon_poly_sub_barrett(int16_t *f, const int16_t *g)
+{
+    // Total SIMD registers: 29 = 28 + 1
+    int16x8x4_t a, b, c, d, e, f, t; // 28
+    int16x8_t neon_qmvm;             // 1
+    neon_qmvm = vld1q_s16(qmvq);
+
+    for (int i = 0; i < FALCON_N; i += 64)
     {
-        f[u] = (uint16_t)mq_sub(f[u], g[u]);
+        vload_s16_x4(a, &f[i]);
+        vload_s16_x4(b, &g[i]);
+        vload_s16_x4(c, &f[i + 32]);
+        vload_s16_x4(d, &g[i + 32]);
+
+        e.val[0] = vsubq_s16(a.val[0], b.val[0]);
+        e.val[1] = vsubq_s16(a.val[1], b.val[1]);
+        e.val[2] = vsubq_s16(a.val[2], b.val[2]);
+        e.val[3] = vsubq_s16(a.val[3], b.val[3]);
+
+        f.val[0] = vsubq_s16(c.val[0], d.val[0]);
+        f.val[1] = vsubq_s16(c.val[1], d.val[1]);
+        f.val[2] = vsubq_s16(c.val[2], d.val[2]);
+        f.val[3] = vsubq_s16(c.val[3], d.val[3]);
+
+        barrett_x4(e, neon_qmvm, t);
+        barrett_x4(f, neon_qmvm, t);
+
+        vstore_s16_x4(&f[i], e);
+        vstore_s16_x4(&f[i + 32], f);
     }
+}
+
+/*
+ * Check f[] has 0
+ * Return:
+ * 1 if 0 in f[]
+ * otherwise, 0
+ */
+uint16_t neon_compare_with_zero(int16_t f[FALCON_N])
+{
+    // Total SIMD registers: 24
+    int16x8x4_t a, b;
+    uint16x8x4_t c, d, e, f;
+
+    vload_s16_x4(a, &f[0]);
+    vload_s16_x4(b, &f[32]);
+
+    e.val[0] = vceqzq_s16(a.val[0]);
+    e.val[1] = vceqzq_s16(a.val[1]);
+    e.val[2] = vceqzq_s16(a.val[2]);
+    e.val[3] = vceqzq_s16(a.val[3]);
+
+    f.val[0] = vceqzq_s16(b.val[0]);
+    f.val[1] = vceqzq_s16(b.val[1]);
+    f.val[2] = vceqzq_s16(b.val[2]);
+    f.val[3] = vceqzq_s16(b.val[3]);
+
+    for (int i = 64; i < FALCON_N; i += 64)
+    {
+        vload_s16_x4(a, &f[i]);
+        vload_s16_x4(b, &f[i + 32]);
+
+        // Compare bitwise Equal to zero (vector)
+        // a == 0 ? 1 : 0;
+        c.val[0] = vceqzq_s16(a.val[0]);
+        c.val[1] = vceqzq_s16(a.val[1]);
+        c.val[2] = vceqzq_s16(a.val[2]);
+        c.val[3] = vceqzq_s16(a.val[3]);
+
+        d.val[0] = vceqzq_s16(b.val[0]);
+        d.val[1] = vceqzq_s16(b.val[1]);
+        d.val[2] = vceqzq_s16(b.val[2]);
+        d.val[3] = vceqzq_s16(b.val[3]);
+
+        e.val[0] = vandq_u16(e.val[0], c.val[0]);
+        e.val[1] = vandq_u16(e.val[1], c.val[1]);
+        e.val[2] = vandq_u16(e.val[2], c.val[2]);
+        e.val[3] = vandq_u16(e.val[3], c.val[3]);
+
+        f.val[0] = vandq_u16(f.val[0], d.val[0]);
+        f.val[1] = vandq_u16(f.val[1], d.val[1]);
+        f.val[2] = vandq_u16(f.val[2], d.val[2]);
+        f.val[3] = vandq_u16(f.val[3], d.val[3]);
+    }
+
+    // Comparison tree
+    f.val[0] = vandq_u16(f.val[0], e.val[0]);
+    f.val[1] = vandq_u16(f.val[1], e.val[1]);
+    f.val[2] = vandq_u16(f.val[2], e.val[2]);
+    f.val[3] = vandq_u16(f.val[3], e.val[3]);
+
+    f.val[0] = vandq_u16(f.val[0], f.val[2]);
+    f.val[1] = vandq_u16(f.val[1], f.val[3]);
+
+    f.val[0] = vandq_u16(f.val[0], f.val[1]);
+
+    // Bitwise NOT
+    f.val[0] = vmvnq_u16(f.val[0]);
+
+    return vmaxvq_u16(f.val[0]);
 }
 
 /* ===================================================================== */
