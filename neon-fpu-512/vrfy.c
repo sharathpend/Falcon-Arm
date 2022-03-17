@@ -114,19 +114,9 @@ int Zf(complete_private)(int8_t *G, const int8_t *f,
 
     neon_invNTT(t1);
 
-    for (size_t u = 0; u < FALCON_N; u++)
+    if (neon_big_to_smallints(G, t1))
     {
-        uint32_t w;
-        int32_t gi;
-
-        w = t1[u];
-        w -= (Q & ~-((w - (Q >> 1)) >> 31));
-        gi = *(int32_t *)&w;
-        if (gi < -127 || gi > +127)
-        {
-            return 0;
-        }
-        G[u] = (int8_t)gi;
+        return 0;
     }
     return 1;
 }
@@ -138,7 +128,6 @@ int Zf(is_invertible)(const int16_t *s2, uint8_t *tmp)
     uint16_t r;
 
     memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
-
     neon_fwdNTT(tt, 0);
 
     r = neon_compare_with_zero(tt);
