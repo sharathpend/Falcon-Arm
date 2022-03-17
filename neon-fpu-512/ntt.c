@@ -1104,24 +1104,14 @@ void neon_poly_sub_barrett(int16_t *f, const int16_t *g)
  */
 uint16_t neon_compare_with_zero(int16_t f[FALCON_N])
 {
-    // Total SIMD registers: 24 = 16 + 8
-    int16x8x4_t a, b;          // 8
-    uint16x8x4_t c, d, e1, e2; // 16
+    // Total SIMD registers: 22 = 12 + 8 + 2
+    int16x8x4_t a, b;      // 8
+    uint16x8x4_t c, d, e1; // 12
+    uint16x8x2_t e2;       // 2
 
-    vload_s16_x4(a, &f[0]);
-    vload_s16_x4(b, &f[32]);
+    e2.val[1] = vdupq_n_u16(0);
 
-    e1.val[0] = vceqzq_s16(a.val[0]);
-    e1.val[1] = vceqzq_s16(a.val[1]);
-    e1.val[2] = vceqzq_s16(a.val[2]);
-    e1.val[3] = vceqzq_s16(a.val[3]);
-
-    e2.val[0] = vceqzq_s16(b.val[0]);
-    e2.val[1] = vceqzq_s16(b.val[1]);
-    e2.val[2] = vceqzq_s16(b.val[2]);
-    e2.val[3] = vceqzq_s16(b.val[3]);
-
-    for (int i = 64; i < FALCON_N; i += 64)
+    for (int i = 0; i < FALCON_N; i += 64)
     {
         vload_s16_x4(a, &f[i]);
         vload_s16_x4(b, &f[i + 32]);
@@ -1138,29 +1128,20 @@ uint16_t neon_compare_with_zero(int16_t f[FALCON_N])
         d.val[2] = vceqzq_s16(b.val[2]);
         d.val[3] = vceqzq_s16(b.val[3]);
 
-        e1.val[0] = vorrq_u16(e1.val[0], c.val[0]);
-        e1.val[1] = vorrq_u16(e1.val[1], c.val[1]);
-        e1.val[2] = vorrq_u16(e1.val[2], c.val[2]);
-        e1.val[3] = vorrq_u16(e1.val[3], c.val[3]);
+        e1.val[0] = vorrq_u16(d.val[0], c.val[0]);
+        e1.val[1] = vorrq_u16(d.val[1], c.val[1]);
+        e1.val[2] = vorrq_u16(d.val[2], c.val[2]);
+        e1.val[3] = vorrq_u16(d.val[3], c.val[3]);
 
-        e2.val[0] = vorrq_u16(e2.val[0], d.val[0]);
-        e2.val[1] = vorrq_u16(e2.val[1], d.val[1]);
-        e2.val[2] = vorrq_u16(e2.val[2], d.val[2]);
-        e2.val[3] = vorrq_u16(e2.val[3], d.val[3]);
+        e1.val[0] = vorrq_u16(e1.val[0], e1.val[2]);
+        e1.val[1] = vorrq_u16(e1.val[1], e1.val[3]);
+
+        e2.val[0] = vorrq_u16(e1.val[0], e1.val[1]);
+
+        e2.val[1] = vorrq_u16(e2.val[1], e2.val[0]);
     }
 
-    // Comparison tree
-    e1.val[0] = vorrq_u16(e1.val[0], e2.val[0]);
-    e1.val[1] = vorrq_u16(e1.val[1], e2.val[1]);
-    e1.val[2] = vorrq_u16(e1.val[2], e2.val[2]);
-    e1.val[3] = vorrq_u16(e1.val[3], e2.val[3]);
-
-    e1.val[0] = vorrq_u16(e1.val[0], e1.val[2]);
-    e1.val[1] = vorrq_u16(e1.val[1], e1.val[3]);
-
-    e1.val[0] = vorrq_u16(e1.val[0], e1.val[1]);
-
-    uint16_t ret = vmaxvq_u16(e1.val[0]);
+    uint16_t ret = vmaxvq_u16(e2.val[1]);
 
     return ret;
 }
@@ -1226,19 +1207,88 @@ void neon_poly_unsigned(int16_t f[FALCON_N])
         c[1].val[2] = (int16x8_t)vandq_u16(b[1].val[2], neon_q);
         c[1].val[3] = (int16x8_t)vandq_u16(b[1].val[3], neon_q);
 
-        c[0].val[0] = vaddq_s16(a[0].val[0], c[0].val[0]);
-        c[0].val[1] = vaddq_s16(a[0].val[1], c[0].val[1]);
-        c[0].val[2] = vaddq_s16(a[0].val[2], c[0].val[2]);
-        c[0].val[3] = vaddq_s16(a[0].val[3], c[0].val[3]);
-
-        c[1].val[0] = vaddq_s16(a[1].val[0], c[1].val[0]);
-        c[1].val[1] = vaddq_s16(a[1].val[1], c[1].val[1]);
-        c[1].val[2] = vaddq_s16(a[1].val[2], c[1].val[2]);
-        c[1].val[3] = vaddq_s16(a[1].val[3], c[1].val[3]);
+        vadd_x4(c[0], a[0], c[0]);
+        vadd_x4(c[1], a[1], c[1]);
 
         vstore_s16_x4(&f[i], c[0]);
         vstore_s16_x4(&f[i + 32], c[1]);
     }
+}
+
+int neon_big_to_smallints(int8_t G[FALCON_N], const int16_t t[FALCON_N])
+{
+    // Total SIMD registers: 32
+    int16x8x4_t a, f;              // 8
+    uint16x8x4_t c[2], d[2];       // 16
+    uint16x8x2_t e;                // 2
+    int8x16x4_t g;                 // 4
+    int16x8_t neon_127, neon__127; // 2
+    neon_127 = vdupq_n_s16(127);
+    neon__127 = vdupq_n_s16(-127);
+
+    e.val[1] = vdupq_n_u16(0);
+
+    for (int i = 0; i < FALCON_N; i += 64)
+    {
+        vload_s16_x4(a, &t[i]);
+        vload_s16_x4(f, &t[i + 32]);
+
+        g.val[0] = vmovn_high_s16(vmovn_s16(a.val[0]), a.val[1]);
+        g.val[1] = vmovn_high_s16(vmovn_s16(a.val[2]), a.val[3]);
+        g.val[2] = vmovn_high_s16(vmovn_s16(f.val[0]), f.val[1]);
+        g.val[3] = vmovn_high_s16(vmovn_s16(f.val[2]), f.val[3]);
+
+        vst1q_s8_x4(&G[i], g);
+
+        // -127 > a ? 1 : 0
+        c[0].val[0] = vcgtq_s16(neon__127, a.val[0]);
+        c[0].val[1] = vcgtq_s16(neon__127, a.val[1]);
+        c[0].val[2] = vcgtq_s16(neon__127, a.val[2]);
+        c[0].val[3] = vcgtq_s16(neon__127, a.val[3]);
+        // a > 127 ? 1 : 0
+        c[1].val[0] = vcgtq_s16(a.val[0], neon_127);
+        c[1].val[1] = vcgtq_s16(a.val[1], neon_127);
+        c[1].val[2] = vcgtq_s16(a.val[2], neon_127);
+        c[1].val[3] = vcgtq_s16(a.val[3], neon_127);
+
+        // -127 > f ? 1 : 0
+        d[0].val[0] = vcgtq_s16( neon__127, f.val[0]);
+        d[0].val[1] = vcgtq_s16( neon__127, f.val[1]);
+        d[0].val[2] = vcgtq_s16( neon__127, f.val[2]);
+        d[0].val[3] = vcgtq_s16( neon__127, f.val[3]);
+        // f > 127 ? 1 : 0
+        d[1].val[0] = vcgtq_s16(f.val[0], neon_127);
+        d[1].val[1] = vcgtq_s16(f.val[1], neon_127);
+        d[1].val[2] = vcgtq_s16(f.val[2], neon_127);
+        d[1].val[3] = vcgtq_s16(f.val[3], neon_127);
+
+        c[0].val[0] = vorrq_u16(c[0].val[0], c[1].val[0]);
+        c[0].val[1] = vorrq_u16(c[0].val[1], c[1].val[1]);
+        c[0].val[2] = vorrq_u16(c[0].val[2], c[1].val[2]);
+        c[0].val[3] = vorrq_u16(c[0].val[3], c[1].val[3]);
+
+        d[0].val[0] = vorrq_u16(d[0].val[0], d[1].val[0]);
+        d[0].val[1] = vorrq_u16(d[0].val[1], d[1].val[1]);
+        d[0].val[2] = vorrq_u16(d[0].val[2], d[1].val[2]);
+        d[0].val[3] = vorrq_u16(d[0].val[3], d[1].val[3]);
+
+        c[0].val[0] = vorrq_u16(c[0].val[0], d[0].val[0]);
+        c[0].val[2] = vorrq_u16(c[0].val[2], d[0].val[2]);
+        c[0].val[1] = vorrq_u16(c[0].val[1], d[0].val[1]);
+        c[0].val[3] = vorrq_u16(c[0].val[3], d[0].val[3]);
+
+        c[0].val[0] = vorrq_u16(c[0].val[0], c[0].val[2]);
+        c[0].val[1] = vorrq_u16(c[0].val[1], c[0].val[3]);
+
+        e.val[0] = vorrq_u16(c[0].val[0], c[0].val[1]);
+
+        e.val[1] = vorrq_u16(e.val[1], e.val[0]);
+    }
+    if (vmaxvq_u16(e.val[1]))
+    {
+        return 1;
+    }
+    return 0;
 }
 
 /* ===================================================================== */

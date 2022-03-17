@@ -21,4 +21,6 @@ void neon_poly_montymul_ntt(int16_t *f, const int16_t *g);
 
 void neon_poly_sub_barrett(int16_t *f, const int16_t *g);
 
+int neon_big_to_smallints(int8_t G[FALCON_N], const int16_t t[FALCON_N]);
+
 #endif
