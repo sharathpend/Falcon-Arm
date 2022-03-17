@@ -2,10 +2,10 @@
 
 #define PADDING 0
 
-extern const int16_t qmvq[8] = {FALCON_Q, FALCON_QINV,
-                                FALCON_MONT, FALCON_MONT2,
-                                FALCON_V, FALCON_V,
-                                FALCON_MONT_QINV, FALCON_MONT_QINV};
+const int16_t qmvq[8] = {FALCON_Q, FALCON_QINV,
+                         FALCON_MONT, FALCON_MONT2,
+                         FALCON_V, FALCON_V,
+                         FALCON_MONT_QINV, FALCON_MONT_QINV};
 
 #if FALCON_LOGN == 9
 // ❯ python pattern_fwd.py 512 >  ntt_consts9.c
