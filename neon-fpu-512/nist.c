@@ -79,20 +79,17 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 	 */
 	sk[0] = 0x50 + 9;
 	u = 1;
-	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u,
-		f, 9, Zf(max_fg_bits)[9]);
+	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, f, Zf(max_fg_bits)[9]);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u,
-		g, 9, Zf(max_fg_bits)[9]);
+	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, g, Zf(max_fg_bits)[9]);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u,
-		F, 9, Zf(max_FG_bits)[9]);
+	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, F, Zf(max_FG_bits)[9]);
 	if (v == 0) {
 		return -1;
 	}
@@ -105,7 +102,7 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 	 * Encode public key.
 	 */
 	pk[0] = 0x00 + 9;
-	v = Zf(modq_encode)(pk + 1, CRYPTO_PUBLICKEYBYTES - 1, h, 9);
+	v = Zf(modq_encode)(pk + 1, CRYPTO_PUBLICKEYBYTES - 1, h);
 	if (v != CRYPTO_PUBLICKEYBYTES - 1) {
 		return -1;
 	}
@@ -140,20 +137,17 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 		return -1;
 	}
 	u = 1;
-	v = Zf(trim_i8_decode)(f, 9, Zf(max_fg_bits)[9],
-		sk + u, CRYPTO_SECRETKEYBYTES - u);
+	v = Zf(trim_i8_decode)(f, Zf(max_fg_bits)[9], sk + u, CRYPTO_SECRETKEYBYTES - u);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_decode)(g, 9, Zf(max_fg_bits)[9],
-		sk + u, CRYPTO_SECRETKEYBYTES - u);
+	v = Zf(trim_i8_decode)(g, Zf(max_fg_bits)[9], sk + u, CRYPTO_SECRETKEYBYTES - u);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_decode)(F, 9, Zf(max_FG_bits)[9],
-		sk + u, CRYPTO_SECRETKEYBYTES - u);
+	v = Zf(trim_i8_decode)(F, Zf(max_FG_bits)[9],sk + u, CRYPTO_SECRETKEYBYTES - u);
 	if (v == 0) {
 		return -1;
 	}
@@ -202,7 +196,7 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	 *   signature            slen bytes
 	 */
 	esig[0] = 0x20 + 9;
-	sig_len = Zf(comp_encode)(esig + 1, (sizeof esig) - 1, r.sig, 9);
+	sig_len = Zf(comp_encode)(esig + 1, (sizeof esig) - 1, r.sig);
 	if (sig_len == 0) {
 		return -1;
 	}
@@ -235,8 +229,7 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	if (pk[0] != 0x00 + 9) {
 		return -1;
 	}
-	if (Zf(modq_decode)( (uint16_t *) h, 9, pk + 1, CRYPTO_PUBLICKEYBYTES - 1)
-		!= CRYPTO_PUBLICKEYBYTES - 1)
+	if (Zf(modq_decode)((uint16_t *)h, pk + 1, CRYPTO_PUBLICKEYBYTES - 1) != CRYPTO_PUBLICKEYBYTES - 1)
 	{
 		return -1;
 	}
@@ -261,8 +254,7 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	if (sig_len < 1 || esig[0] != 0x20 + 9) {
 		return -1;
 	}
-	if (Zf(comp_decode)(sig, 9,
-		esig + 1, sig_len - 1) != sig_len - 1)
+	if (Zf(comp_decode)(sig, esig + 1, sig_len - 1) != sig_len - 1)
 	{
 		return -1;
 	}

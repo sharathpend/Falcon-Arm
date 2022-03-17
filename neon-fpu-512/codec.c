@@ -30,35 +30,37 @@
  */
 
 #include "inner.h"
+#include "config.h"
+#include "ntt.h"
 
 /* see inner.h */
 size_t
 Zf(modq_encode)(
 	void *out, size_t max_out_len,
-	const uint16_t *x, unsigned logn)
+	const uint16_t *x)
 {
-	size_t n, out_len, u;
+	size_t out_len, u;
 	uint8_t *buf;
 	uint32_t acc;
 	int acc_len;
 
-	n = (size_t)1 << logn;
-	for (u = 0; u < n; u ++) {
-		if (x[u] >= 12289) {
-			return 0;
-		}
-	}
-	out_len = ((n * 14) + 7) >> 3;
+	out_len = ((FALCON_N * 14) + 7) >> 3;
 	if (out == NULL) {
 		return out_len;
 	}
 	if (out_len > max_out_len) {
 		return 0;
 	}
+	
+	for (u = 0; u < FALCON_N; u ++) {
+		if (x[u] >= FALCON_Q) {
+			return 0;
+		}
+	}
 	buf = out;
 	acc = 0;
 	acc_len = 0;
-	for (u = 0; u < n; u ++) {
+	for (u = 0; u < FALCON_N; u ++) {
 		acc = (acc << 14) | x[u];
 		acc_len += 14;
 		while (acc_len >= 8) {
@@ -74,17 +76,14 @@ Zf(modq_encode)(
 
 /* see inner.h */
 size_t
-Zf(modq_decode)(
-	uint16_t *x, unsigned logn,
-	const void *in, size_t max_in_len)
+Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len)
 {
-	size_t n, in_len, u;
+	size_t in_len, u;
 	const uint8_t *buf;
 	uint32_t acc;
 	int acc_len;
 
-	n = (size_t)1 << logn;
-	in_len = ((n * 14) + 7) >> 3;
+	in_len = ((FALCON_N * 14) + 7) >> 3;
 	if (in_len > max_in_len) {
 		return 0;
 	}
@@ -92,7 +91,7 @@ Zf(modq_decode)(
 	acc = 0;
 	acc_len = 0;
 	u = 0;
-	while (u < n) {
+	while (u < FALCON_N) {
 		acc = (acc << 8) | (*buf ++);
 		acc_len += 8;
 		if (acc_len >= 14) {
@@ -113,133 +112,131 @@ Zf(modq_decode)(
 }
 
 /* see inner.h */
+// size_t
+// Zf(trim_i16_encode)(
+// 	void *out, size_t max_out_len,
+// 	const int16_t *x, unsigned logn, unsigned bits)
+// {
+// 	size_t n, u, out_len;
+// 	int minv, maxv;
+// 	uint8_t *buf;
+// 	uint32_t acc, mask;
+// 	unsigned acc_len;
+
+// 	n = (size_t)1 << logn;
+// 	maxv = (1 << (bits - 1)) - 1;
+// 	minv = -maxv;
+// 	for (u = 0; u < n; u ++) {
+// 		if (x[u] < minv || x[u] > maxv) {
+// 			return 0;
+// 		}
+// 	}
+// 	out_len = ((n * bits) + 7) >> 3;
+// 	if (out == NULL) {
+// 		return out_len;
+// 	}
+// 	if (out_len > max_out_len) {
+// 		return 0;
+// 	}
+// 	buf = out;
+// 	acc = 0;
+// 	acc_len = 0;
+// 	mask = ((uint32_t)1 << bits) - 1;
+// 	for (u = 0; u < n; u ++) {
+// 		acc = (acc << bits) | ((uint16_t)x[u] & mask);
+// 		acc_len += bits;
+// 		while (acc_len >= 8) {
+// 			acc_len -= 8;
+// 			*buf ++ = (uint8_t)(acc >> acc_len);
+// 		}
+// 	}
+// 	if (acc_len > 0) {
+// 		*buf ++ = (uint8_t)(acc << (8 - acc_len));
+// 	}
+// 	return out_len;
+// }
+
+// /* see inner.h */
+// size_t
+// Zf(trim_i16_decode)(
+// 	int16_t *x, unsigned logn, unsigned bits,
+// 	const void *in, size_t max_in_len)
+// {
+// 	size_t n, in_len;
+// 	const uint8_t *buf;
+// 	size_t u;
+// 	uint32_t acc, mask1, mask2;
+// 	unsigned acc_len;
+
+// 	n = (size_t)1 << logn;
+// 	in_len = ((n * bits) + 7) >> 3;
+// 	if (in_len > max_in_len) {
+// 		return 0;
+// 	}
+// 	buf = in;
+// 	u = 0;
+// 	acc = 0;
+// 	acc_len = 0;
+// 	mask1 = ((uint32_t)1 << bits) - 1;
+// 	mask2 = (uint32_t)1 << (bits - 1);
+// 	while (u < n) {
+// 		acc = (acc << 8) | *buf ++;
+// 		acc_len += 8;
+// 		while (acc_len >= bits && u < n) {
+// 			uint32_t w;
+
+// 			acc_len -= bits;
+// 			w = (acc >> acc_len) & mask1;
+// 			w |= -(w & mask2);
+// 			if (w == -mask2) {
+// 				/*
+// 				 * The -2^(bits-1) value is forbidden.
+// 				 */
+// 				return 0;
+// 			}
+// 			w |= -(w & mask2);
+// 			x[u ++] = (int16_t)*(int32_t *)&w;
+// 		}
+// 	}
+// 	if ((acc & (((uint32_t)1 << acc_len) - 1)) != 0) {
+// 		/*
+// 		 * Extra bits in the last byte must be zero.
+// 		 */
+// 		return 0;
+// 	}
+// 	return in_len;
+// }
+
+/* see inner.h */
 size_t
-Zf(trim_i16_encode)(
-	void *out, size_t max_out_len,
-	const int16_t *x, unsigned logn, unsigned bits)
+Zf(trim_i8_encode)(void *out, size_t max_out_len,
+	               const int8_t *x, unsigned bits)
 {
-	size_t n, u, out_len;
+	size_t u, out_len;
 	int minv, maxv;
 	uint8_t *buf;
 	uint32_t acc, mask;
 	unsigned acc_len;
 
-	n = (size_t)1 << logn;
-	maxv = (1 << (bits - 1)) - 1;
-	minv = -maxv;
-	for (u = 0; u < n; u ++) {
-		if (x[u] < minv || x[u] > maxv) {
-			return 0;
-		}
-	}
-	out_len = ((n * bits) + 7) >> 3;
+	out_len = ((FALCON_N * bits) + 7) >> 3;
 	if (out == NULL) {
 		return out_len;
 	}
 	if (out_len > max_out_len) {
 		return 0;
 	}
-	buf = out;
-	acc = 0;
-	acc_len = 0;
-	mask = ((uint32_t)1 << bits) - 1;
-	for (u = 0; u < n; u ++) {
-		acc = (acc << bits) | ((uint16_t)x[u] & mask);
-		acc_len += bits;
-		while (acc_len >= 8) {
-			acc_len -= 8;
-			*buf ++ = (uint8_t)(acc >> acc_len);
-		}
-	}
-	if (acc_len > 0) {
-		*buf ++ = (uint8_t)(acc << (8 - acc_len));
-	}
-	return out_len;
-}
-
-/* see inner.h */
-size_t
-Zf(trim_i16_decode)(
-	int16_t *x, unsigned logn, unsigned bits,
-	const void *in, size_t max_in_len)
-{
-	size_t n, in_len;
-	const uint8_t *buf;
-	size_t u;
-	uint32_t acc, mask1, mask2;
-	unsigned acc_len;
-
-	n = (size_t)1 << logn;
-	in_len = ((n * bits) + 7) >> 3;
-	if (in_len > max_in_len) {
-		return 0;
-	}
-	buf = in;
-	u = 0;
-	acc = 0;
-	acc_len = 0;
-	mask1 = ((uint32_t)1 << bits) - 1;
-	mask2 = (uint32_t)1 << (bits - 1);
-	while (u < n) {
-		acc = (acc << 8) | *buf ++;
-		acc_len += 8;
-		while (acc_len >= bits && u < n) {
-			uint32_t w;
-
-			acc_len -= bits;
-			w = (acc >> acc_len) & mask1;
-			w |= -(w & mask2);
-			if (w == -mask2) {
-				/*
-				 * The -2^(bits-1) value is forbidden.
-				 */
-				return 0;
-			}
-			w |= -(w & mask2);
-			x[u ++] = (int16_t)*(int32_t *)&w;
-		}
-	}
-	if ((acc & (((uint32_t)1 << acc_len) - 1)) != 0) {
-		/*
-		 * Extra bits in the last byte must be zero.
-		 */
-		return 0;
-	}
-	return in_len;
-}
-
-/* see inner.h */
-size_t
-Zf(trim_i8_encode)(
-	void *out, size_t max_out_len,
-	const int8_t *x, unsigned logn, unsigned bits)
-{
-	size_t n, u, out_len;
-	int minv, maxv;
-	uint8_t *buf;
-	uint32_t acc, mask;
-	unsigned acc_len;
-
-	n = (size_t)1 << logn;
+	
 	maxv = (1 << (bits - 1)) - 1;
 	minv = -maxv;
-	for (u = 0; u < n; u ++) {
-		if (x[u] < minv || x[u] > maxv) {
-			return 0;
-		}
-	}
-	out_len = ((n * bits) + 7) >> 3;
-	if (out == NULL) {
-		return out_len;
-	}
-	if (out_len > max_out_len) {
-		return 0;
-	}
+    if (neon_bound_check_int8_low_high(x, minv, maxv))
+    {
+        return 0;
+    }
 	buf = out;
 	acc = 0;
 	acc_len = 0;
 	mask = ((uint32_t)1 << bits) - 1;
-	for (u = 0; u < n; u ++) {
+	for (u = 0; u < FALCON_N; u ++) {
 		acc = (acc << bits) | ((uint8_t)x[u] & mask);
 		acc_len += bits;
 		while (acc_len >= 8) {
@@ -255,18 +252,16 @@ Zf(trim_i8_encode)(
 
 /* see inner.h */
 size_t
-Zf(trim_i8_decode)(
-	int8_t *x, unsigned logn, unsigned bits,
-	const void *in, size_t max_in_len)
+Zf(trim_i8_decode)(int8_t *x, unsigned bits,
+	               const void *in, size_t max_in_len)
 {
-	size_t n, in_len;
+	size_t in_len;
 	const uint8_t *buf;
 	size_t u;
 	uint32_t acc, mask1, mask2;
 	unsigned acc_len;
 
-	n = (size_t)1 << logn;
-	in_len = ((n * bits) + 7) >> 3;
+	in_len = ((FALCON_N * bits) + 7) >> 3;
 	if (in_len > max_in_len) {
 		return 0;
 	}
@@ -276,10 +271,10 @@ Zf(trim_i8_decode)(
 	acc_len = 0;
 	mask1 = ((uint32_t)1 << bits) - 1;
 	mask2 = (uint32_t)1 << (bits - 1);
-	while (u < n) {
+	while (u < FALCON_N) {
 		acc = (acc << 8) | *buf ++;
 		acc_len += 8;
-		while (acc_len >= bits && u < n) {
+		while (acc_len >= bits && u < FALCON_N) {
 			uint32_t w;
 
 			acc_len -= bits;
@@ -305,31 +300,27 @@ Zf(trim_i8_decode)(
 
 /* see inner.h */
 size_t
-Zf(comp_encode)(
-	void *out, size_t max_out_len,
-	const int16_t *x, unsigned logn)
+Zf(comp_encode)(void *out, size_t max_out_len, const int16_t *x)
 {
 	uint8_t *buf;
-	size_t n, u, v;
+	size_t u, v;
 	uint32_t acc;
 	unsigned acc_len;
 
-	n = (size_t)1 << logn;
 	buf = out;
 
 	/*
 	 * Make sure that all values are within the -2047..+2047 range.
 	 */
-	for (u = 0; u < n; u ++) {
-		if (x[u] < -2047 || x[u] > +2047) {
-			return 0;
-		}
-	}
+    if (neon_bound_check_int16_low_high(x, -2047, 2047))
+    {
+        return 1;
+    }
 
 	acc = 0;
 	acc_len = 0;
 	v = 0;
-	for (u = 0; u < n; u ++) {
+	for (u = 0; u < FALCON_N; u ++) {
 		int t;
 		unsigned w;
 
@@ -402,21 +393,18 @@ Zf(comp_encode)(
 
 /* see inner.h */
 size_t
-Zf(comp_decode)(
-	int16_t *x, unsigned logn,
-	const void *in, size_t max_in_len)
+Zf(comp_decode)(int16_t *x, const void *in, size_t max_in_len)
 {
 	const uint8_t *buf;
-	size_t n, u, v;
+	size_t u, v;
 	uint32_t acc;
 	unsigned acc_len;
 
-	n = (size_t)1 << logn;
 	buf = in;
 	acc = 0;
 	acc_len = 0;
 	v = 0;
-	for (u = 0; u < n; u ++) {
+	for (u = 0; u < FALCON_N; u ++) {
 		unsigned b, s, m;
 
 		/*
