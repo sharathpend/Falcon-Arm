@@ -482,6 +482,25 @@ mq_iNTT(uint16_t *a, unsigned logn)
     }
 }
 
+/*
+ * Convert a polynomial (mod q) to Montgomery representation.
+ */
+void mq_poly_tomonty(int16_t *f, unsigned logn)
+{
+    size_t u, n;
+
+    n = (size_t)1 << logn;
+    for (u = 0; u < n; u++)
+    {
+        f[u] = (int16_t)mq_montymul(f[u], R2);
+    }
+}
+
+void to_ntt_monty(uint16_t *h, unsigned logn)
+{
+	mq_NTT(h, logn);
+	mq_poly_tomonty(h, logn);
+}
 // ------- UTILITIES
 
 int16_t center_q(uint16_t a)
@@ -682,7 +701,7 @@ void ntt_rewrite_inverse(int16_t a[FALCON_N])
 }
 
 
-#define TESTS 100000
+#define TESTS 1
 
 
 // TEST funciton
@@ -733,7 +752,7 @@ int test_invntt()
     return 0;
 }
 
-int test_neon_ntt(void)
+int test_neon_ntt(const int mont)
 {
     int16_t gold[FALCON_N];
     int16_t test[FALCON_N];
@@ -743,12 +762,17 @@ int test_neon_ntt(void)
         for (int16_t i = 0; i < FALCON_N; i++)
         {
             temp = rand() % Q;
+            // temp = i;
             gold[i] = temp;
             test[i] = temp;
         }
 
         ntt_rewrite_forward(gold);
-        neon_fwdNTT(test, 0);
+        if (mont)
+        {
+            mq_poly_tomonty(gold, FALCON_LOGN);
+        }
+        neon_fwdNTT(test, mont);
 
         // print_array(gold, FALCON_N);
         // print_array(test, FALCON_N);
@@ -796,10 +820,12 @@ int main()
     if (!ret) printf("ntt_rewrite_forward is equal to mq_NTT\n");
     ret |= test_invntt();
     if (!ret) printf("ntt_rewrite_inverse is equal to mq_iNTT\n");
-    ret |= test_neon_ntt();
+    ret |= test_neon_ntt(0);
     if (!ret) printf("neon_fwdNTT is equal to ntt_rewrite_forward\n");
     ret |= test_neon_invntt();
     if (!ret) printf("neon_invNTT is equal to ntt_rewrite_inverse\n");
+    ret |= test_neon_ntt(1);
+    if (!ret) printf("neon_fwdNTT to MONT is equal to ntt_rewrite_forward MONT\n");
 
     if (ret)
     {
