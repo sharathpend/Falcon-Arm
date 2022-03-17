@@ -4126,7 +4126,7 @@ Zf(keygen)(inner_shake256_context *rng,
 	 *    and Res(g,phi) are not prime to each other.
 	 */
 	size_t n, u;
-	uint16_t *h2, *tmp2;
+	int16_t *h2, *tmp2;
 	RNG_CONTEXT *rc;
 
 	n = MKN(logn);
@@ -4236,13 +4236,14 @@ Zf(keygen)(inner_shake256_context *rng,
 		 * fails, we must restart.
 		 */
 		if (h == NULL) {
-			h2 = (uint16_t *)tmp;
+			h2 = (int16_t *)tmp;
 			tmp2 = h2 + n;
 		} else {
-			h2 = h;
-			tmp2 = (uint16_t *)tmp;
+			h2 = (int16_t *)h;
+			tmp2 = (int16_t *)tmp;
 		}
-		if (!Zf(compute_public)(h2, f, g, logn, (uint8_t *)tmp2)) {
+        
+		if (!Zf(compute_public)(h2, f, g, tmp2)) {
 			continue;
 		}
 

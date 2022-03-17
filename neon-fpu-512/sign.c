@@ -814,7 +814,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     Zf(sign_short_s2)(s2tmp, t1, n);
 
 
-	if (Zf(is_short_half)(sqn, s2tmp, logn)) {
+	if (Zf(is_short_half)(sqn, s2tmp)) {
 		memcpy(s2, s2tmp, n * sizeof *s2);
 		memcpy(tmp, s1tmp, n * sizeof *s1tmp);
 		return 1;
@@ -1003,7 +1003,7 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
     Zf(sign_short_s1)(&sqn, s1tmp, hm, t0, n);
     Zf(sign_short_s2)(s2tmp, t1, n);
 
-	if (Zf(is_short_half)(sqn, s2tmp, logn)) {
+	if (Zf(is_short_half)(sqn, s2tmp)) {
 		memcpy(s2, s2tmp, n * sizeof *s2);
 		memcpy(tmp, s1tmp, n * sizeof *s1tmp);
 		return 1;
@@ -1088,6 +1088,7 @@ Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
 		 * SHAKE context ('rng').
 		 */
         // TODO: hardcode this
+        // TODO: add FALCON_LOGN
         if (logn == 9)
         {
             spc.sigma_min = fpr_sigma_min_9;

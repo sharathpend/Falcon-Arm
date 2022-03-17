@@ -275,12 +275,11 @@ static const uint32_t l2bound[] = {
     70265242};
 
 /* see inner.h */
-int Zf(is_short)(const int16_t *s1, const int16_t *s2, unsigned logn)
+int Zf(is_short)(const int16_t *s1, const int16_t *s2)
 {
     int16x8x4_t neon_s1, neon_s2;
     uint32x4_t neon_ng, neon_ngh;
     int32x4_t neon_s, neon_sh, neon_zero;
-    const unsigned falcon_n = 1 << logn;
     uint32_t s, sh, ng;
     neon_s = vdupq_n_s32(0);
     neon_sh = vdupq_n_s32(0);
@@ -288,7 +287,7 @@ int Zf(is_short)(const int16_t *s1, const int16_t *s2, unsigned logn)
     neon_ng = vdupq_n_u32(0);
     neon_ngh = vdupq_n_u32(0);
 
-    for (unsigned u = 0; u < falcon_n; u += 32)
+    for (unsigned u = 0; u < FALCON_N; u += 32)
     {
         neon_s1 = vld1q_s16_x4(&s1[u]);
         neon_s2 = vld1q_s16_x4(&s2[u]);
@@ -353,16 +352,15 @@ int Zf(is_short)(const int16_t *s1, const int16_t *s2, unsigned logn)
     s |= -(ng >> 31);
     // printf("is_short s, ng: %8x | %8x\n", s, ng);
 
-    return s <= l2bound[logn];
+    return s <= l2bound[FALCON_LOGN];
 }
 
 /* see inner.h */
-int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn)
+int Zf(is_short_half)(uint32_t sqn, const int16_t *s2)
 {
     int16x8x4_t s2_s16;
     int32x4_t neon_sqn, neon_sqnh, neon_zero;
     uint32x4_t neon_ng, neon_ngh;
-    const unsigned falcon_n = 1 << logn;
     uint32_t ng = -(sqn >> 31);
 
     neon_sqn = vdupq_n_s32(0);
@@ -371,7 +369,7 @@ int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn)
     neon_ng = vdupq_n_u32(0);
     neon_ngh = vdupq_n_u32(0);
 
-    for (unsigned u = 0; u < falcon_n; u += 32)
+    for (unsigned u = 0; u < FALCON_N; u += 32)
     {
         s2_s16 = vld1q_s16_x4(&s2[u]);
 
@@ -417,7 +415,7 @@ int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn)
 
     // printf("is_short_half ng, sqn: %8x | %8x\n", ng, sqn);
 
-    return sqn <= l2bound[logn];
+    return sqn <= l2bound[FALCON_LOGN];
 }
 
 void Zf(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, const double *t0, const unsigned falcon_n)

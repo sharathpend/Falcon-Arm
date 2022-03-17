@@ -9,6 +9,7 @@
 
 #include "api.h"
 #include "inner.h"
+#include "config.h"
 
 #define NONCELEN   40
 
@@ -29,7 +30,7 @@ int randombytes(unsigned char *x, unsigned long long xlen);
 void print_key(int8_t *f, const char *string)
 {
     printf("%s:\n", string);
-    for (int i = 0; i < 512; i++)
+    for (int i = 0; i < FALCON_N; i++)
     {
         printf("%02x", f[i]);
     }
@@ -39,7 +40,7 @@ void print_key(int8_t *f, const char *string)
 void print_hkey(uint16_t *h, const char *string)
 {
     printf("%s:\n", string);
-    for (int i = 0; i < 512; i++)
+    for (int i = 0; i < FALCON_N; i++)
     {
         printf("%04x", h[i]);
     }
@@ -54,8 +55,8 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 		uint64_t dummy_u64;
 		fpr dummy_fpr;
 	} tmp;
-	TEMPALLOC int8_t f[512]= {0}, g[512]= {0}, F[512] = {0};
-	TEMPALLOC uint16_t h[512]= {0};
+	TEMPALLOC int8_t f[FALCON_N]= {0}, g[FALCON_N]= {0}, F[FALCON_N] = {0};
+	TEMPALLOC uint16_t h[FALCON_N]= {0};
 	TEMPALLOC unsigned char seed[48];
 	TEMPALLOC inner_shake256_context rng;
 	size_t u, v;
@@ -118,14 +119,14 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	const unsigned char *sk)
 {
 	TEMPALLOC union {
-		uint8_t b[72 * 512];
+		uint8_t b[72 * FALCON_N];
 		uint64_t dummy_u64;
 		fpr dummy_fpr;
 	} tmp;
-	TEMPALLOC int8_t f[512], g[512], F[512], G[512];
+	TEMPALLOC int8_t f[FALCON_N], g[FALCON_N], F[FALCON_N], G[FALCON_N];
 	TEMPALLOC union {
-		int16_t sig[512];
-		uint16_t hm[512];
+		int16_t sig[FALCON_N];
+		uint16_t hm[FALCON_N];
 	} r;
 	TEMPALLOC unsigned char seed[48], nonce[NONCELEN];
 	TEMPALLOC unsigned char esig[CRYPTO_BYTES - 2 - sizeof nonce];
@@ -160,7 +161,7 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	if (u != CRYPTO_SECRETKEYBYTES) {
 		return -1;
 	}
-	if (!Zf(complete_private)(G, f, g, F, 9, tmp.b)) {
+	if (!Zf(complete_private)(G, f, g, F, tmp.b)) {
 		return -1;
 	}
 
@@ -220,29 +221,26 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	const unsigned char *sm, unsigned long long smlen,
 	const unsigned char *pk)
 {
-	TEMPALLOC union {
-		uint8_t b[2 * 512];
-		uint64_t dummy_u64;
-		fpr dummy_fpr;
-	} tmp;
+
 	const unsigned char *esig;
-	TEMPALLOC uint16_t h[512], hm[512];
-	TEMPALLOC int16_t sig[512];
+	TEMPALLOC int16_t h[FALCON_N], hm[FALCON_N],
+                      sig[FALCON_N], tmp[FALCON_N];
 	TEMPALLOC inner_shake256_context sc;
 	size_t sig_len, msg_len;
 
+    // TODO: add FALCON_LOGN here
 	/*
 	 * Decode public key.
 	 */
 	if (pk[0] != 0x00 + 9) {
 		return -1;
 	}
-	if (Zf(modq_decode)(h, 9, pk + 1, CRYPTO_PUBLICKEYBYTES - 1)
+	if (Zf(modq_decode)( (uint16_t *) h, 9, pk + 1, CRYPTO_PUBLICKEYBYTES - 1)
 		!= CRYPTO_PUBLICKEYBYTES - 1)
 	{
 		return -1;
 	}
-	Zf(to_ntt_monty)(h, 9);
+	Zf(to_ntt_monty)(h);
 
 	/*
 	 * Find nonce, signature, message length.
@@ -275,13 +273,12 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	inner_shake256_init(&sc);
 	inner_shake256_inject(&sc, sm + 2, NONCELEN + msg_len);
 	inner_shake256_flip(&sc);
-	Zf(hash_to_point_vartime)(&sc, hm, 9);
+	Zf(hash_to_point_vartime)(&sc, (uint16_t *) hm, 9);
 
 	/*
 	 * Verify signature.
 	 */
-	if (!Zf(verify_raw)(hm, sig, h, 9, tmp.b)) {
-        printf("verify_raw -1\n");
+	if (!Zf(verify_raw)(hm, sig, h, tmp)) {
 		return -1;
 	}
 
