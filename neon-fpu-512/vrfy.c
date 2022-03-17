@@ -80,7 +80,6 @@ int Zf(compute_public)(int16_t *h, const int8_t *f, const int8_t *g, int16_t *tm
 
     neon_invNTT(h);
 
-    // TODO: add option to combine to invNTT
     neon_poly_unsigned(h);
 
     return 1;
