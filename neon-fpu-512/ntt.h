@@ -23,4 +23,11 @@ void neon_poly_sub_barrett(int16_t *f, const int16_t *g);
 
 int neon_big_to_smallints(int8_t G[FALCON_N], const int16_t t[FALCON_N]);
 
+// In neon_codec.c
+int neon_bound_check_int8_low_high(const int8_t t[FALCON_N], 
+                        const int8_t low, const int8_t high);
+                        
+int neon_bound_check_int16_low_high(const int16_t t[FALCON_N], 
+                    const int16_t low, const int16_t high);
+
 #endif

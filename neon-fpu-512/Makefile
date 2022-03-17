@@ -15,7 +15,7 @@ LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o build/ntt.o build/ntt_consts.o #build/falcon.o
+OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o build/ntt.o build/ntt_consts.o build/neon_codec.o
 
 OBJ2 = build/PQCgenKAT_sign.o build/katrng.o 
 OBJ3 = build/speed.o build/katrng.o
@@ -78,6 +78,9 @@ build/fft_tree.o: fft_tree.c $(HEAD1)
 
 build/ntt.o: ntt.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ ntt.c
+
+build/neon_codec.o: neon_codec.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o $@ neon_codec.c
 
 build/ntt_consts.o: ntt_consts.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ ntt_consts.c
