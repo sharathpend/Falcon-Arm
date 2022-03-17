@@ -33,82 +33,38 @@
 #include "ntt.h"
 
 /* see inner.h */
-void Zf(to_ntt_monty)(uint16_t *h, unsigned logn)
+void Zf(to_ntt_monty)(int16_t *h)
 {
-    // mq_NTT(h, logn);
-    // mq_poly_tomonty(h, logn);
     neon_fwdNTT(h, 1);
 }
 
 /* see inner.h */
-int Zf(verify_raw)(const uint16_t *c0, const int16_t *s2,
-                   const uint16_t *h, unsigned logn, uint8_t *tmp)
+int Zf(verify_raw)(const int16_t *c0, const int16_t *s2,
+                   const int16_t *h, int16_t *tmp)
 {
-    // size_t u, n;
-    int16_t *tt;
-
-    // n = (size_t)1 << logn;
-    tt = (int16_t *)tmp;
-
-    /*
-     * Reduce s2 elements modulo q ([0..q-1] range).
-     */
-    // for (u = 0; u < n; u ++) {
-    // 	uint32_t w;
-
-    // 	w = (uint32_t)s2[u];
-    // 	w += Q & -(w >> 31);
-    // 	tt[u] = (uint16_t)w;
-    // }
-    memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
+    int16_t *tt = tmp;
 
     /*
      * Compute -s1 = s2*h - c0 mod phi mod q (in tt[]).
      */
-    // mq_NTT(tt, logn);
-    // mq_poly_montymul_ntt(tt, h, logn);
-    // mq_iNTT(tt, logn);
-    // mq_poly_sub(tt, c0, logn);
+
+    memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
     neon_fwdNTT(tt, 0);
     neon_poly_montymul_ntt(tt, h);
     neon_invNTT(tt);
     neon_poly_sub_barrett(tt, c0);
 
-    // /*
-    //  * Normalize -s1 elements into the [-q/2..q/2] range.
-    //  */
-    // for (u = 0; u < n; u ++) {
-    // 	int32_t w;
-
-    // 	w = (int32_t)tt[u];
-    // 	w -= (int32_t)(Q & -(((Q >> 1) - (uint32_t)w) >> 31));
-    // 	((int16_t *)tt)[u] = (int16_t)w;
-    // }
-
     /*
      * Signature is valid if and only if the aggregate (-s1,s2) vector
      * is short enough.
      */
-    // return Zf(is_short)((int16_t *)tt, s2, logn);
-    return Zf(is_short)(tt, s2, logn);
+    return Zf(is_short)(tt, s2);
 }
 
 /* see inner.h */
-int
-Zf(compute_public)(uint16_t *h,
-	const int8_t *f, const int8_t *g, unsigned logn, uint8_t *tmp)
+int Zf(compute_public)(int16_t *h, const int8_t *f, const int8_t *g, int16_t *tmp)
 {
-    size_t u, n;
-    int16_t *tt;
-
-    // n = (size_t)1 << logn;
-    tt = (int16_t *)tmp;
-    // for (u = 0; u < n; u ++) {
-    // 	tt[u] = (uint16_t)mq_conv_small(f[u]);
-    // 	h[u] = (uint16_t)mq_conv_small(g[u]);
-    // }
-    // mq_NTT(h, logn);
-    // mq_NTT(tt, logn);
+    int16_t *tt = tmp;
 
     neon_conv_small(tt, f);
     neon_fwdNTT(tt, 0);
@@ -116,76 +72,49 @@ Zf(compute_public)(uint16_t *h,
     neon_conv_small(h, g);
     neon_fwdNTT(h, 0);
 
-
-    // for (u = 0; u < n; u++)
-    // {
-    //     if (tt[u] == 0)
-    //     {
-    //         return 0;
-    //     }
-    //     h[u] = (uint16_t)mq_div_12289(h[u], tt[u]);
-    // }
     if (neon_compare_with_zero(tt))
+    {
         return 0;
+    }
     neon_div_12289(h, tt);
 
-    // mq_iNTT(h, logn);
     neon_invNTT(h);
+
+    // TODO: add option to combine to invNTT
+    neon_poly_unsigned(h);
+
     return 1;
 }
 
 /* see inner.h */
-int Zf(complete_private)(int8_t *G,
-                         const int8_t *f, const int8_t *g, const int8_t *F,
-                         unsigned logn, uint8_t *tmp)
+int Zf(complete_private)(int8_t *G, const int8_t *f,
+                         const int8_t *g, const int8_t *F,
+                         uint8_t *tmp)
 {
-    size_t u, n;
     int16_t *t1, *t2;
 
-    n = (size_t)1 << logn;
     t1 = (int16_t *)tmp;
-    t2 = t1 + n;
-    // for (u = 0; u < n; u++)
-    // {
-    //     t1[u] = (uint16_t)mq_conv_small(g[u]);
-    //     t2[u] = (uint16_t)mq_conv_small(F[u]);
-    // }
-    // mq_NTT(t1, logn);
-    // mq_poly_tomonty(t1, logn);
-    // mq_NTT(t2, logn);
+    t2 = t1 + FALCON_N;
+
     neon_conv_small(t1, g);
     neon_fwdNTT(t1, 1);
     neon_conv_small(t2, F);
     neon_fwdNTT(t2, 0);
 
-    // mq_poly_montymul_ntt(t1, t2, logn);
     neon_poly_montymul_ntt(t1, t2);
 
-    // for (u = 0; u < n; u++)
-    // {
-    //     t2[u] = (uint16_t)mq_conv_small(f[u]);
-    // }
-    // mq_NTT(t2, logn);
     neon_conv_small(t2, f);
     neon_fwdNTT(t2, 0);
 
-
-    // for (u = 0; u < n; u++)
-    // {
-    //     if (t2[u] == 0)
-    //     {
-    //         return 0;
-    //     }
-    //     t1[u] = (uint16_t)mq_div_12289(t1[u], t2[u]);
-    // }
     if (neon_compare_with_zero(t2))
+    {
         return 0;
+    }
     neon_div_12289(t1, t2);
 
-    // mq_iNTT(t1, logn);
     neon_invNTT(t1);
 
-    for (u = 0; u < n; u++)
+    for (size_t u = 0; u < FALCON_N; u++)
     {
         uint32_t w;
         int32_t gi;
@@ -203,67 +132,34 @@ int Zf(complete_private)(int8_t *G,
 }
 
 /* see inner.h */
-int Zf(is_invertible)(
-    const int16_t *s2, unsigned logn, uint8_t *tmp)
+int Zf(is_invertible)(const int16_t *s2, uint8_t *tmp)
 {
-    size_t u, n;
-    int16_t *tt;
+    int16_t *tt = (int16_t *)tmp;
     uint16_t r;
 
-    n = (size_t)1 << logn;
-    tt = (int16_t *)tmp;
-    
-    // for (u = 0; u < n; u++)
-    // {
-    //     uint32_t w;
+    memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
 
-    //     w = (uint32_t)s2[u];
-    //     w += Q & -(w >> 31);
-    //     tt[u] = (uint16_t)w;
-    // }
-    memcpy(tt, s2, sizeof(int16_t)*FALCON_N);
-    // mq_NTT(tt, logn);
     neon_fwdNTT(tt, 0);
-    
-    // r = 0;
-    // for (u = 0; u < n; u++)
-    // {
-    //     r |= (uint32_t)(tt[u] - 1);
-    // }
+
     r = neon_compare_with_zero(tt);
-    // return (int)(1u - (r >> 31));
+
     return (int)(1u - (r >> 15));
 }
 
 /* see inner.h */
-int Zf(verify_recover)(uint16_t *h,
-                       const uint16_t *c0, const int16_t *s1, const int16_t *s2,
-                       unsigned logn, uint8_t *tmp)
+int Zf(verify_recover)(int16_t *h, const int16_t *c0,
+                       const int16_t *s1, const int16_t *s2,
+                       uint8_t *tmp)
 {
-    size_t u, n;
-    uint16_t *tt;
-    uint32_t r;
-
-    n = (size_t)1 << logn;
+    int16_t *tt = (int16_t *)tmp;
+    uint16_t r;
 
     /*
      * Reduce elements of s1 and s2 modulo q; then write s2 into tt[]
      * and c0 - s1 into h[].
      */
-    tt = (uint16_t *)tmp;
-    for (u = 0; u < n; u++)
-    {
-        uint32_t w;
-
-        w = (uint32_t)s2[u];
-        w += Q & -(w >> 31);
-        tt[u] = (uint16_t)w;
-
-        w = (uint32_t)s1[u];
-        w += Q & -(w >> 31);
-        w = mq_sub(c0[u], w);
-        h[u] = (uint16_t)w;
-    }
+    memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
+    neon_fwdNTT(tt, 0);
 
     /*
      * Compute h = (c0 - s1) / s2. If one of the coefficients of s2
@@ -272,21 +168,13 @@ int Zf(verify_recover)(uint16_t *h,
      * from strict constant-time processing; if all coefficients of
      * s2 are non-zero, then the high bit of r will be zero.
      */
-    // mq_NTT(tt, logn);
-    // mq_NTT(h, logn);
-    neon_fwdNTT(tt, 0);
+
+    neon_poly_sub(h, c0, s1);
     neon_fwdNTT(h, 0);
 
-    r = 0;
-    // for (u = 0; u < n; u++)
-    // {
-    //     r |= (uint32_t)(tt[u] - 1);
-        // h[u] = (uint16_t)mq_div_12289(h[u], tt[u]);
-    // }
     r = neon_compare_with_zero(tt);
     neon_div_12289(h, tt);
 
-    // mq_iNTT(h, logn);
     neon_invNTT(h);
 
     /*
@@ -295,35 +183,19 @@ int Zf(verify_recover)(uint16_t *h,
      * check that the rebuilt public key matches the expected
      * value (e.g. through a hash).
      */
-    r = ~r & (uint32_t)-Zf(is_short)(s1, s2, logn);
-    return (int)(r >> 31);
+    r = ~r & (uint16_t)-Zf(is_short)(s1, s2);
+    return (int)(r >> 15);
 }
 
 /* see inner.h */
-int Zf(count_nttzero)(const int16_t *sig, unsigned logn, uint8_t *tmp)
+int Zf(count_nttzero)(const int16_t *sig, uint8_t *tmp)
 {
-    uint16_t *s2;
-    size_t u, n;
-    uint32_t r;
+    int16_t *s2 = (int16_t *)tmp;
 
-    n = (size_t)1 << logn;
-    s2 = (uint16_t *)tmp;
-    for (u = 0; u < n; u++)
-    {
-        uint32_t w;
+    memcpy(s2, sig, sizeof(int16_t) * FALCON_N);
+    neon_fwdNTT(s2, 0);
 
-        w = (uint32_t)sig[u];
-        w += Q & -(w >> 31);
-        s2[u] = (uint16_t)w;
-    }
-    mq_NTT(s2, logn);
-    r = 0;
-    for (u = 0; u < n; u++)
-    {
-        uint32_t w;
+    int r = neon_compare_with_zero(s2);
 
-        w = (uint32_t)s2[u] - 1u;
-        r += (w >> 31);
-    }
-    return (int)r;
+    return r;
 }
