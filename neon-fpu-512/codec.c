@@ -112,100 +112,100 @@ Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len)
 }
 
 /* see inner.h */
-// size_t
-// Zf(trim_i16_encode)(
-// 	void *out, size_t max_out_len,
-// 	const int16_t *x, unsigned logn, unsigned bits)
-// {
-// 	size_t n, u, out_len;
-// 	int minv, maxv;
-// 	uint8_t *buf;
-// 	uint32_t acc, mask;
-// 	unsigned acc_len;
+size_t
+Zf(trim_i16_encode)(
+	void *out, size_t max_out_len,
+	const int16_t *x, unsigned logn, unsigned bits)
+{
+	size_t n, u, out_len;
+	int minv, maxv;
+	uint8_t *buf;
+	uint32_t acc, mask;
+	unsigned acc_len;
 
-// 	n = (size_t)1 << logn;
-// 	maxv = (1 << (bits - 1)) - 1;
-// 	minv = -maxv;
-// 	for (u = 0; u < n; u ++) {
-// 		if (x[u] < minv || x[u] > maxv) {
-// 			return 0;
-// 		}
-// 	}
-// 	out_len = ((n * bits) + 7) >> 3;
-// 	if (out == NULL) {
-// 		return out_len;
-// 	}
-// 	if (out_len > max_out_len) {
-// 		return 0;
-// 	}
-// 	buf = out;
-// 	acc = 0;
-// 	acc_len = 0;
-// 	mask = ((uint32_t)1 << bits) - 1;
-// 	for (u = 0; u < n; u ++) {
-// 		acc = (acc << bits) | ((uint16_t)x[u] & mask);
-// 		acc_len += bits;
-// 		while (acc_len >= 8) {
-// 			acc_len -= 8;
-// 			*buf ++ = (uint8_t)(acc >> acc_len);
-// 		}
-// 	}
-// 	if (acc_len > 0) {
-// 		*buf ++ = (uint8_t)(acc << (8 - acc_len));
-// 	}
-// 	return out_len;
-// }
+	n = (size_t)1 << logn;
+	maxv = (1 << (bits - 1)) - 1;
+	minv = -maxv;
+	for (u = 0; u < n; u ++) {
+		if (x[u] < minv || x[u] > maxv) {
+			return 0;
+		}
+	}
+	out_len = ((n * bits) + 7) >> 3;
+	if (out == NULL) {
+		return out_len;
+	}
+	if (out_len > max_out_len) {
+		return 0;
+	}
+	buf = out;
+	acc = 0;
+	acc_len = 0;
+	mask = ((uint32_t)1 << bits) - 1;
+	for (u = 0; u < n; u ++) {
+		acc = (acc << bits) | ((uint16_t)x[u] & mask);
+		acc_len += bits;
+		while (acc_len >= 8) {
+			acc_len -= 8;
+			*buf ++ = (uint8_t)(acc >> acc_len);
+		}
+	}
+	if (acc_len > 0) {
+		*buf ++ = (uint8_t)(acc << (8 - acc_len));
+	}
+	return out_len;
+}
 
-// /* see inner.h */
-// size_t
-// Zf(trim_i16_decode)(
-// 	int16_t *x, unsigned logn, unsigned bits,
-// 	const void *in, size_t max_in_len)
-// {
-// 	size_t n, in_len;
-// 	const uint8_t *buf;
-// 	size_t u;
-// 	uint32_t acc, mask1, mask2;
-// 	unsigned acc_len;
+/* see inner.h */
+size_t
+Zf(trim_i16_decode)(
+	int16_t *x, unsigned logn, unsigned bits,
+	const void *in, size_t max_in_len)
+{
+	size_t n, in_len;
+	const uint8_t *buf;
+	size_t u;
+	uint32_t acc, mask1, mask2;
+	unsigned acc_len;
 
-// 	n = (size_t)1 << logn;
-// 	in_len = ((n * bits) + 7) >> 3;
-// 	if (in_len > max_in_len) {
-// 		return 0;
-// 	}
-// 	buf = in;
-// 	u = 0;
-// 	acc = 0;
-// 	acc_len = 0;
-// 	mask1 = ((uint32_t)1 << bits) - 1;
-// 	mask2 = (uint32_t)1 << (bits - 1);
-// 	while (u < n) {
-// 		acc = (acc << 8) | *buf ++;
-// 		acc_len += 8;
-// 		while (acc_len >= bits && u < n) {
-// 			uint32_t w;
+	n = (size_t)1 << logn;
+	in_len = ((n * bits) + 7) >> 3;
+	if (in_len > max_in_len) {
+		return 0;
+	}
+	buf = in;
+	u = 0;
+	acc = 0;
+	acc_len = 0;
+	mask1 = ((uint32_t)1 << bits) - 1;
+	mask2 = (uint32_t)1 << (bits - 1);
+	while (u < n) {
+		acc = (acc << 8) | *buf ++;
+		acc_len += 8;
+		while (acc_len >= bits && u < n) {
+			uint32_t w;
 
-// 			acc_len -= bits;
-// 			w = (acc >> acc_len) & mask1;
-// 			w |= -(w & mask2);
-// 			if (w == -mask2) {
-// 				/*
-// 				 * The -2^(bits-1) value is forbidden.
-// 				 */
-// 				return 0;
-// 			}
-// 			w |= -(w & mask2);
-// 			x[u ++] = (int16_t)*(int32_t *)&w;
-// 		}
-// 	}
-// 	if ((acc & (((uint32_t)1 << acc_len) - 1)) != 0) {
-// 		/*
-// 		 * Extra bits in the last byte must be zero.
-// 		 */
-// 		return 0;
-// 	}
-// 	return in_len;
-// }
+			acc_len -= bits;
+			w = (acc >> acc_len) & mask1;
+			w |= -(w & mask2);
+			if (w == -mask2) {
+				/*
+				 * The -2^(bits-1) value is forbidden.
+				 */
+				return 0;
+			}
+			w |= -(w & mask2);
+			x[u ++] = (int16_t)*(int32_t *)&w;
+		}
+	}
+	if ((acc & (((uint32_t)1 << acc_len) - 1)) != 0) {
+		/*
+		 * Extra bits in the last byte must be zero.
+		 */
+		return 0;
+	}
+	return in_len;
+}
 
 /* see inner.h */
 size_t

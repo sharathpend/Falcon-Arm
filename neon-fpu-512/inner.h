@@ -249,15 +249,15 @@ void Zf(i_shake256_extract)(
  */
 
 size_t Zf(modq_encode)(void *out, size_t max_out_len, const uint16_t *x);
-// size_t Zf(trim_i16_encode)(void *out, size_t max_out_len,
-// 	const int16_t *x, unsigned logn, unsigned bits);
+size_t Zf(trim_i16_encode)(void *out, size_t max_out_len,
+	const int16_t *x, unsigned logn, unsigned bits);
 size_t Zf(trim_i8_encode)(void *out, size_t max_out_len, 
                         const int8_t *x, unsigned bits);
 size_t Zf(comp_encode)(void *out, size_t max_out_len, const int16_t *x);
 
 size_t Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len);
-// size_t Zf(trim_i16_decode)(int16_t *x, unsigned logn, unsigned bits,
-// 	const void *in, size_t max_in_len);
+size_t Zf(trim_i16_decode)(int16_t *x, unsigned logn, unsigned bits,
+	const void *in, size_t max_in_len);
 size_t Zf(trim_i8_decode)(int8_t *x, unsigned bits, const void *in, size_t max_in_len);
 size_t Zf(comp_decode)(int16_t *x, const void *in, size_t max_in_len);
 

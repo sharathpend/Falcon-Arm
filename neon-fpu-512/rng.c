@@ -30,8 +30,20 @@
  */
 
 #include <assert.h>
-
+#include <stdio.h>
 #include "inner.h"
+
+int Zf(get_seed)(void *seed, size_t len)
+{
+    unsigned char tmp[48];
+    for (size_t i = 0; i < len; i++)
+    {
+        tmp[i] = i;
+    }
+    memcpy(seed, tmp, len);
+    return 1;
+}
+
 
 
 /* see inner.h */
