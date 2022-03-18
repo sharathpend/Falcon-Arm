@@ -1,3 +1,24 @@
+/*
+ * High-speed vectorize NTT for N = 512, 1024
+ *
+ * =============================================================================
+ * Copyright (c) 2021 by Cryptographic Engineering Research Group (CERG)
+ * ECE Department, George Mason University
+ * Fairfax, VA, U.S.A.
+ * Author: Duc Tri Nguyen
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =============================================================================
+ * @author   Duc Tri Nguyen <dnguye69@gmu.edu>
+ */
+
 #include <arm_neon.h>
 #include "macrous.h"
 #include "inner.h"
@@ -686,6 +707,16 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v1: 1.15
         // v2: 1.25
         // v3: 1.15
+        barrett_x4(v0, neon_qmvq, t);
+        barrett_x4(v1, neon_qmvq, t);
+        barrett_x4(v2, neon_qmvq, t);
+        barrett_x4(v3, neon_qmvq, t);
+
+        // v0: 0.5
+        // v1: 0.5
+        // v2: 0.5
+        // v3: 0.5
+
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 128], v1);
         vstore_s16_x4(&a[j + 256], v2);
@@ -871,122 +902,6 @@ void neon_invNTT(int16_t a[FALCON_N])
         vstore_s16_x2(&a[j + 768], u6);
         vstore_s16_x2(&a[j + 896], u7);
     }
-/* 
-    for (; j < 128; j += 16)
-    {
-        vload_s16_x2(u0, &a[j]);
-        vload_s16_x2(u1, &a[j + 128]);
-        vload_s16_x2(u2, &a[j + 256]);
-        vload_s16_x2(u3, &a[j + 384]);
-
-        vload_s16_x2(u4, &a[j + 512]);
-        vload_s16_x2(u5, &a[j + 640]);
-        vload_s16_x2(u6, &a[j + 768]);
-        vload_s16_x2(u7, &a[j + 896]);
-
-        // 1.3
-
-        // Layer 7
-        // u0 - u1, u2 - u3
-        // u4 - u5, u6 - u7
-        gsbf_bri(u0.val[0], u1.val[0], zl.val[0], zh.val[0], 0, neon_qmvq, t.val[0]);
-        gsbf_bri(u0.val[1], u1.val[1], zl.val[0], zh.val[0], 0, neon_qmvq, t.val[1]);
-        gsbf_bri(u2.val[0], u3.val[0], zl.val[0], zh.val[0], 1, neon_qmvq, t.val[2]);
-        gsbf_bri(u2.val[1], u3.val[1], zl.val[0], zh.val[0], 1, neon_qmvq, t.val[3]);
-
-        gsbf_bri(u4.val[0], u5.val[0], zl.val[0], zh.val[0], 2, neon_qmvq, t.val[0]);
-        gsbf_bri(u4.val[1], u5.val[1], zl.val[0], zh.val[0], 2, neon_qmvq, t.val[1]);
-        gsbf_bri(u6.val[0], u7.val[0], zl.val[0], zh.val[0], 3, neon_qmvq, t.val[2]);
-        gsbf_bri(u6.val[1], u7.val[1], zl.val[0], zh.val[0], 3, neon_qmvq, t.val[3]);
-
-        // u0, 4: 2.6
-        // u1, 5: 1.5
-        // u2, 6: 2.6
-        // u3, 7: 1.5
-
-        barrett_x2(u0, 0, 1, 0, 1, neon_qmvq, t);
-        barrett_x2(u2, 0, 1, 2, 3, neon_qmvq, t);
-        barrett_x2(u1, 0, 1, 0, 1, neon_qmvq, t);
-        barrett_x2(u3, 0, 1, 2, 3, neon_qmvq, t);
-
-        barrett_x2(u4, 0, 1, 0, 1, neon_qmvq, t);
-        barrett_x2(u6, 0, 1, 2, 3, neon_qmvq, t);
-        barrett_x2(u5, 0, 1, 0, 1, neon_qmvq, t);
-        barrett_x2(u7, 0, 1, 2, 3, neon_qmvq, t);
-
-        // u0, 4: .5
-        // u1, 5: .5
-        // u2, 6: .5
-        // u3, 7: .5
-
-        // Layer 8
-        // u0 - u2, u1 - u3
-        // u4 - u6, u5 - u7
-        gsbf_bri(u0.val[0], u2.val[0], zl.val[0], zh.val[0], 4, neon_qmvq, t.val[0]);
-        gsbf_bri(u0.val[1], u2.val[1], zl.val[0], zh.val[0], 4, neon_qmvq, t.val[1]);
-        gsbf_bri(u1.val[0], u3.val[0], zl.val[0], zh.val[0], 4, neon_qmvq, t.val[2]);
-        gsbf_bri(u1.val[1], u3.val[1], zl.val[0], zh.val[0], 4, neon_qmvq, t.val[3]);
-
-        gsbf_bri(u4.val[0], u6.val[0], zl.val[0], zh.val[0], 5, neon_qmvq, t.val[0]);
-        gsbf_bri(u4.val[1], u6.val[1], zl.val[0], zh.val[0], 5, neon_qmvq, t.val[1]);
-        gsbf_bri(u5.val[0], u7.val[0], zl.val[0], zh.val[0], 5, neon_qmvq, t.val[2]);
-        gsbf_bri(u5.val[1], u7.val[1], zl.val[0], zh.val[0], 5, neon_qmvq, t.val[3]);
-
-        // u0, 4: 1
-        // u2, 6: .87
-        // u1, 5: 1
-        // u3, 7: .87
-
-        // Layer 9
-        // u0 - u4, u1 - u5
-        // u2 - u6, u3 - u7
-        gsbf_bri(u0.val[0], u4.val[0], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[0]);
-        gsbf_bri(u0.val[1], u4.val[1], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[1]);
-        gsbf_bri(u1.val[0], u5.val[0], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[2]);
-        gsbf_bri(u1.val[1], u5.val[1], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[3]);
-
-        gsbf_bri(u2.val[0], u6.val[0], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[0]);
-        gsbf_bri(u2.val[1], u6.val[1], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[1]);
-        gsbf_bri(u3.val[0], u7.val[0], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[2]);
-        gsbf_bri(u3.val[1], u7.val[1], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[3]);
-
-        // u0, 4: 2, 1.25
-        // u2, 6: 1.75, 1.15
-        // u1, 5: 2, 1.25
-        // u3, 7: 1.75, 1.15
-
-        barmul_invntt_x2(u0, zl.val[0], zh.val[0], 7, neon_qmvq, t);
-        barmul_invntt_x2(u1, zl.val[0], zh.val[0], 7, neon_qmvq, t);
-        barmul_invntt_x2(u2, zl.val[0], zh.val[0], 7, neon_qmvq, t);
-        barmul_invntt_x2(u3, zl.val[0], zh.val[0], 7, neon_qmvq, t);
-
-        // u0, 4: 1.25, 1.25
-        // u2, 6: 1.15, 1.15
-        // u1, 5: 1.25, 1.25
-        // u3, 7: 1.15, 1.15
-        
-        barrett_x2(u0, 0, 1, 0, 1, neon_qmvq, t);
-        barrett_x2(u4, 0, 1, 2, 3, neon_qmvq, t);
-        barrett_x2(u1, 0, 1, 0, 1, neon_qmvq, t);
-        barrett_x2(u5, 0, 1, 2, 3, neon_qmvq, t);
-
-        // u0, 4: .5, .5
-        // u2, 6: 1.15, 1.15
-        // u1, 5: .5, .5
-        // u3, 7: 1.15, 1.15
-        -> 16 barret_x2 in total, combine with previous loop
-
-        vstore_s16_x2(&a[j], u0);
-        vstore_s16_x2(&a[j + 128], u1);
-        vstore_s16_x2(&a[j + 256], u2);
-        vstore_s16_x2(&a[j + 384], u3);
-
-        vstore_s16_x2(&a[j + 512], u4);
-        vstore_s16_x2(&a[j + 640], u5);
-        vstore_s16_x2(&a[j + 768], u6);
-        vstore_s16_x2(&a[j + 896], u7);
-    }
- */
 #else
 #error "FALCON_N is either 512 or 1024"
 #endif
@@ -1032,7 +947,7 @@ void neon_conv_small(int16_t out[FALCON_N], const int8_t in[FALCON_N])
 
 /*
  * Return f[] = f[]/g[] % 12289
- * See assembly https://godbolt.org/z/G59vo4crY
+ * See assembly https://godbolt.org/z/od3Ex7Mbx
  */
 
 void neon_div_12289(int16_t f[FALCON_N], const int16_t g[FALCON_N])
@@ -1255,7 +1170,7 @@ int neon_big_to_smallints(int8_t G[FALCON_N], const int16_t t[FALCON_N])
 {
     // Total SIMD registers: 32
     int16x8x4_t a, f;              // 8
-    uint16x8x4_t c0, c1, d0, d1;       // 16
+    uint16x8x4_t c0, c1, d0, d1;   // 16
     uint16x8x2_t e;                // 2
     int8x16x4_t g;                 // 4
     int16x8_t neon_127, neon__127; // 2
