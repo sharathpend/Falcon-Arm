@@ -228,7 +228,7 @@ Zf(trim_i8_encode)(void *out, size_t max_out_len,
 	
 	maxv = (1 << (bits - 1)) - 1;
 	minv = -maxv;
-    if (neon_bound_check_int8_low_high(x, minv, maxv))
+    if (ZfN(poly_check_bound_int8)(x, minv, maxv))
     {
         return 0;
     }
@@ -312,7 +312,7 @@ Zf(comp_encode)(void *out, size_t max_out_len, const int16_t *x)
 	/*
 	 * Make sure that all values are within the -2047..+2047 range.
 	 */
-    if (neon_bound_check_int16_low_high(x, -2047, 2047))
+    if (ZfN(poly_check_bound_int16)(x, -2047, 2047))
     {
         return 0;
     }
