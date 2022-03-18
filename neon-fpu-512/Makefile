@@ -8,98 +8,35 @@
 
 .POSIX:
 
-# CC = c99
-CC = gcc
+# CC = gcc
+CC = clang
 CFLAGS = -W -Wall -O3 -Wextra -Wpedantic -g3 -Werror
 LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ1 = build/codec.o build/util.o build/common.o build/fft.o \
-	   build/fft_tree.o build/fpr.o build/keygen.o build/nist.o \
-	   build/rng.o build/poly_float.o build/sign_sampler.o \
-	   build/shake.o build/sign.o build/vrfy.o build/ntt.o \
-	   build/ntt_consts.o build/poly_int.o
+OBJ = codec.c util.c common.c fft.c fft_tree.c fpr.c keygen.c nist.c rng.c \
+	  poly_float.c sign_sampler.c shake.c sign.c vrfy.c ntt.c ntt_consts.c \
+	  poly_int.c katrng.c 
 
-OBJ2 = build/PQCgenKAT_sign.o build/katrng.o 
-OBJ3 = build/speed.o build/katrng.o
+HEAD = api.h fpr.h inner.h config.h katrng.h
 
-HEAD1 = api.h fpr.h inner.h config.h
-HEAD2 = api.h katrng.h
-
-all: build build/kat512fpu
+all: build build/kat512fpu build/kat1024fpu
 
 build:
 	-mkdir build
 
 clean:
-	-rm -f build/kat512fpu $(OBJ1) $(OBJ2)
+	-rm -f build/kat512fpu build/kat1024fpu
 
-build/speed: $(OBJ1) $(OBJ3)
-	$(LD) $(LDFLAGS) -o $@ $(OBJ1) $(OBJ3) $(LIBS)
+build/kat512fpu: $(HEAD1) $(OBJ)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DALGNAME=falcon512fpu -o $@ $(OBJ) PQCgenKAT_sign.c
 
-build/kat512fpu: $(OBJ1) $(OBJ2)
-	$(LD) $(LDFLAGS) -o $@ $(OBJ1) $(OBJ2) $(LIBS)
+build/kat1024fpu: $(HEAD1) $(OBJ)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DALGNAME=falcon1024fpu -o $@ $(OBJ) PQCgenKAT_sign.c
 
-build/codec.o: codec.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ codec.c
+build/speed512: $(HEAD1) $(OBJ)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) speed.c
 
-build/common.o: common.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ common.c
-
-build/fft.o: fft.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ fft.c
-
-build/fpr.o: fpr.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ fpr.c
-
-build/keygen.o: keygen.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ keygen.c
-
-build/nist.o: nist.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ nist.c
-
-build/rng.o: rng.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ rng.c
-
-build/shake.o: shake.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ shake.c
-
-build/sign.o: sign.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ sign.c
-
-build/poly_float.o: poly_float.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ poly_float.c
-
-build/poly_int.o: poly_int.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ poly_int.c
-
-build/util.o: util.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ util.c
-
-build/sign_sampler.o: sign_sampler.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ sign_sampler.c
-
-build/fft_tree.o: fft_tree.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ fft_tree.c
-
-build/ntt.o: ntt.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ ntt.c
-
-build/ntt_consts.o: ntt_consts.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ ntt_consts.c
-
-# build/falcon.o: falcon.c $(HEAD1)
-# 	$(CC) $(CFLAGS) -c -o $@ falcon.c
-
-build/vrfy.o: vrfy.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ vrfy.c
-
-build/PQCgenKAT_sign.o: PQCgenKAT_sign.c $(HEAD2)
-	$(CC) $(CFLAGS) -I . -DALGNAME=falcon512fpu -c -o $@ PQCgenKAT_sign.c
-
-build/katrng.o: katrng.c $(HEAD2)
-	$(CC) $(CFLAGS) -I . -c -o $@ katrng.c
-
-build/speed.o: speed.c $(HEAD2)
-	$(CC) $(CFLAGS) -c -o $@ speed.c
+build/speed1024: $(HEAD1) $(OBJ)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) speed.c
