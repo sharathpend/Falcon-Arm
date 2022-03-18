@@ -1,32 +1,22 @@
 /*
  * Falcon signature verification.
  *
- * ==========================(LICENSE BEGIN)============================
- *
- * Copyright (c) 2017-2019  Falcon Project
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * ===========================(LICENSE END)=============================
- *
- * @author   Thomas Pornin <thomas.pornin@nccgroup.com>
+ * =============================================================================
+ * Copyright (c) 2021 by Cryptographic Engineering Research Group (CERG)
+ * ECE Department, George Mason University
+ * Fairfax, VA, U.S.A.
+ * Author: Duc Tri Nguyen
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =============================================================================
+ * @author   Duc Tri Nguyen <dnguye69@gmu.edu>
  */
 
 #include "inner.h"
@@ -66,11 +56,11 @@ int Zf(compute_public)(int16_t *h, const int8_t *f, const int8_t *g, int16_t *tm
 {
     int16_t *tt = tmp;
 
-    neon_conv_small(tt, f);
-    neon_fwdNTT(tt, 0);
-
     neon_conv_small(h, g);
     neon_fwdNTT(h, 0);
+   
+    neon_conv_small(tt, f);
+    neon_fwdNTT(tt, 1);
 
     if (neon_compare_with_zero(tt))
     {
@@ -96,14 +86,15 @@ int Zf(complete_private)(int8_t *G, const int8_t *f,
     t2 = t1 + FALCON_N;
 
     neon_conv_small(t1, g);
-    neon_fwdNTT(t1, 1);
+    neon_fwdNTT(t1, 0);
+
     neon_conv_small(t2, F);
-    neon_fwdNTT(t2, 0);
+    neon_fwdNTT(t2, 1);
 
     neon_poly_montymul_ntt(t1, t2);
 
     neon_conv_small(t2, f);
-    neon_fwdNTT(t2, 0);
+    neon_fwdNTT(t2, 1);
 
     if (neon_compare_with_zero(t2))
     {
@@ -127,7 +118,7 @@ int Zf(is_invertible)(const int16_t *s2, uint8_t *tmp)
     uint16_t r;
 
     memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
-    neon_fwdNTT(tt, 0);
+    neon_fwdNTT(tt, 1);
 
     r = neon_compare_with_zero(tt);
 
@@ -143,13 +134,6 @@ int Zf(verify_recover)(int16_t *h, const int16_t *c0,
     uint16_t r;
 
     /*
-     * Reduce elements of s1 and s2 modulo q; then write s2 into tt[]
-     * and c0 - s1 into h[].
-     */
-    memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
-    neon_fwdNTT(tt, 0);
-
-    /*
      * Compute h = (c0 - s1) / s2. If one of the coefficients of s2
      * is zero (in NTT representation) then the operation fails. We
      * keep that information into a flag so that we do not deviate
@@ -160,6 +144,12 @@ int Zf(verify_recover)(int16_t *h, const int16_t *c0,
     neon_poly_sub(h, c0, s1);
     neon_fwdNTT(h, 0);
 
+    /*
+     * Reduce elements of s1 and s2 modulo q; then write s2 into tt[]
+     * and c0 - s1 into h[].
+     */
+    memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
+    neon_fwdNTT(tt, 1);
     r = neon_compare_with_zero(tt);
     neon_div_12289(h, tt);
 
@@ -181,7 +171,7 @@ int Zf(count_nttzero)(const int16_t *sig, uint8_t *tmp)
     int16_t *s2 = (int16_t *)tmp;
 
     memcpy(s2, sig, sizeof(int16_t) * FALCON_N);
-    neon_fwdNTT(s2, 0);
+    neon_fwdNTT(s2, 1);
 
     int r = neon_compare_with_zero(s2);
 
