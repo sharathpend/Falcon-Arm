@@ -6,26 +6,32 @@
 #include <string.h>
 #include <stddef.h>
 #include "util.h"
-
+#include "config.h"
+#include "api.h"
 
 #define NTESTS 1000000
-#define FALCON_N (1 << 12)
 #define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);;
 // Result is nanosecond per call 
 #define  CALC(start, stop) ((double) ((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / NTESTS;
 
 
 
-int test_FFT(fpr *f, unsigned logn)
+int test_FFT()
 {
     struct timespec start, stop;
     long long ns_fft, ns_ifft;
+
+    fpr f[FALCON_N];
+    for (int i = 0; i < FALCON_N; i++)
+    {
+        f[i] = (double) i;
+    }
     /* =================================== */
     
     TIME(start);
     for (int i = 0; i < NTESTS; i++)
     {
-        Zf(FFT)(f, logn);
+        ZfN(FFT)(f, logn);
     }
     TIME(stop);
     ns_fft = CALC(start, stop);
@@ -33,7 +39,7 @@ int test_FFT(fpr *f, unsigned logn)
     TIME(start);
     for (int i = 0; i < NTESTS; i++)
     {
-        Zf(iFFT)(f, logn);
+        ZfN(iFFT)(f, logn);
     }
     /* =================================== */
     TIME(stop);
@@ -43,16 +49,8 @@ int test_FFT(fpr *f, unsigned logn)
 
 int main()
 {
-    fpr f[FALCON_N];
-    for (int i = 0; i < FALCON_N; i++)
-    {
-        f[i] = (double) i;
-    }
+    test_FFT();
 
-    for (unsigned i = 0; i < 11; i++)
-    {
-        test_FFT(f, i);
-    }
 
     return 0;
 }
