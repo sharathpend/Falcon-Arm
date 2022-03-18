@@ -20,7 +20,7 @@ static const uint32_t l2bound[] = {
 
 /* see inner.h */
 int
-    Zf(is_short)(
+    ZfN(is_short)(
         const int16_t *s1, const int16_t *s2, const unsigned logn)
 {
     /*
@@ -56,7 +56,7 @@ int
 
 
 /* see inner.h */
-int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, const unsigned logn)
+int ZfN(is_short_half)(uint32_t sqn, const int16_t *s2, const unsigned logn)
 {
     size_t n, u;
     uint32_t ng;
@@ -739,7 +739,7 @@ int main()
     };
 
     test = Zf(neon_is_short_half1)(sqn, s2, 9);
-    gold = Zf(is_short_half)(sqn, s2, 9);
+    gold = ZfN(is_short_half)(sqn, s2, 9);
 
     printf("test, gold: %d -- %d\n", test, gold);
     if (test != gold)
