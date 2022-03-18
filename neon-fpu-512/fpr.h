@@ -52,7 +52,8 @@ fpr_of(int64_t i)
 static const fpr fpr_q = 12289.0 ;
 static const fpr fpr_inverse_of_q = 1.0 / 12289.0 ;
 static const fpr fpr_inv_2sqrsigma0 = .150865048875372721532312163019 ;
-static const fpr fpr_inv_sigma = 0.0060336696681577241031668062510953022 ;
+static const fpr fpr_inv_sigma_9 = 0.0060336696681577241031668062510953022 ;
+static const fpr fpr_inv_sigma_10 = 0.0059386453095331159950250124336477482 ;
 static const fpr fpr_sigma_min_9 = 1.2778336969128335860256340575729042 ;
 static const fpr fpr_sigma_min_10 = 1.2982803343442918539708792538826807 ;
 static const fpr fpr_log2 = 0.69314718055994530941723212146 ;
