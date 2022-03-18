@@ -8,6 +8,7 @@
 #include "util.h"
 #include "config.h"
 #include "api.h"
+#include "poly.h"
 
 #define NTESTS 1000000
 #define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);;
@@ -16,10 +17,12 @@
 
 
 
-int test_FFT()
+void test_FFT()
 {
     struct timespec start, stop;
     long long ns_fft, ns_ifft;
+
+    const unsigned logn = FALCON_LOGN;
 
     fpr f[FALCON_N];
     for (int i = 0; i < FALCON_N; i++)
@@ -44,42 +47,56 @@ int test_FFT()
     /* =================================== */
     TIME(stop);
     ns_ifft = CALC(start, stop);
-    printf("FFT %u: %lld - %lld\n", logn, ns_fft, ns_ifft);
+    printf("FFT %u: %8lld - %8lld\n", logn, ns_fft, ns_ifft);
+}
+
+void test_NTT()
+{
+    struct timespec start, stop;
+    long long ns_fft, ns_ifft;
+
+    const unsigned logn = FALCON_LOGN;
+
+    int16_t a[FALCON_N];
+    for (int i = 0; i < FALCON_N; i++)
+    {
+        a[i] = rand() % FALCON_Q;
+    }
+
+    TIME(start);
+    for (int i = 0; i < NTESTS; i++)
+    {
+        ZfN(poly_ntt)(a, 0);
+    }
+    TIME(stop);
+    ns_fft = CALC(start, stop);
+    /* =================================== */
+    TIME(start);
+    for (int i = 0; i < NTESTS; i++)
+    {
+        ZfN(poly_invntt)(a);
+    }
+    /* =================================== */
+    TIME(stop);
+    ns_ifft = CALC(start, stop);
+    printf("NTT %u: %8lld - %8lld\n", logn, ns_fft, ns_ifft);
 }
 
 int main()
 {
     test_FFT();
-
+    test_NTT();
 
     return 0;
 }
 
 /* 
  * Result in nanosection
- * logn : FFT - iFFT GCC FMA NEON -O3 
- *  0: 32       - 25
- *  1: 9        - 10
- *  2: 16       - 17
- *  3: 36       - 37
- *  4: 64       - 65
- *  5: 212      - 183
- *  6: 530      - 480
- *  7: 1139     - 1014
- *  8: 2721     - 2482
- *  9: 5752     - 5189
- * 10: 13419    - 12382
+ * FFT          - iFFT
+ *  9: 4609     - 4333
+ * 10: 11389    - 10790
  * 
- * logn: FFT - iFFT GCC REF -O3 
- *  0: 14       - 10
- *  1: 7        - 14
- *  2: 40       - 58
- *  3: 95       - 101
- *  4: 212      - 222
- *  5: 459      - 480
- *  6: 1000     - 1044
- *  7: 2159     - 2263
- *  8: 4616     - 4812
- *  9: 9897     - 10284
- * 10: 22036    - 21886
+ * NTT          - iNTT
+ *  9: 2560     - 2646
+ * 10: 5426     - 5721
  */

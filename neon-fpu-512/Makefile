@@ -10,7 +10,7 @@
 
 # CC = gcc
 CC = clang
-CFLAGS = -W -Wall -O3 -Wextra -Wpedantic -g3
+CFLAGS = -W -Wall -O3 -Wextra -Wpedantic
 LD = c99
 LDFLAGS = 
 LIBS = 
@@ -20,19 +20,22 @@ OBJ = codec.c util.c common.c fft.c fft_tree.c fpr.c keygen.c rng.c katrng.c \
 	  poly_int.c nist.c
 
 OBJ_SPEED = falcon.c speed.c
-
+OBJ_BENCH = bench.c
 OBJ_KAT = PQCgenKAT_sign.c
 
 HEAD = api.h fpr.h inner.h config.h katrng.h
 HEAD1 = falcon.h
 
-all: build build/kat512fpu build/kat1024fpu build/speed512 build/speed1024
+all: build
+kat: build/kat512fpu build/kat1024fpu
+bench: build/bench512 build/bench1024
+speed: build/speed512 build/speed1024
 
 build:
 	-mkdir build
 
 clean:
-	-rm -f build/kat512fpu build/kat1024fpu
+	-rm -f build/kat512fpu build/kat1024fpu build/bench512 build/bench1024 build/speed512 build/speed1024
 
 build/kat512fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DALGNAME=falcon512fpu  -o $@ $(OBJ) $(OBJ_KAT)
@@ -45,3 +48,9 @@ build/speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
 
 build/speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_SPEED)
+
+build/bench512: $(OBJ) $(OBJ_BENCH)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) $(OBJ_BENCH)
+
+build/bench1024: $(OBJ) $(OBJ_BENCH)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_BENCH)
