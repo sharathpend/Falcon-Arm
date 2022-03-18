@@ -1,6 +1,6 @@
 # This Makefile compiles the implementation in this directory along with
 # the known answer tests generator located in the
-# ../../../KAT/generator/ directory. The output is an executable program
+#  directory. The output is an executable program
 # in the build/ subdirectory, whose name starts with 'kat', followed by
 # the implementation name (e.g. 'kat512int' for the 'falcon512int'
 # implementation). This program, when executed, generates the .req and
@@ -19,7 +19,7 @@ OBJ1 = build/codec.o build/common.o build/fft.o build/fpr.o build/keygen.o build
 OBJ2 = build/PQCgenKAT_sign.o build/katrng.o
 
 HEAD1 = api.h fpr.h inner.h
-HEAD2 = api.h ../../../KAT/generator/katrng.h
+HEAD2 = api.h katrng.h
 
 all: build build/kat1024fpu
 
@@ -62,8 +62,8 @@ build/sign.o: sign.c $(HEAD1)
 build/vrfy.o: vrfy.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/vrfy.o vrfy.c
 
-build/PQCgenKAT_sign.o: ../../../KAT/generator/PQCgenKAT_sign.c $(HEAD2)
-	$(CC) $(CFLAGS) -I . -DALGNAME=falcon1024fpu -c -o build/PQCgenKAT_sign.o ../../../KAT/generator/PQCgenKAT_sign.c
+build/PQCgenKAT_sign.o: PQCgenKAT_sign.c $(HEAD2)
+	$(CC) $(CFLAGS) -I . -DALGNAME=falcon1024fpu -c -o build/PQCgenKAT_sign.o PQCgenKAT_sign.c
 
-build/katrng.o: ../../../KAT/generator/katrng.c $(HEAD2)
-	$(CC) $(CFLAGS) -I . -c -o build/katrng.o ../../../KAT/generator/katrng.c
+build/katrng.o: katrng.c $(HEAD2)
+	$(CC) $(CFLAGS) -I . -c -o build/katrng.o katrng.c
