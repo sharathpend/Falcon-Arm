@@ -649,6 +649,7 @@ void neon_invNTT(int16_t a[FALCON_N])
         vload_s16_x4(v2, &a[j + 256]);
         vload_s16_x4(v3, &a[j + 384]);
 
+        // 2
         barrett_x4(v0, neon_qmvq, t);
         barrett_x4(v1, neon_qmvq, t);
         barrett_x4(v2, neon_qmvq, t);
@@ -677,14 +678,14 @@ void neon_invNTT(int16_t a[FALCON_N])
         // v0: 2
         // v1: 1.75
         // v2: 1.25
-        // v3: 1.25
+        // v3: 1.15
         barmul_invntt_x4(v0, zl.val[0], zh.val[0], 3, neon_qmvq, t);
         barmul_invntt_x4(v1, zl.val[0], zh.val[0], 3, neon_qmvq, t);
 
         // v0: 1.25
         // v1: 1.15
-        // v2: .97
-        // v3: .97
+        // v2: 1.25
+        // v3: 1.15
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 128], v1);
         vstore_s16_x4(&a[j + 256], v2);
@@ -748,7 +749,7 @@ void neon_invNTT(int16_t a[FALCON_N])
     // Layer 7, 8, 9
     int16x8x2_t u0, u1, u2, u3, u4, u5, u6, u7;
 
-    for (j = 0; j < 64; j += 16)
+    for (j = 0; j < 128; j += 16)
     {
         vload_s16_x2(u0, &a[j]);
         vload_s16_x2(u1, &a[j + 128]);
@@ -835,10 +836,30 @@ void neon_invNTT(int16_t a[FALCON_N])
         gsbf_bri(u3.val[0], u7.val[0], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[2]);
         gsbf_bri(u3.val[1], u7.val[1], zl.val[0], zh.val[0], 6, neon_qmvq, t.val[3]);
 
+        // u0, 4: 1, .87
+        // u2, 6: 2.5, 1.5
+        // u1, 5: 1, .87
+        // u3, 7: 2.3, 1.4
+
         barmul_invntt_x2(u0, zl.val[0], zh.val[0], 7, neon_qmvq, t);
         barmul_invntt_x2(u1, zl.val[0], zh.val[0], 7, neon_qmvq, t);
         barmul_invntt_x2(u2, zl.val[0], zh.val[0], 7, neon_qmvq, t);
         barmul_invntt_x2(u3, zl.val[0], zh.val[0], 7, neon_qmvq, t);
+
+        // u0, 4: .87, .87
+        // u2, 6: 1.5, 1.5
+        // u1, 5: .87, .87
+        // u3, 7: 1.4, 1.4
+
+        barrett_x2(u2, 0, 1, 0, 1, neon_qmvq, t);
+        barrett_x2(u6, 0, 1, 2, 3, neon_qmvq, t);
+        barrett_x2(u3, 0, 1, 0, 1, neon_qmvq, t);
+        barrett_x2(u7, 0, 1, 2, 3, neon_qmvq, t);
+
+        // u0, 4: .87, .87
+        // u2, 6: .5, .5
+        // u1, 5: .87, .87
+        // u3, 7: .5, .5
 
         vstore_s16_x2(&a[j], u0);
         vstore_s16_x2(&a[j + 128], u1);
@@ -850,7 +871,7 @@ void neon_invNTT(int16_t a[FALCON_N])
         vstore_s16_x2(&a[j + 768], u6);
         vstore_s16_x2(&a[j + 896], u7);
     }
-
+/* 
     for (; j < 128; j += 16)
     {
         vload_s16_x2(u0, &a[j]);
@@ -932,12 +953,28 @@ void neon_invNTT(int16_t a[FALCON_N])
         // u0, 4: 2, 1.25
         // u2, 6: 1.75, 1.15
         // u1, 5: 2, 1.25
-        // u3, 7: .175, 1.15
+        // u3, 7: 1.75, 1.15
 
         barmul_invntt_x2(u0, zl.val[0], zh.val[0], 7, neon_qmvq, t);
         barmul_invntt_x2(u1, zl.val[0], zh.val[0], 7, neon_qmvq, t);
         barmul_invntt_x2(u2, zl.val[0], zh.val[0], 7, neon_qmvq, t);
         barmul_invntt_x2(u3, zl.val[0], zh.val[0], 7, neon_qmvq, t);
+
+        // u0, 4: 1.25, 1.25
+        // u2, 6: 1.15, 1.15
+        // u1, 5: 1.25, 1.25
+        // u3, 7: 1.15, 1.15
+        
+        barrett_x2(u0, 0, 1, 0, 1, neon_qmvq, t);
+        barrett_x2(u4, 0, 1, 2, 3, neon_qmvq, t);
+        barrett_x2(u1, 0, 1, 0, 1, neon_qmvq, t);
+        barrett_x2(u5, 0, 1, 2, 3, neon_qmvq, t);
+
+        // u0, 4: .5, .5
+        // u2, 6: 1.15, 1.15
+        // u1, 5: .5, .5
+        // u3, 7: 1.15, 1.15
+        -> 16 barret_x2 in total, combine with previous loop
 
         vstore_s16_x2(&a[j], u0);
         vstore_s16_x2(&a[j + 128], u1);
@@ -949,7 +986,7 @@ void neon_invNTT(int16_t a[FALCON_N])
         vstore_s16_x2(&a[j + 768], u6);
         vstore_s16_x2(&a[j + 896], u7);
     }
-
+ */
 #else
 #error "FALCON_N is either 512 or 1024"
 #endif
@@ -1015,8 +1052,7 @@ void neon_div_12289(int16_t f[FALCON_N], const int16_t g[FALCON_N])
         vload_s16_x4(y0, &g[i]);
         vload_s16_x4(src, &f[i]);
 
-        // y0 = y0 * mont
-        barmuli_mont_x4(y0, neon_qmvm, k);
+        // y0 is already in Montgomery domain
 
         montmul_x4(y1, y0, y0, neon_qmvm, t);
         montmul_x4(y2, y1, y0, neon_qmvm, k);
