@@ -30,7 +30,10 @@
 /*
  * Define Table for Forward and Inverse NTT, for better caching purpose
  */
+#ifndef FALCON_LOGN
 #define FALCON_LOGN 9
+#endif
+
 #define FALCON_N (1 << FALCON_LOGN)
 #define FALCON_Q 12289
 #define FALCON_QINV (-12287)

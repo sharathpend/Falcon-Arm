@@ -1,5 +1,5 @@
-#ifndef NTT_H
-#define NTT_H
+#ifndef POLY_H
+#define POLY_H
 
 #include "inner.h"
 #include "config.h"
@@ -22,11 +22,10 @@ void ZfN(poly_sub_barrett)(int16_t f[FALCON_N], const int16_t g[FALCON_N], const
 
 int ZfN(bigints_to_smallints)(int8_t G[FALCON_N], const int16_t t[FALCON_N]);
 
-// In neon_codec.c
-int ZfN(poly_check_bound_int8)(const int8_t t[FALCON_N], 
-                        const int8_t low, const int8_t high);
-                        
-int ZfN(poly_check_bound_int16)(const int16_t t[FALCON_N], 
-                    const int16_t low, const int16_t high);
+int ZfN(poly_check_bound_int8)(const int8_t t[FALCON_N],
+                               const int8_t low, const int8_t high);
+
+int ZfN(poly_check_bound_int16)(const int16_t t[FALCON_N],
+                                const int16_t low, const int16_t high);
 
 #endif
