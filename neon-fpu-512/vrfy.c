@@ -20,7 +20,7 @@
  */
 
 #include "inner.h"
-#include "ntt.h"
+#include "poly.h"
 
 /* see inner.h */
 void Zf(to_ntt_monty)(int16_t *h)
@@ -48,7 +48,7 @@ int Zf(verify_raw)(const int16_t *c0, const int16_t *s2,
      * Signature is valid if and only if the aggregate (-s1,s2) vector
      * is short enough.
      */
-    return Zf(is_short)(tt, s2);
+    return ZfN(is_short)(tt, s2);
 }
 
 /* see inner.h */
@@ -161,7 +161,7 @@ int Zf(verify_recover)(int16_t *h, const int16_t *c0,
      * check that the rebuilt public key matches the expected
      * value (e.g. through a hash).
      */
-    r = ~r & (uint16_t)-Zf(is_short)(s1, s2);
+    r = ~r & (uint16_t)-ZfN(is_short)(s1, s2);
     return (int)(r >> 15);
 }
 

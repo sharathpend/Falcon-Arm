@@ -59,11 +59,11 @@ void
 
         inner_shake256_extract(sc, (void *)buf, sizeof buf);
         w = ((unsigned)buf[0] << 8) | (unsigned)buf[1];
-        if (w < 61445)
+        if (w < 5*FALCON_Q)
         {
-            while (w >= 12289)
+            while (w >= FALCON_Q)
             {
-                w -= 12289;
+                w -= FALCON_Q;
             }
             *x++ = (uint16_t)w;
             n--;
@@ -275,7 +275,7 @@ static const uint32_t l2bound[] = {
     70265242};
 
 /* see inner.h */
-int Zf(is_short)(const int16_t *s1, const int16_t *s2)
+int ZfN(is_short)(const int16_t *s1, const int16_t *s2)
 {
     int16x8x4_t neon_s1, neon_s2;
     uint32x4_t neon_ng, neon_ngh;
@@ -356,7 +356,7 @@ int Zf(is_short)(const int16_t *s1, const int16_t *s2)
 }
 
 /* see inner.h */
-int Zf(is_short_half)(uint32_t sqn, const int16_t *s2)
+int ZfN(is_short_half)(uint32_t sqn, const int16_t *s2)
 {
     int16x8x4_t s2_s16;
     int32x4_t neon_sqn, neon_sqnh, neon_zero;
@@ -418,7 +418,7 @@ int Zf(is_short_half)(uint32_t sqn, const int16_t *s2)
     return sqn <= l2bound[FALCON_LOGN];
 }
 
-void Zf(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, const double *t0)
+void ZfN(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, const double *t0)
 {
     float64x2x4_t neon_tf64[2];
     int64x2x4_t neon_ts64[2];
@@ -496,7 +496,7 @@ void Zf(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, co
     *sqn_out = sqn;
 }
 
-void Zf(sign_short_s2)(int16_t *s2tmp, const double *t1)
+void ZfN(sign_short_s2)(int16_t *s2tmp, const double *t1)
 {
     float64x2x4_t neon_tf64[4];
     int64x2x4_t neon_ts64[4];

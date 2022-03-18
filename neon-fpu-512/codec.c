@@ -31,7 +31,7 @@
 
 #include "inner.h"
 #include "config.h"
-#include "ntt.h"
+#include "poly.h"
 
 /* see inner.h */
 size_t

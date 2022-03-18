@@ -23,6 +23,7 @@
 #include "macrous.h"
 #include "config.h"
 #include "poly.h"
+#include "ntt_consts.h"
 
 void ZfN(poly_smallints_to_bigints)(int16_t out[FALCON_N], const int8_t in[FALCON_N])
 {

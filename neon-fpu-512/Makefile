@@ -15,12 +15,16 @@ LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ1 = build/codec.o build/util.o build/common.o build/fft.o build/fft_tree.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/poly.o build/sign_sampler.o build/shake.o build/sign.o build/vrfy.o build/ntt.o build/ntt_consts.o build/neon_codec.o
+OBJ1 = build/codec.o build/util.o build/common.o build/fft.o \
+	   build/fft_tree.o build/fpr.o build/keygen.o build/nist.o \
+	   build/rng.o build/poly_float.o build/sign_sampler.o \
+	   build/shake.o build/sign.o build/vrfy.o build/ntt.o \
+	   build/ntt_consts.o build/poly_int.o
 
 OBJ2 = build/PQCgenKAT_sign.o build/katrng.o 
 OBJ3 = build/speed.o build/katrng.o
 
-HEAD1 = api.h fpr.h inner.h
+HEAD1 = api.h fpr.h inner.h config.h
 HEAD2 = api.h katrng.h
 
 all: build build/kat512fpu
@@ -64,8 +68,11 @@ build/shake.o: shake.c $(HEAD1)
 build/sign.o: sign.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ sign.c
 
-build/poly.o: poly.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ poly.c
+build/poly_float.o: poly_float.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o $@ poly_float.c
+
+build/poly_int.o: poly_int.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o $@ poly_int.c
 
 build/util.o: util.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ util.c
@@ -78,9 +85,6 @@ build/fft_tree.o: fft_tree.c $(HEAD1)
 
 build/ntt.o: ntt.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ ntt.c
-
-build/neon_codec.o: neon_codec.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o $@ neon_codec.c
 
 build/ntt_consts.o: ntt_consts.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ ntt_consts.c

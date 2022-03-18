@@ -26,7 +26,7 @@
 /* 
  * Minimum logn: 5
  */
-static void Zf(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsigned logn)
+static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsigned logn)
 {
     // n = 32; hn = 16; qn = 8
     // Total: 32 register
@@ -119,7 +119,7 @@ static void Zf(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsigne
 /* 
  * Fix logn: 4
  */
-static inline void Zf(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1)
+static inline void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1)
 {
     // n = 16; hn = 8; qn = 4
     // a_re = f0[0, 1, 2, 3]
@@ -172,7 +172,7 @@ static inline void Zf(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1)
 /* 
  * Fix logn: 3
  */
-static inline void Zf(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
+static inline void ZfN(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
 {
     // n = 8, hn = 4, qn = 2
     // a_re = f0[0, 1]
@@ -219,7 +219,7 @@ static inline void Zf(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
  * see inner.h
  * Only support logn >= 3
  */
-void Zf(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
+void ZfN(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
                         const fpr *restrict f1, unsigned logn)
 {
     float64x2_t a_re_im, b_re_im, d_re_im,
@@ -260,20 +260,20 @@ void Zf(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
         break;
 
     case 3:
-        Zf(poly_mergeFFT_log3)(f, f0, f1);
+        ZfN(poly_mergeFFT_log3)(f, f0, f1);
         break;
 
     case 4:
-        Zf(poly_mergeFFT_log4)(f, f0, f1);
+        ZfN(poly_mergeFFT_log4)(f, f0, f1);
         break;
 
     default:
-        Zf(poly_mergeFFT_log5)(f, f0, f1, logn);
+        ZfN(poly_mergeFFT_log5)(f, f0, f1, logn);
         break;
     }
 }
 
-static inline void Zf(poly_splitFFT_log3)(fpr *restrict f0, fpr *restrict f1, const fpr *f)
+static inline void ZfN(poly_splitFFT_log3)(fpr *restrict f0, fpr *restrict f1, const fpr *f)
 {
     // n = 8; hn = 4; qn = 2;
     // a_re = f[0];
@@ -325,7 +325,7 @@ static inline void Zf(poly_splitFFT_log3)(fpr *restrict f0, fpr *restrict f1, co
     vstorex2(&f1[0], tmp);
 }
 
-static inline void Zf(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
+static inline void ZfN(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
                                           const fpr *f, unsigned logn)
 {
     // n = 16; hn = 8; qn = 4
@@ -404,7 +404,7 @@ static inline void Zf(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
 /* 
  * Recursive Split FFT
  */
-void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
+void ZfN(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
                         const fpr *restrict f, unsigned logn)
 {
     float64x2x2_t tmp;
@@ -446,11 +446,11 @@ void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
         break;
 
     case 3:
-        Zf(poly_splitFFT_log3)(f0, f1, f);
+        ZfN(poly_splitFFT_log3)(f0, f1, f);
         break;
 
     default:
-        Zf(poly_splitFFT_log4)(f0, f1, f, logn);
+        ZfN(poly_splitFFT_log4)(f0, f1, f, logn);
         break;
     }
 }

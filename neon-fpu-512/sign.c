@@ -101,8 +101,8 @@ ffLDL_fft_inner(fpr *restrict tree,
 	 *   d00 splits into g1, g1+hn
 	 *   d11 splits into g0, g0+hn
 	 */
-	Zf(poly_split_fft)(g1, g1 + hn, g0, logn);
-	Zf(poly_split_fft)(g0, g0 + hn, tmp, logn);
+	ZfN(poly_split_fft)(g1, g1 + hn, g0, logn);
+	ZfN(poly_split_fft)(g0, g0 + hn, tmp, logn);
 
 	/*
 	 * Each split result is the first row of a new auto-adjoint
@@ -146,8 +146,8 @@ ffLDL_fft(fpr *restrict tree, const fpr *restrict g00,
 	memcpy(d00, g00, n * sizeof *g00);
 	ZfN(poly_LDLmv_fft)(d11, tree, g00, g01, g11, logn);
 
-	Zf(poly_split_fft)(tmp, tmp + hn, d00, logn);
-	Zf(poly_split_fft)(d00, d00 + hn, d11, logn);
+	ZfN(poly_split_fft)(tmp, tmp + hn, d00, logn);
+	ZfN(poly_split_fft)(d00, d00 + hn, d11, logn);
 	memcpy(d11, tmp, n * sizeof *tmp);
 	ffLDL_fft_inner(tree + n,
 		d11, d11 + hn, logn - 1, tmp);
@@ -354,9 +354,9 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 * Split d00 and d11 and expand them into half-size quasi-cyclic
 	 * Gram matrices. We also save l10 in tmp[].
 	 */
-	Zf(poly_split_fft)(tmp, tmp + hn, g00, logn);
+	ZfN(poly_split_fft)(tmp, tmp + hn, g00, logn);
 	memcpy(g00, tmp, n * sizeof *tmp);
-	Zf(poly_split_fft)(tmp, tmp + hn, g11, logn);
+	ZfN(poly_split_fft)(tmp, tmp + hn, g11, logn);
 	memcpy(g11, tmp, n * sizeof *tmp);
 	memcpy(tmp, g01, n * sizeof *g01);
 	memcpy(g01, g00, hn * sizeof *g00);
@@ -376,10 +376,10 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 * back into tmp + 2*n.
 	 */
 	z1 = tmp + n;
-	Zf(poly_split_fft)(z1, z1 + hn, t1, logn);
+	ZfN(poly_split_fft)(z1, z1 + hn, t1, logn);
 	ffSampling_fft_dyntree(samp, samp_ctx, z1, z1 + hn,
 		g11, g11 + hn, g01 + hn, orig_logn, logn - 1, z1 + n);
-	Zf(poly_merge_fft)(tmp + (n << 1), z1, z1 + hn, logn);
+	ZfN(poly_merge_fft)(tmp + (n << 1), z1, z1 + hn, logn);
 
 	/*
 	 * Compute tb0 = t0 + (t1 - z1) * l10.
@@ -399,10 +399,10 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 * and the left sub-tree.
 	 */
 	z0 = tmp;
-	Zf(poly_split_fft)(z0, z0 + hn, t0, logn);
+	ZfN(poly_split_fft)(z0, z0 + hn, t0, logn);
 	ffSampling_fft_dyntree(samp, samp_ctx, z0, z0 + hn,
 		g00, g00 + hn, g01, orig_logn, logn - 1, z0 + n);
-	Zf(poly_merge_fft)(t0, z0, z0 + hn, logn);
+	ZfN(poly_merge_fft)(t0, z0, z0 + hn, logn);
 }
 
 /*
@@ -706,10 +706,10 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	 * the recursive invocation, with output in tmp. We finally
 	 * merge back into z1.
 	 */
-	Zf(poly_split_fft)(z1, z1 + hn, t1, logn);
+	ZfN(poly_split_fft)(z1, z1 + hn, t1, logn);
 	ffSampling_fft(samp, samp_ctx, tmp, tmp + hn,
 		tree1, z1, z1 + hn, logn - 1, tmp + n);
-	Zf(poly_merge_fft)(z1, tmp, tmp + hn, logn);
+	ZfN(poly_merge_fft)(z1, tmp, tmp + hn, logn);
 
 	/*
 	 * Compute tb0 = t0 + (t1 - z1) * L. Value tb0 ends up in tmp[].
@@ -721,10 +721,10 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	/*
 	 * Second recursive invocation.
 	 */
-	Zf(poly_split_fft)(z0, z0 + hn, tmp, logn);
+	ZfN(poly_split_fft)(z0, z0 + hn, tmp, logn);
 	ffSampling_fft(samp, samp_ctx, tmp, tmp + hn,
 		tree0, z0, z0 + hn, logn - 1, tmp + n);
-	Zf(poly_merge_fft)(z0, tmp, tmp + hn, logn);
+	ZfN(poly_merge_fft)(z0, tmp, tmp + hn, logn);
 }
 
 /*
@@ -814,11 +814,11 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     s1tmp = (int16_t *)tx;
 	s2tmp = (int16_t *)tmp;
 	
-    Zf(sign_short_s1)(&sqn, s1tmp, hm, t0);
-    Zf(sign_short_s2)(s2tmp, t1);
+    ZfN(sign_short_s1)(&sqn, s1tmp, hm, t0);
+    ZfN(sign_short_s2)(s2tmp, t1);
 
 
-	if (Zf(is_short_half)(sqn, s2tmp)) {
+	if (ZfN(is_short_half)(sqn, s2tmp)) {
 		memcpy(s2, s2tmp, FALCON_N * sizeof *s2);
 		memcpy(tmp, s1tmp, FALCON_N * sizeof *s1tmp);
 		return 1;
@@ -1002,10 +1002,10 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	s1tmp = (int16_t *)tx;
 	s2tmp = (int16_t *)tmp;
 	
-    Zf(sign_short_s1)(&sqn, s1tmp, hm, t0);
-    Zf(sign_short_s2)(s2tmp, t1);
+    ZfN(sign_short_s1)(&sqn, s1tmp, hm, t0);
+    ZfN(sign_short_s2)(s2tmp, t1);
 
-	if (Zf(is_short_half)(sqn, s2tmp)) {
+	if (ZfN(is_short_half)(sqn, s2tmp)) {
 		memcpy(s2, s2tmp, FALCON_N * sizeof *s2);
 		memcpy(tmp, s1tmp, FALCON_N * sizeof *s1tmp);
 		return 1;

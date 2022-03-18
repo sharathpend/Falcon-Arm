@@ -307,7 +307,7 @@ void Zf(hash_to_point_ct)(inner_shake256_context *sc,
  * vector with the acceptance bound. Returned value is 1 on success
  * (vector is short enough to be acceptable), 0 otherwise.
  */
-int Zf(is_short)(const int16_t *s1, const int16_t *s2);
+int ZfN(is_short)(const int16_t *s1, const int16_t *s2);
 
 /*
  * Tell whether a given vector (2N coordinates, in two halves) is
@@ -319,11 +319,11 @@ int Zf(is_short)(const int16_t *s1, const int16_t *s2);
  * Returned value is 1 on success (vector is short enough to be
  * acceptable), 0 otherwise.
  */
-int Zf(is_short_half)(uint32_t sqn, const int16_t *s2);
+int ZfN(is_short_half)(uint32_t sqn, const int16_t *s2);
 
-void Zf(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, 
+void ZfN(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, 
                                     const double *t0);
-void Zf(sign_short_s2)(int16_t *s2tmp, const double *t1);
+void ZfN(sign_short_s2)(int16_t *s2tmp, const double *t1);
 
 /* ==================================================================== */
 /*
@@ -780,7 +780,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
  * f = f0(x^2) + x*f1(x^2), for half-size polynomials f0 and f1
  * (polynomials modulo X^(N/2)+1). f0, f1 and f MUST NOT overlap.
  */
-void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
+void ZfN(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
 	const fpr *restrict f, unsigned logn);
 
 /*
@@ -789,7 +789,7 @@ void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
  * f = f0(x^2) + x*f1(x^2), in FFT representation modulo X^N+1.
  * f MUST NOT overlap with either f0 or f1.
  */
-void Zf(poly_merge_fft)(fpr *restrict f,
+void ZfN(poly_merge_fft)(fpr *restrict f,
 	const fpr *restrict f0, const fpr *restrict f1, unsigned logn);
 
 void ZfN(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n);
