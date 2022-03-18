@@ -45,26 +45,26 @@ void smallints_to_fpr(fpr *r, const int8_t *t, const unsigned logn)
 
         // Extend from 8 to 16 bit
         // x7 | x6 | x5 | x5 - x3 | x2 | x1 | x0
-        neon_lo16 = vshll_n_s8(vget_low_s8(neon_8), 0);
-        neon_hi16 = vshll_high_n_s8(neon_8, 0);
+        neon_lo16 = vmovl_s8(vget_low_s8(neon_8));
+        neon_hi16 = vmovl_high_s8(neon_8);
 
         // Extend from 16 to 32 bit
         // xxx3 | xxx2 | xxx1 | xxx0
-        neon_lo32[0] = vshll_n_s16(vget_low_s16(neon_lo16), 0);
-        neon_lo32[1] = vshll_high_n_s16(neon_lo16, 0);
-        neon_hi32[0] = vshll_n_s16(vget_low_s16(neon_hi16), 0);
-        neon_hi32[1] = vshll_high_n_s16(neon_hi16, 0);
+        neon_lo32[0] = vmovl_s16(vget_low_s16(neon_lo16));
+        neon_lo32[1] = vmovl_high_s16(neon_lo16);
+        neon_hi32[0] = vmovl_s16(vget_low_s16(neon_hi16));
+        neon_hi32[1] = vmovl_high_s16(neon_hi16);
 
         // Extend from 32 to 64 bit
-        neon_lo64.val[0] = vshll_n_s32(vget_low_s32(neon_lo32[0]), 0);
-        neon_lo64.val[1] = vshll_high_n_s32(neon_lo32[0], 0);
-        neon_lo64.val[2] = vshll_n_s32(vget_low_s32(neon_lo32[1]), 0);
-        neon_lo64.val[3] = vshll_high_n_s32(neon_lo32[1], 0);
+        neon_lo64.val[0] = vmovl_s32(vget_low_s32(neon_lo32[0]));
+        neon_lo64.val[1] = vmovl_high_s32(neon_lo32[0]);
+        neon_lo64.val[2] = vmovl_s32(vget_low_s32(neon_lo32[1]));
+        neon_lo64.val[3] = vmovl_high_s32(neon_lo32[1]);
 
-        neon_hi64.val[0] = vshll_n_s32(vget_low_s32(neon_hi32[0]), 0);
-        neon_hi64.val[1] = vshll_high_n_s32(neon_hi32[0], 0);
-        neon_hi64.val[2] = vshll_n_s32(vget_low_s32(neon_hi32[1]), 0);
-        neon_hi64.val[3] = vshll_high_n_s32(neon_hi32[1], 0);
+        neon_hi64.val[0] = vmovl_s32(vget_low_s32(neon_hi32[0]));
+        neon_hi64.val[1] = vmovl_high_s32(neon_hi32[0]);
+        neon_hi64.val[2] = vmovl_s32(vget_low_s32(neon_hi32[1]));
+        neon_hi64.val[3] = vmovl_high_s32(neon_hi32[1]);
 
         vfcvtx4(neon_flo64, neon_lo64);
         vfcvtx4(neon_fhi64, neon_hi64);
