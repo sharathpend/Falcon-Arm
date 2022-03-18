@@ -314,7 +314,7 @@ Zf(comp_encode)(void *out, size_t max_out_len, const int16_t *x)
 	 */
     if (neon_bound_check_int16_low_high(x, -2047, 2047))
     {
-        return 1;
+        return 0;
     }
 
 	acc = 0;
