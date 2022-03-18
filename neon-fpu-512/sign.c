@@ -174,7 +174,11 @@ ffLDL_binary_normalize(fpr *tree, unsigned orig_logn, unsigned logn)
 		 * the value mandated by the specification: this
 		 * saves a division both here and in the sampler.
 		 */
-        tree[0] = fpr_mul(fpr_sqrt(tree[0]), fpr_inv_sigma);
+#if FALCON_LOGN == 9
+        tree[0] = fpr_mul(fpr_sqrt(tree[0]), fpr_inv_sigma_9);
+#elif FALCON_LOGN == 10
+        tree[0] = fpr_mul(fpr_sqrt(tree[0]), fpr_inv_sigma_10);
+#endif
 	} else {
 		ffLDL_binary_normalize(tree + n, orig_logn, logn - 1);
 		ffLDL_binary_normalize(tree + n + ffLDL_treesize(logn - 1),
@@ -327,7 +331,11 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 		fpr leaf;
 
 		leaf = g00[0];
-		leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma);
+#if FALCON_LOGN == 9
+		leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma_9);
+#elif FALCON_LOGN == 10
+        leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma_10);
+#endif
 		t0[0] = fpr_of(samp(samp_ctx, t0[0], leaf));
 		t1[0] = fpr_of(samp(samp_ctx, t1[0], leaf));
 		return;
