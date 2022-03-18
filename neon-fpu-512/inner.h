@@ -849,7 +849,7 @@ void Zf(keygen)(inner_shake256_context *rng,
  */
 void Zf(expand_privkey)(fpr *restrict expanded_key,
 	const int8_t *f, const int8_t *g, const int8_t *F, const int8_t *G,
-	unsigned logn, uint8_t *restrict tmp);
+	uint8_t *restrict tmp);
 
 /*
  * Compute a signature over the provided hashed message (hm); the
@@ -868,7 +868,7 @@ void Zf(expand_privkey)(fpr *restrict expanded_key,
  */
 void Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
 	const fpr *restrict expanded_key,
-	const uint16_t *hm, unsigned logn, uint8_t *tmp);
+	const uint16_t *hm, uint8_t *tmp);
 
 /*
  * Compute a signature over the provided hashed message (hm); the
@@ -890,7 +890,7 @@ void Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
 void Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
 	const int8_t *restrict f, const int8_t *restrict g,
 	const int8_t *restrict F, const int8_t *restrict G,
-	const uint16_t *hm, unsigned logn, uint8_t *tmp);
+	const uint16_t *hm, uint8_t *tmp);
 
 /*
  * Internal sampler engine. Exported for tests.

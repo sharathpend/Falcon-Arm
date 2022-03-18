@@ -51,13 +51,7 @@ int
 crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 {
 	TEMPALLOC union {
-#if FALCON_N == 512
-		uint8_t b[FALCON_KEYGEN_TEMP_9];
-#elif FALCON_N == 1024
-        uint8_t b[FALCON_KEYGEN_TEMP_10];
-#else 
-#error "Support 512, 1024 only"
-#endif 
+        uint8_t b[28 * FALCON_N];
 		uint64_t dummy_u64;
 		fpr dummy_fpr;
 	} tmp;
@@ -190,7 +184,7 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	/*
 	 * Compute the signature.
 	 */
-	Zf(sign_dyn)(r.sig, &sc, f, g, F, G, r.hm, FALCON_LOGN, tmp.b);
+	Zf(sign_dyn)(r.sig, &sc, f, g, F, G, r.hm, tmp.b);
 
 
 	/*
