@@ -93,7 +93,7 @@ ffLDL_fft_inner(fpr *restrict tree,
 	 * and the diagonal of D. Since d00 = g0, we just write d11
 	 * into tmp.
 	 */
-	Zf(poly_LDLmv_fft)(tmp, tree, g0, g1, g0, logn);
+	ZfN(poly_LDLmv_fft)(tmp, tree, g0, g1, g0, logn);
 
 	/*
 	 * Split d00 (currently in g0) and d11 (currently in tmp). We
@@ -144,7 +144,7 @@ ffLDL_fft(fpr *restrict tree, const fpr *restrict g00,
 	tmp += n << 1;
 
 	memcpy(d00, g00, n * sizeof *g00);
-	Zf(poly_LDLmv_fft)(d11, tree, g00, g01, g11, logn);
+	ZfN(poly_LDLmv_fft)(d11, tree, g00, g01, g11, logn);
 
 	Zf(poly_split_fft)(tmp, tmp + hn, d00, logn);
 	Zf(poly_split_fft)(d00, d00 + hn, d11, logn);
@@ -256,12 +256,12 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	/*
 	 * Compute the FFT for the key elements, and negate f and F.
 	 */
-	Zf(FFT)(rf, FALCON_LOGN);
-	Zf(FFT)(rF, FALCON_LOGN);
-    Zf(poly_neg)(rf, rf, FALCON_LOGN);
-    Zf(poly_neg)(rF, rF, FALCON_LOGN);
-    Zf(FFT)(rg, FALCON_LOGN);
-	Zf(FFT)(rG, FALCON_LOGN);
+	ZfN(FFT)(rf, FALCON_LOGN);
+	ZfN(FFT)(rF, FALCON_LOGN);
+    ZfN(poly_neg)(rf, rf, FALCON_LOGN);
+    ZfN(poly_neg)(rF, rF, FALCON_LOGN);
+    ZfN(FFT)(rg, FALCON_LOGN);
+	ZfN(FFT)(rG, FALCON_LOGN);
 
 	/*
 	 * The Gram matrix is G = B·B*. Formulas are:
@@ -278,17 +278,17 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	g11 = g01 + FALCON_N;
 	gxx = g11 + FALCON_N;
 
-    Zf(poly_mulselfadj_fft)(g00, b00, FALCON_LOGN);
-    Zf(poly_mulselfadj_fft)(gxx, b01, FALCON_LOGN);
-    Zf(poly_add)(g00, g00, gxx, FALCON_LOGN);
+    ZfN(poly_mulselfadj_fft)(g00, b00, FALCON_LOGN);
+    ZfN(poly_mulselfadj_fft)(gxx, b01, FALCON_LOGN);
+    ZfN(poly_add)(g00, g00, gxx, FALCON_LOGN);
 
-    Zf(poly_muladj_fft)(g01, b00, b10, FALCON_LOGN);
-    Zf(poly_muladj_fft)(gxx, b01, b11, FALCON_LOGN);
-    Zf(poly_add)(g01, g01, gxx, FALCON_LOGN);
+    ZfN(poly_muladj_fft)(g01, b00, b10, FALCON_LOGN);
+    ZfN(poly_muladj_fft)(gxx, b01, b11, FALCON_LOGN);
+    ZfN(poly_add)(g01, g01, gxx, FALCON_LOGN);
 
-    Zf(poly_mulselfadj_fft)(g11, b10, FALCON_LOGN);
-    Zf(poly_mulselfadj_fft)(gxx, b11, FALCON_LOGN);
-    Zf(poly_add)(g11, g11, gxx, FALCON_LOGN);
+    ZfN(poly_mulselfadj_fft)(g11, b10, FALCON_LOGN);
+    ZfN(poly_mulselfadj_fft)(gxx, b11, FALCON_LOGN);
+    ZfN(poly_add)(g11, g11, gxx, FALCON_LOGN);
 
 	/*
 	 * Compute the Falcon tree.
@@ -340,7 +340,7 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 * Decompose G into LDL. We only need d00 (identical to g00),
 	 * d11, and l10; we do that in place.
 	 */
-	Zf(poly_LDL_fft)(g00, g01, g11, logn);
+	ZfN(poly_LDL_fft)(g00, g01, g11, logn);
 
 	/*
 	 * Split d00 and d11 and expand them into half-size quasi-cyclic
@@ -380,10 +380,10 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 *
 	 * In the end, z1 is written over t1, and tb0 is in t0.
 	 */
-	Zf(poly_sub)(z1, t1, tmp + (n << 1), logn);
+	ZfN(poly_sub)(z1, t1, tmp + (n << 1), logn);
 	memcpy(t1, tmp + (n << 1), n * sizeof *tmp);
-	Zf(poly_mul_fft)(tmp, tmp, z1, logn);
-	Zf(poly_add)(t0, t0, tmp, logn);
+	ZfN(poly_mul_fft)(tmp, tmp, z1, logn);
+	ZfN(poly_add)(t0, t0, tmp, logn);
 
 
 	/*
@@ -706,9 +706,9 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	/*
 	 * Compute tb0 = t0 + (t1 - z1) * L. Value tb0 ends up in tmp[].
 	 */
-	Zf(poly_sub)(tmp, t1, z1, logn);
-	Zf(poly_mul_fft)(tmp, tmp, tree, logn);
-	Zf(poly_add)(tmp, tmp, t0, logn);
+	ZfN(poly_sub)(tmp, t1, z1, logn);
+	ZfN(poly_mul_fft)(tmp, tmp, tree, logn);
+	ZfN(poly_add)(tmp, tmp, t0, logn);
 
 	/*
 	 * Second recursive invocation.
@@ -751,18 +751,18 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	/*
 	 * Set the target vector to [hm, 0] (hm is the hashed message).
 	 */
-    Zf(poly_fpr_of_s16)(t0, hm, FALCON_N);
+    ZfN(poly_fpr_of_s16)(t0, hm, FALCON_N);
 
 	/*
 	 * Apply the lattice basis to obtain the real target
 	 * vector (after normalization with regards to modulus).
 	 */
-	Zf(FFT)(t0, FALCON_LOGN);
+	ZfN(FFT)(t0, FALCON_LOGN);
 	ni = fpr_inverse_of_q;
-	Zf(poly_mul_fft)(t1, t0, b01, FALCON_LOGN);
-	Zf(poly_mulconst)(t1, t1, fpr_neg(ni), FALCON_LOGN);
-	Zf(poly_mul_fft)(t0, t0, b11, FALCON_LOGN);
-	Zf(poly_mulconst)(t0, t0, ni, FALCON_LOGN);
+	ZfN(poly_mul_fft)(t1, t0, b01, FALCON_LOGN);
+	ZfN(poly_mulconst)(t1, t1, fpr_neg(ni), FALCON_LOGN);
+	ZfN(poly_mul_fft)(t0, t0, b11, FALCON_LOGN);
+	ZfN(poly_mulconst)(t0, t0, ni, FALCON_LOGN);
 
 	tx = t1 + FALCON_N;
 	ty = tx + FALCON_N;
@@ -777,17 +777,17 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 	memcpy(t0, tx, FALCON_N * sizeof *tx);
 	memcpy(t1, ty, FALCON_N * sizeof *ty);
-	Zf(poly_mul_fft)(tx, tx, b00, FALCON_LOGN);
-	Zf(poly_mul_fft)(ty, ty, b10, FALCON_LOGN);
-	Zf(poly_add)(tx, tx, ty, FALCON_LOGN);
-	Zf(poly_mul_fft)(ty, t0, b01, FALCON_LOGN);
+	ZfN(poly_mul_fft)(tx, tx, b00, FALCON_LOGN);
+	ZfN(poly_mul_fft)(ty, ty, b10, FALCON_LOGN);
+	ZfN(poly_add)(tx, tx, ty, FALCON_LOGN);
+	ZfN(poly_mul_fft)(ty, t0, b01, FALCON_LOGN);
     
 	memcpy(t0, tx, FALCON_N * sizeof *tx);
-	Zf(poly_mul_fft)(t1, t1, b11, FALCON_LOGN);
-	Zf(poly_add)(t1, t1, ty, FALCON_LOGN);
+	ZfN(poly_mul_fft)(t1, t1, b11, FALCON_LOGN);
+	ZfN(poly_add)(t1, t1, ty, FALCON_LOGN);
 
-	Zf(iFFT)(t0, FALCON_LOGN);
-	Zf(iFFT)(t1, FALCON_LOGN);
+	ZfN(iFFT)(t0, FALCON_LOGN);
+	ZfN(iFFT)(t1, FALCON_LOGN);
 
 	/*
 	 * Compute the signature.
@@ -850,12 +850,12 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	smallints_to_fpr(b00, g, FALCON_LOGN);
 	smallints_to_fpr(b11, F, FALCON_LOGN);
 	smallints_to_fpr(b10, G, FALCON_LOGN);
-    Zf(FFT)(b01, FALCON_LOGN);
-	Zf(FFT)(b11, FALCON_LOGN);
-    Zf(poly_neg)(b01, b01, FALCON_LOGN);
-    Zf(poly_neg)(b11, b11, FALCON_LOGN);
-    Zf(FFT)(b00, FALCON_LOGN);
-	Zf(FFT)(b10, FALCON_LOGN);
+    ZfN(FFT)(b01, FALCON_LOGN);
+	ZfN(FFT)(b11, FALCON_LOGN);
+    ZfN(poly_neg)(b01, b01, FALCON_LOGN);
+    ZfN(poly_neg)(b11, b11, FALCON_LOGN);
+    ZfN(FFT)(b00, FALCON_LOGN);
+	ZfN(FFT)(b10, FALCON_LOGN);
 
 	/*
 	 * Compute the Gram matrix G = B·B*. Formulas are:
@@ -874,19 +874,19 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	t0 = b11 + FALCON_N;
 	t1 = t0 + FALCON_N;
 
-	Zf(poly_mulselfadj_fft)(t0, b01, FALCON_LOGN);    // t0 <- b01*adj(b01)
+	ZfN(poly_mulselfadj_fft)(t0, b01, FALCON_LOGN);    // t0 <- b01*adj(b01)
 
-	Zf(poly_muladj_fft)(t1, b00, b10, FALCON_LOGN);   // t1 <- b00*adj(b10)
-	Zf(poly_mulselfadj_fft)(b00, b00, FALCON_LOGN);   // b00 <- b00*adj(b00)
-	Zf(poly_add)(b00, b00, t0, FALCON_LOGN);      // b00 <- g00
+	ZfN(poly_muladj_fft)(t1, b00, b10, FALCON_LOGN);   // t1 <- b00*adj(b10)
+	ZfN(poly_mulselfadj_fft)(b00, b00, FALCON_LOGN);   // b00 <- b00*adj(b00)
+	ZfN(poly_add)(b00, b00, t0, FALCON_LOGN);      // b00 <- g00
 	
 	memcpy(t0, b01, FALCON_N * sizeof *b01);
-    Zf(poly_muladj_fft)(b01, b01, b11, FALCON_LOGN);  // b01 <- b01*adj(b11)
-	Zf(poly_add)(b01, b01, t1, FALCON_LOGN);      // b01 <- g01
+    ZfN(poly_muladj_fft)(b01, b01, b11, FALCON_LOGN);  // b01 <- b01*adj(b11)
+	ZfN(poly_add)(b01, b01, t1, FALCON_LOGN);      // b01 <- g01
 	
-    Zf(poly_mulselfadj_fft)(b10, b10, FALCON_LOGN);   // b10 <- b10*adj(b10)
-	Zf(poly_mulselfadj_fft)(t1, b11, FALCON_LOGN);    // t1 <- b11*adj(b11)
-	Zf(poly_add)(b10, b10, t1, FALCON_LOGN);      // b10 <- g11
+    ZfN(poly_mulselfadj_fft)(b10, b10, FALCON_LOGN);   // b10 <- b10*adj(b10)
+	ZfN(poly_mulselfadj_fft)(t1, b11, FALCON_LOGN);    // t1 <- b11*adj(b11)
+	ZfN(poly_add)(b10, b10, t1, FALCON_LOGN);      // b10 <- g11
 
     /*
 	 * We rename variables to make things clearer. The three elements
@@ -908,19 +908,19 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	/*
 	 * Set the target vector to [hm, 0] (hm is the hashed message).
 	 */
-    Zf(poly_fpr_of_s16)(t0, hm, FALCON_N);
+    ZfN(poly_fpr_of_s16)(t0, hm, FALCON_N);
 
     
 	/*
 	 * Apply the lattice basis to obtain the real target
 	 * vector (after normalization with regards to modulus).
 	 */
-	Zf(FFT)(t0, FALCON_LOGN);
+	ZfN(FFT)(t0, FALCON_LOGN);
 	ni = fpr_inverse_of_q;
-	Zf(poly_mul_fft)(t1, t0, b01, FALCON_LOGN);
-	Zf(poly_mulconst)(t1, t1, fpr_neg(ni), FALCON_LOGN);
-	Zf(poly_mul_fft)(t0, t0, b11, FALCON_LOGN);
-	Zf(poly_mulconst)(t0, t0, ni, FALCON_LOGN);
+	ZfN(poly_mul_fft)(t1, t0, b01, FALCON_LOGN);
+	ZfN(poly_mulconst)(t1, t1, fpr_neg(ni), FALCON_LOGN);
+	ZfN(poly_mul_fft)(t0, t0, b11, FALCON_LOGN);
+	ZfN(poly_mulconst)(t0, t0, ni, FALCON_LOGN);
   
 	/*
 	 * b01 and b11 can be discarded, so we move back (t0,t1).
@@ -956,12 +956,12 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	smallints_to_fpr(b00, g, FALCON_LOGN);
 	smallints_to_fpr(b11, F, FALCON_LOGN);
 	smallints_to_fpr(b10, G, FALCON_LOGN);
-	Zf(FFT)(b01, FALCON_LOGN);
-	Zf(FFT)(b11, FALCON_LOGN);
-    Zf(poly_neg)(b01, b01, FALCON_LOGN);
-    Zf(poly_neg)(b11, b11, FALCON_LOGN);
-	Zf(FFT)(b00, FALCON_LOGN);
-	Zf(FFT)(b10, FALCON_LOGN);
+	ZfN(FFT)(b01, FALCON_LOGN);
+	ZfN(FFT)(b11, FALCON_LOGN);
+    ZfN(poly_neg)(b01, b01, FALCON_LOGN);
+    ZfN(poly_neg)(b11, b11, FALCON_LOGN);
+	ZfN(FFT)(b00, FALCON_LOGN);
+	ZfN(FFT)(b10, FALCON_LOGN);
 	tx = t1 + FALCON_N;
 	ty = tx + FALCON_N;
 
@@ -970,16 +970,16 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 
 
-	Zf(poly_mul_fft)(tx, t0, b00, FALCON_LOGN);
-	Zf(poly_mul_fft)(ty, t1, b10, FALCON_LOGN);
-	Zf(poly_add)(tx, tx, ty, FALCON_LOGN);
-	Zf(poly_mul_fft)(ty, t0, b01, FALCON_LOGN);
+	ZfN(poly_mul_fft)(tx, t0, b00, FALCON_LOGN);
+	ZfN(poly_mul_fft)(ty, t1, b10, FALCON_LOGN);
+	ZfN(poly_add)(tx, tx, ty, FALCON_LOGN);
+	ZfN(poly_mul_fft)(ty, t0, b01, FALCON_LOGN);
 
 	memcpy(t0, tx, FALCON_N * sizeof *tx);
-	Zf(poly_mul_fft)(t1, t1, b11, FALCON_LOGN);
-	Zf(poly_add)(t1, t1, ty, FALCON_LOGN);
-	Zf(iFFT)(t0, FALCON_LOGN);
-	Zf(iFFT)(t1, FALCON_LOGN);
+	ZfN(poly_mul_fft)(t1, t1, b11, FALCON_LOGN);
+	ZfN(poly_add)(t1, t1, ty, FALCON_LOGN);
+	ZfN(iFFT)(t0, FALCON_LOGN);
+	ZfN(iFFT)(t1, FALCON_LOGN);
 
 
 	/*

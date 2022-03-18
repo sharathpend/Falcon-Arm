@@ -25,7 +25,7 @@
 #include <assert.h>
 
 /* see inner.h */
-void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     float64x2x4_t neon_a, neon_b, neon_c;
     float64x2x2_t neon_a2, neon_b2, neon_c2;
@@ -71,7 +71,7 @@ void Zf(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned
 /* 
  * c = a - b
  */
-void Zf(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     float64x2x4_t neon_a, neon_b, neon_c;
     float64x2x2_t neon_a2, neon_b2, neon_c2;
@@ -115,7 +115,7 @@ void Zf(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned
 /* 
  * c = -a 
  */
-void Zf(poly_neg)(fpr *c, const fpr *restrict a, unsigned logn)
+void ZfN(poly_neg)(fpr *c, const fpr *restrict a, unsigned logn)
 {
     float64x2x4_t neon_a, neon_c;
     float64x2x2_t neon_a2, neon_c2;
@@ -154,7 +154,7 @@ void Zf(poly_neg)(fpr *c, const fpr *restrict a, unsigned logn)
 }
 
 /* see inner.h */
-void Zf(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
+void ZfN(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 {
 
     float64x2x4_t neon_a, neon_c;
@@ -197,7 +197,7 @@ void Zf(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
     }
 }
 
-static inline void Zf(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
+static inline void ZfN(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
     // n = 2
     float64x2_t neon_a, neon_b, neon_c, neon_d, neon_1i2;
@@ -219,7 +219,7 @@ static inline void Zf(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a,
     vstore(&c[0], neon_c);
 }
 
-static inline void Zf(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
+static inline void ZfN(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
     // n = 4
     float64x2x2_t neon_a, neon_b, neon_c;
@@ -247,7 +247,7 @@ static inline void Zf(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a,
     vstorex2(&c[0], neon_c);
 }
 
-static inline void Zf(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
+static inline void ZfN(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
     // n = 8
     float64x2x4_t neon_a, neon_b, neon_c;
@@ -288,7 +288,7 @@ static inline void Zf(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a,
 /* 
  * c = a * b
  */
-void Zf(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
 {
     // Total 32 registers
     float64x2x4_t a_re, b_re, a_im, b_im; // 24
@@ -298,15 +298,15 @@ void Zf(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn
     switch (logn)
     {
     case 1:
-        Zf(poly_mul_fft_log1)(c, a, b);
+        ZfN(poly_mul_fft_log1)(c, a, b);
         break;
 
     case 2:
-        Zf(poly_mul_fft_log2)(c, a, b);
+        ZfN(poly_mul_fft_log2)(c, a, b);
         break;
 
     case 3:
-        Zf(poly_mul_fft_log3)(c, a, b);
+        ZfN(poly_mul_fft_log3)(c, a, b);
         break;
 
     default:
@@ -331,7 +331,7 @@ void Zf(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn
 }
 
 /* see inner.h */
-void Zf(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
 {
     assert(logn >= 4);
     float64x2x4_t a_re, b_re, d_re, a_im, b_im, d_im; // 24
@@ -356,7 +356,7 @@ void Zf(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
 }
 
 /* see inner.h */
-void Zf(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
+void ZfN(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 {
     assert(logn >= 4);
     /*
@@ -386,7 +386,7 @@ void Zf(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 /* 
  * c = a * scalar_x
  */
-void Zf(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
+void ZfN(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
 {
     assert(logn >= 3);
     // Total 9 registers
@@ -403,7 +403,7 @@ void Zf(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
 }
 
 /* see inner.h */
-void Zf(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     assert(logn >= 4);
     const int falcon_n = 1 << logn;
@@ -435,7 +435,7 @@ void Zf(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restric
 }
 
 /* see inner.h */
-void Zf(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -519,7 +519,7 @@ void Zf(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *re
 }
 
 /* see inner.h */
-void Zf(poly_add_muladj_fft)(fpr *restrict d,
+void ZfN(poly_add_muladj_fft)(fpr *restrict d,
                              const fpr *restrict F, const fpr *restrict G,
                              const fpr *restrict f, const fpr *restrict g, unsigned logn)
 {
@@ -562,7 +562,7 @@ void Zf(poly_add_muladj_fft)(fpr *restrict d,
 }
 
 /* see inner.h */
-void Zf(poly_mul_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_mul_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -630,7 +630,7 @@ void Zf(poly_mul_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsig
 }
 
 /* see inner.h */
-void Zf(poly_div_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
+void ZfN(poly_div_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -653,7 +653,7 @@ void Zf(poly_div_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsig
 }
 
 /* see inner.h */
-void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict g11, unsigned logn)
+void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict g11, unsigned logn)
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -858,7 +858,7 @@ void Zf(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict 
 }
 
 /* see inner.h */
-void Zf(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
+void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
                         const fpr *restrict g00, const fpr *restrict g01,
                         const fpr *restrict g11, unsigned logn)
 {
@@ -1054,7 +1054,7 @@ void Zf(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
     }
 }
 
-void Zf(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n)
+void ZfN(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n)
 {
     float64x2x4_t neon_t0;
     uint16x8x4_t neon_hm;

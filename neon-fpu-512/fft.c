@@ -23,7 +23,7 @@
 #include "macrof.h"
 #include "macrofx4.h"
 
-static void Zf(FFT_log2)(fpr *f)
+static void ZfN(FFT_log2)(fpr *f)
 {
     /* 
     x_re:   0 =   0 + (  1*  4 -   3*  5)
@@ -53,7 +53,7 @@ static void Zf(FFT_log2)(fpr *f)
     vstore2(&f[0], tmp2);
 }
 
-static void Zf(FFT_log3)(fpr *f)
+static void ZfN(FFT_log3)(fpr *f)
 {
     float64x2x4_t tmp;
     float64x2x2_t s_re_im, tmp2_0, tmp2_1;
@@ -134,7 +134,7 @@ static void Zf(FFT_log3)(fpr *f)
     vstore2(&f[4], tmp2_1);
 }
 
-static void Zf(FFT_log4)(fpr *f)
+static void ZfN(FFT_log4)(fpr *f)
 {
     // Total SIMD register: 30 = 12 + 16 + 2
     float64x2x4_t tmp[2], s_re_im;                             // 12
@@ -313,7 +313,7 @@ static void Zf(FFT_log4)(fpr *f)
     vstore2(&f[12], tmp2);
 }
 
-static void Zf(FFT_log5)(fpr *f, unsigned logn)
+static void ZfN(FFT_log5)(fpr *f, unsigned logn)
 {
     // Total: 34 = 16 + 8 + 2 register
     float64x2x4_t s_re_im, tmp;                   // 8
@@ -539,7 +539,7 @@ static void Zf(FFT_log5)(fpr *f, unsigned logn)
     }
 }
 
-static void Zf(FFT_logn1)(fpr *f, unsigned logn, const uint8_t level)
+static void ZfN(FFT_logn1)(fpr *f, unsigned logn, const uint8_t level)
 {
     // Total SIMD register: 26
     float64x2_t s_re_im;                          // 2
@@ -610,7 +610,7 @@ static void Zf(FFT_logn1)(fpr *f, unsigned logn, const uint8_t level)
     // End function
 }
 
-static void Zf(FFT_logn2)(fpr *f, unsigned logn, const uint8_t level)
+static void ZfN(FFT_logn2)(fpr *f, unsigned logn, const uint8_t level)
 {
     // Total: 26 = 16 + 8 + 2 register
     float64x2x4_t s_re_im;                        // 8
@@ -763,7 +763,7 @@ static void Zf(FFT_logn2)(fpr *f, unsigned logn, const uint8_t level)
  * Support logn from [1, 10]
  * Can be easily extended to logn > 10
  */
-void Zf(FFT)(fpr *f, const unsigned logn)
+void ZfN(FFT)(fpr *f, const unsigned logn)
 {
     uint8_t level = logn;
     switch (logn)
@@ -772,43 +772,43 @@ void Zf(FFT)(fpr *f, const unsigned logn)
         break;
 
     case 2:
-        Zf(FFT_log2)(f);
+        ZfN(FFT_log2)(f);
         break;
 
     case 3:
-        Zf(FFT_log3)(f);
+        ZfN(FFT_log3)(f);
         break;
 
     case 4:
-        Zf(FFT_log4)(f);
+        ZfN(FFT_log4)(f);
         break;
 
     case 5:
-        Zf(FFT_log5)(f, logn);
+        ZfN(FFT_log5)(f, logn);
         break;
 
     case 6:
-        Zf(FFT_logn1)(f, logn, level--);
-        Zf(FFT_log5)(f, logn);
+        ZfN(FFT_logn1)(f, logn, level--);
+        ZfN(FFT_log5)(f, logn);
         break;
 
     case 7:
     case 9:
-        Zf(FFT_logn2)(f, logn, level);
-        Zf(FFT_log5)(f, logn);
+        ZfN(FFT_logn2)(f, logn, level);
+        ZfN(FFT_log5)(f, logn);
         break;
 
     default:
         // case 8:
         // case 10:
-        Zf(FFT_logn1)(f, logn, level--);
-        Zf(FFT_logn2)(f, logn, level);
-        Zf(FFT_log5)(f, logn);
+        ZfN(FFT_logn1)(f, logn, level--);
+        ZfN(FFT_logn2)(f, logn, level);
+        ZfN(FFT_log5)(f, logn);
         break;
     }
 }
 
-static void Zf(iFFT_log2)(fpr *f)
+static void ZfN(iFFT_log2)(fpr *f)
 {
     /* 
     y_re: 1 = (2 - 3) * 5 + (0 - 1) * 4
@@ -851,7 +851,7 @@ static void Zf(iFFT_log2)(fpr *f)
     vstore2(&f[0], tmp);
 }
 
-static void Zf(iFFT_log3)(fpr *f)
+static void ZfN(iFFT_log3)(fpr *f)
 {
     /* 
     y_re: 1 = (4 - 5) *  9 + (0 - 1) *  8
@@ -927,7 +927,7 @@ static void Zf(iFFT_log3)(fpr *f)
     vstorex4(&f[0], tmp);
 }
 
-static void Zf(iFFT_log4)(fpr *f)
+static void ZfN(iFFT_log4)(fpr *f)
 {
     // 0: 0, 4 | 8 , 12
     // 1: 1, 5 | 9 , 13
@@ -1105,7 +1105,7 @@ static void Zf(iFFT_log4)(fpr *f)
     vstorex4(&f[8], tmp);
 }
 
-static void Zf(iFFT_log5)(fpr *f, const unsigned logn, const uint8_t last)
+static void ZfN(iFFT_log5)(fpr *f, const unsigned logn, const uint8_t last)
 {
     // Total SIMD register: 28 = 16 + 8 + 4
     float64x2x4_t s_re_im, tmp1, tmp2;    // 8
@@ -1281,7 +1281,7 @@ static void Zf(iFFT_log5)(fpr *f, const unsigned logn, const uint8_t last)
     }
 }
 
-static void Zf(iFFT_logn1)(fpr *f, const unsigned logn, const uint8_t last)
+static void ZfN(iFFT_logn1)(fpr *f, const unsigned logn, const uint8_t last)
 {
     /* Level 6
     y_re: 16 = (32 - 48) * 5 + (0 - 16) * 4 
@@ -1363,7 +1363,7 @@ static void Zf(iFFT_logn1)(fpr *f, const unsigned logn, const uint8_t last)
     }
 }
 
-static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const uint8_t level, uint8_t last)
+static void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const uint8_t level, uint8_t last)
 {
     // Total SIMD registers: 27 = 24 + 3
     float64x2x4_t x_re, y_re, x_im, y_im, v1, v2; // 24
@@ -1510,7 +1510,7 @@ static void Zf(iFFT_logn2)(fpr *f, const unsigned logn, const uint8_t level, uin
     // End function
 }
 
-void Zf(iFFT)(fpr *f, const unsigned logn)
+void ZfN(iFFT)(fpr *f, const unsigned logn)
 {
     const uint8_t level = (logn - 5) & 1;
 
@@ -1520,38 +1520,38 @@ void Zf(iFFT)(fpr *f, const unsigned logn)
         break;
 
     case 2:
-        Zf(iFFT_log2)(f);
+        ZfN(iFFT_log2)(f);
         break;
 
     case 3:
-        Zf(iFFT_log3)(f);
+        ZfN(iFFT_log3)(f);
         break;
 
     case 4:
-        Zf(iFFT_log4)(f);
+        ZfN(iFFT_log4)(f);
         break;
 
     case 5:
-        Zf(iFFT_log5)(f, logn, 1);
+        ZfN(iFFT_log5)(f, logn, 1);
         break;
 
     case 6:
-        Zf(iFFT_log5)(f, logn, 0);
-        Zf(iFFT_logn1)(f, logn, 1);
+        ZfN(iFFT_log5)(f, logn, 0);
+        ZfN(iFFT_logn1)(f, logn, 1);
         break;
 
     case 7:
     case 9:
-        Zf(iFFT_log5)(f, logn, 0);
-        Zf(iFFT_logn2)(f, logn, level, 1);
+        ZfN(iFFT_log5)(f, logn, 0);
+        ZfN(iFFT_logn2)(f, logn, level, 1);
         break;
 
     default:
         // case 8:
         // case 10:
-        Zf(iFFT_log5)(f, logn, 0);
-        Zf(iFFT_logn2)(f, logn, level, 0);
-        Zf(iFFT_logn1)(f, logn, 1);
+        ZfN(iFFT_log5)(f, logn, 0);
+        ZfN(iFFT_logn2)(f, logn, level, 0);
+        ZfN(iFFT_logn1)(f, logn, 1);
         break;
     }
 }
