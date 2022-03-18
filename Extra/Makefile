@@ -64,6 +64,9 @@ test_falcon: test_falcon.o $(OBJ)
 speed: speed.o $(OBJ)
 	$(LD) $(LDFLAGS) -o speed speed.o $(OBJ) $(LIBS)
 
+bench: bench.o $(OBJ)
+	$(LD) $(LDFLAGS) -o bench bench.o $(OBJ) $(LIBS)
+
 codec.o: codec.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o codec.o codec.c
 
@@ -93,6 +96,9 @@ sign.o: sign.c config.h inner.h fpr.h
 
 speed.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -c -o speed.o speed.c
+
+bench.o: bench.c $(OBJ)
+	$(CC) $(CFLAGS) -c -o bench.o bench.c
 
 test_falcon.o: test_falcon.c falcon.h config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o test_falcon.o test_falcon.c

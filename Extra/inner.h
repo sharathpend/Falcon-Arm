@@ -578,6 +578,9 @@ int Zf(is_short_half)(uint32_t sqn, const int16_t *s2, unsigned logn);
  */
 void Zf(to_ntt_monty)(uint16_t *h, unsigned logn);
 
+void mq_iNTT(uint16_t *a, unsigned logn);
+void mq_NTT(uint16_t *a, unsigned logn);
+
 /*
  * Internal signature verification code:
  *   c0[]      contains the hashed nonce+message

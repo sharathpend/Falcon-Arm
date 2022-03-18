@@ -501,7 +501,7 @@ mq_div_12289(uint32_t x, uint32_t y)
 /*
  * Compute NTT on a ring element.
  */
-static void
+void
 mq_NTT(uint16_t *a, unsigned logn)
 {
 	size_t n, t, m;
@@ -534,7 +534,7 @@ mq_NTT(uint16_t *a, unsigned logn)
 /*
  * Compute the inverse NTT on a ring element, binary case.
  */
-static void
+void
 mq_iNTT(uint16_t *a, unsigned logn)
 {
 	size_t n, t, m;
