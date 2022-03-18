@@ -70,26 +70,25 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 	inner_shake256_init(&rng);
 	inner_shake256_inject(&rng, seed, sizeof seed);
 	inner_shake256_flip(&rng);
-	Zf(keygen)(&rng, f, g, F, NULL, h, 9, tmp.b);
-
+	Zf(keygen)(&rng, f, g, F, NULL, h, FALCON_LOGN, tmp.b);
 
 
 	/*
 	 * Encode private key.
 	 */
-	sk[0] = 0x50 + 9;
+	sk[0] = 0x50 + FALCON_LOGN;
 	u = 1;
-	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, f, Zf(max_fg_bits)[9]);
+	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, f, Zf(max_fg_bits)[FALCON_LOGN]);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, g, Zf(max_fg_bits)[9]);
+	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, g, Zf(max_fg_bits)[FALCON_LOGN]);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, F, Zf(max_FG_bits)[9]);
+	v = Zf(trim_i8_encode)(sk + u, CRYPTO_SECRETKEYBYTES - u, F, Zf(max_FG_bits)[FALCON_LOGN]);
 	if (v == 0) {
 		return -1;
 	}
@@ -101,7 +100,7 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 	/*
 	 * Encode public key.
 	 */
-	pk[0] = 0x00 + 9;
+	pk[0] = 0x00 + FALCON_LOGN;
 	v = Zf(modq_encode)(pk + 1, CRYPTO_PUBLICKEYBYTES - 1, h);
 	if (v != CRYPTO_PUBLICKEYBYTES - 1) {
 		return -1;
@@ -133,21 +132,21 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	/*
 	 * Decode the private key.
 	 */
-	if (sk[0] != 0x50 + 9) {
+	if (sk[0] != 0x50 + FALCON_LOGN) {
 		return -1;
 	}
 	u = 1;
-	v = Zf(trim_i8_decode)(f, Zf(max_fg_bits)[9], sk + u, CRYPTO_SECRETKEYBYTES - u);
+	v = Zf(trim_i8_decode)(f, Zf(max_fg_bits)[FALCON_LOGN], sk + u, CRYPTO_SECRETKEYBYTES - u);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_decode)(g, Zf(max_fg_bits)[9], sk + u, CRYPTO_SECRETKEYBYTES - u);
+	v = Zf(trim_i8_decode)(g, Zf(max_fg_bits)[FALCON_LOGN], sk + u, CRYPTO_SECRETKEYBYTES - u);
 	if (v == 0) {
 		return -1;
 	}
 	u += v;
-	v = Zf(trim_i8_decode)(F, Zf(max_FG_bits)[9],sk + u, CRYPTO_SECRETKEYBYTES - u);
+	v = Zf(trim_i8_decode)(F, Zf(max_FG_bits)[FALCON_LOGN],sk + u, CRYPTO_SECRETKEYBYTES - u);
 	if (v == 0) {
 		return -1;
 	}
@@ -171,7 +170,7 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	inner_shake256_inject(&sc, nonce, sizeof nonce);
 	inner_shake256_inject(&sc, m, mlen);
 	inner_shake256_flip(&sc);
-	Zf(hash_to_point_vartime)(&sc, r.hm, 9);
+	Zf(hash_to_point_vartime)(&sc, r.hm, FALCON_LOGN);
 
 	/*
 	 * Initialize a RNG.
@@ -185,7 +184,7 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	/*
 	 * Compute the signature.
 	 */
-	Zf(sign_dyn)(r.sig, &sc, f, g, F, G, r.hm, 9, tmp.b);
+	Zf(sign_dyn)(r.sig, &sc, f, g, F, G, r.hm, FALCON_LOGN, tmp.b);
 
 
 	/*
@@ -195,7 +194,7 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen,
 	 *   message              mlen bytes
 	 *   signature            slen bytes
 	 */
-	esig[0] = 0x20 + 9;
+	esig[0] = 0x20 + FALCON_LOGN;
 	sig_len = Zf(comp_encode)(esig + 1, (sizeof esig) - 1, r.sig);
 	if (sig_len == 0) {
 		return -1;
@@ -222,11 +221,10 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	TEMPALLOC inner_shake256_context sc;
 	size_t sig_len, msg_len;
 
-    // TODO: add FALCON_LOGN here
 	/*
 	 * Decode public key.
 	 */
-	if (pk[0] != 0x00 + 9) {
+	if (pk[0] != 0x00 + FALCON_LOGN) {
 		return -1;
 	}
 	if (Zf(modq_decode)((uint16_t *)h, pk + 1, CRYPTO_PUBLICKEYBYTES - 1) != CRYPTO_PUBLICKEYBYTES - 1)
@@ -251,7 +249,7 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	 * Decode signature.
 	 */
 	esig = sm + 2 + NONCELEN + msg_len;
-	if (sig_len < 1 || esig[0] != 0x20 + 9) {
+	if (sig_len < 1 || esig[0] != 0x20 + FALCON_LOGN) {
 		return -1;
 	}
 	if (Zf(comp_decode)(sig, esig + 1, sig_len - 1) != sig_len - 1)
@@ -265,7 +263,7 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	inner_shake256_init(&sc);
 	inner_shake256_inject(&sc, sm + 2, NONCELEN + msg_len);
 	inner_shake256_flip(&sc);
-	Zf(hash_to_point_vartime)(&sc, (uint16_t *) hm, 9);
+	Zf(hash_to_point_vartime)(&sc, (uint16_t *) hm, FALCON_LOGN);
 
 	/*
 	 * Verify signature.
