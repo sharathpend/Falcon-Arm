@@ -23,7 +23,7 @@
 #include "macrof.h"
 #include "macrofx4.h"
 
-/* 
+/*
  * Minimum logn: 5
  */
 static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsigned logn)
@@ -31,7 +31,7 @@ static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsign
     // n = 32; hn = 16; qn = 8
     // Total: 32 register
     float64x2x4_t f0_re, f0_im, f1_re, f1_im, d_re, d_im; // 16
-    float64x2x2_t s_tmp[4];                               // 8
+    float64x2x2_t s_tmp0, s_tmp1, s_tmp2, s_tmp3;         // 8
     float64x2x2_t x_tmp, y_tmp;                           // 4
 
     const unsigned falcon_n = 1 << logn;
@@ -47,22 +47,22 @@ static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsign
         vloadx4(f1_re, &f1[u]);
         vloadx4(f1_im, &f1[u + qn]);
 
-        vload2(s_tmp[0], &fpr_gm_tab[u2 + 0]);
-        vload2(s_tmp[1], &fpr_gm_tab[u2 + 4]);
-        vload2(s_tmp[2], &fpr_gm_tab[u2 + 8]);
-        vload2(s_tmp[3], &fpr_gm_tab[u2 + 12]);
+        vload2(s_tmp0, &fpr_gm_tab[u2 + 0]);
+        vload2(s_tmp1, &fpr_gm_tab[u2 + 4]);
+        vload2(s_tmp2, &fpr_gm_tab[u2 + 8]);
+        vload2(s_tmp3, &fpr_gm_tab[u2 + 12]);
 
         // f0,f1_re: 0-> 7
         // f0,f1_im: qn -> qn + 7
-        vfmul(d_re.val[0], f1_re.val[0], s_tmp[0].val[0]);
-        vfmul(d_re.val[1], f1_re.val[1], s_tmp[1].val[0]);
-        vfmul(d_re.val[2], f1_re.val[2], s_tmp[2].val[0]);
-        vfmul(d_re.val[3], f1_re.val[3], s_tmp[3].val[0]);
+        vfmul(d_re.val[0], f1_re.val[0], s_tmp0.val[0]);
+        vfmul(d_re.val[1], f1_re.val[1], s_tmp1.val[0]);
+        vfmul(d_re.val[2], f1_re.val[2], s_tmp2.val[0]);
+        vfmul(d_re.val[3], f1_re.val[3], s_tmp3.val[0]);
 
-        vfms(d_re.val[0], d_re.val[0], f1_im.val[0], s_tmp[0].val[1]);
-        vfms(d_re.val[1], d_re.val[1], f1_im.val[1], s_tmp[1].val[1]);
-        vfms(d_re.val[2], d_re.val[2], f1_im.val[2], s_tmp[2].val[1]);
-        vfms(d_re.val[3], d_re.val[3], f1_im.val[3], s_tmp[3].val[1]);
+        vfms(d_re.val[0], d_re.val[0], f1_im.val[0], s_tmp0.val[1]);
+        vfms(d_re.val[1], d_re.val[1], f1_im.val[1], s_tmp1.val[1]);
+        vfms(d_re.val[2], d_re.val[2], f1_im.val[2], s_tmp2.val[1]);
+        vfms(d_re.val[3], d_re.val[3], f1_im.val[3], s_tmp3.val[1]);
 
         // f_re0
         // vfaddx4(v0, f0_re, tmp);
@@ -84,15 +84,15 @@ static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsign
         vstore2(&f[u1 + 8], x_tmp);
         vstore2(&f[u1 + 12], y_tmp);
 
-        vfmul(d_im.val[0], f1_re.val[0], s_tmp[0].val[1]);
-        vfmul(d_im.val[1], f1_re.val[1], s_tmp[1].val[1]);
-        vfmul(d_im.val[2], f1_re.val[2], s_tmp[2].val[1]);
-        vfmul(d_im.val[3], f1_re.val[3], s_tmp[3].val[1]);
+        vfmul(d_im.val[0], f1_re.val[0], s_tmp0.val[1]);
+        vfmul(d_im.val[1], f1_re.val[1], s_tmp1.val[1]);
+        vfmul(d_im.val[2], f1_re.val[2], s_tmp2.val[1]);
+        vfmul(d_im.val[3], f1_re.val[3], s_tmp3.val[1]);
 
-        vfma(d_im.val[0], d_im.val[0], f1_im.val[0], s_tmp[0].val[0]);
-        vfma(d_im.val[1], d_im.val[1], f1_im.val[1], s_tmp[1].val[0]);
-        vfma(d_im.val[2], d_im.val[2], f1_im.val[2], s_tmp[2].val[0]);
-        vfma(d_im.val[3], d_im.val[3], f1_im.val[3], s_tmp[3].val[0]);
+        vfma(d_im.val[0], d_im.val[0], f1_im.val[0], s_tmp0.val[0]);
+        vfma(d_im.val[1], d_im.val[1], f1_im.val[1], s_tmp1.val[0]);
+        vfma(d_im.val[2], d_im.val[2], f1_im.val[2], s_tmp2.val[0]);
+        vfma(d_im.val[3], d_im.val[3], f1_im.val[3], s_tmp3.val[0]);
 
         // f_re0
         // vfaddx4(v0, f0_im, tmp);
@@ -116,7 +116,7 @@ static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsign
     }
 }
 
-/* 
+/*
  * Fix logn: 4
  */
 static inline void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1)
@@ -169,7 +169,7 @@ static inline void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1)
     vstore2(&f[12], tmp);
 }
 
-/* 
+/*
  * Fix logn: 3
  */
 static inline void ZfN(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
@@ -215,12 +215,12 @@ static inline void ZfN(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
     vstore2(&f[4], tmp);
 }
 
-/* 
+/*
  * see inner.h
  * Only support logn >= 3
  */
 void ZfN(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
-                        const fpr *restrict f1, unsigned logn)
+                         const fpr *restrict f1, unsigned logn)
 {
     float64x2_t a_re_im, b_re_im, d_re_im,
         s_re_im, s_im_re, neon_1i2, d_re, d_im;
@@ -326,7 +326,7 @@ static inline void ZfN(poly_splitFFT_log3)(fpr *restrict f0, fpr *restrict f1, c
 }
 
 static inline void ZfN(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
-                                          const fpr *f, unsigned logn)
+                                           const fpr *f, unsigned logn)
 {
     // n = 16; hn = 8; qn = 4
     // a_re = f[0,  4,  2,  6];
@@ -401,11 +401,11 @@ static inline void ZfN(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
     }
 }
 
-/* 
+/*
  * Recursive Split FFT
  */
 void ZfN(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
-                        const fpr *restrict f, unsigned logn)
+                         const fpr *restrict f, unsigned logn)
 {
     float64x2x2_t tmp;
     float64x2_t a_re_im, b_re_im, t_re_im, d_re, d_im, neon_1i2;
@@ -454,3 +454,12 @@ void ZfN(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
         break;
     }
 }
+
+/* 
+ * TODO: since we have freedom to construct real and imagine point like this
+ * [r0, i0], [r1, i1] ... this would be friendlier in cache. 
+ * The current construction is
+ * [r0, r1, r2....], [i0, i1, i2, ....] so every load in memory is not continous. 
+ * And there is overhead for loading uncontinous memory because the distance 
+ * in bytes for float64 when N = 512, 1024 is huge. 
+ */
