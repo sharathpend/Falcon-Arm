@@ -60,7 +60,9 @@
  *
  *  - Barrett multiplication seem to work better with no restriction
  * => Proved to be good. E.g c=a*b, a in [-R, R], b in [-Q/2, Q/2] then c in [-3Q/2, 3Q/2]
- *
+ * However, depend on the input bound, the output bound is varies. By using this knowledge, we can further 
+ * optimize Barrett point by carefully check the output bound according to input bound.
+ * 
  * - Barrett reduction with c = a % Q. a in [-R, R] then c in [-Q/2, Q/2]
  *
  *
