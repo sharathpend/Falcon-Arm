@@ -35,3 +35,12 @@ List of vectorized files:
 - vrfy.c
 
 Bottleneck is serial hashing.
+
+## TODO: 
+
+NTT and FFT can be further enhance by Radix-4:
+
+- In FFT, Radix-4 can be applied to `FFT_log2` and `IFFT_log2` function. 
+- In NTT, Radix-4 can be applied to Forward and Inverse NTT. 
+
+
