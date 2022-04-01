@@ -445,10 +445,10 @@ void ZfN(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, c
         neon_ts32.val[2] = vmovn_high_s64(vmovn_s64(neon_ts641.val[0]), neon_ts641.val[1]);
         neon_ts32.val[3] = vmovn_high_s64(vmovn_s64(neon_ts641.val[2]), neon_ts641.val[3]);
 
-        neon_hms32.val[0] = vmovl_s16(vget_low_s16(neon_hm.val[0]));
-        neon_hms32.val[1] = vmovl_high_s16(neon_hm.val[0]);
-        neon_hms32.val[2] = vmovl_s16(vget_low_s16(neon_hm.val[1]));
-        neon_hms32.val[3] = vmovl_high_s16(neon_hm.val[1]);
+        neon_hms32.val[0] = vmovl_s16(vget_low_s16( (int16x8_t) neon_hm.val[0]));
+        neon_hms32.val[1] = vmovl_high_s16( (int16x8_t) neon_hm.val[0]);
+        neon_hms32.val[2] = vmovl_s16(vget_low_s16( (int16x8_t) neon_hm.val[1]));
+        neon_hms32.val[3] = vmovl_high_s16( (int16x8_t) neon_hm.val[1]);
 
         z.val[0] = vsubq_s32(neon_hms32.val[0], neon_ts32.val[0]);
         z.val[1] = vsubq_s32(neon_hms32.val[1], neon_ts32.val[1]);
