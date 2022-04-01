@@ -207,6 +207,7 @@ Compare with current Radix-2 for 2 layers of NTT. Beware that after 2 layers of 
 
 We save 24/14 = 170% number of `MUL instructions`
 
-This can be a **breakthrough**.
+I think this doesn't work out for GS butterfly. 
+
 
 
