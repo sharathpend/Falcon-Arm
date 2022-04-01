@@ -555,7 +555,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
         a = w02;
         b = w13;
         c = vaddq_f64(a, b);
-        w01 = vmulq_n_f64(w01, 0.5);
+        w01 = vmulq_n_f64(c, 0.5);
 
         c = vsubq_f64(a, b);
         c_im = vmulq_f64(c, neon_i21);
