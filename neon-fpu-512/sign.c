@@ -814,11 +814,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
     s1tmp = (int16_t *)tx;
 	s2tmp = (int16_t *)tmp;
 	
-    ZfN(sign_short_s1)(&sqn, s1tmp, hm, t0);
-    ZfN(sign_short_s2)(s2tmp, t1);
-
-
-	if (ZfN(is_short_half)(sqn, s2tmp)) {
+    if (ZfN(is_short_tmp)(s1tmp, s2tmp, (int16_t *) hm, t0, t1)){
 		memcpy(s2, s2tmp, FALCON_N * sizeof *s2);
 		memcpy(tmp, s1tmp, FALCON_N * sizeof *s1tmp);
 		return 1;
@@ -1002,10 +998,7 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	s1tmp = (int16_t *)tx;
 	s2tmp = (int16_t *)tmp;
 	
-    ZfN(sign_short_s1)(&sqn, s1tmp, hm, t0);
-    ZfN(sign_short_s2)(s2tmp, t1);
-
-	if (ZfN(is_short_half)(sqn, s2tmp)) {
+    if (ZfN(is_short_tmp)(s1tmp, s2tmp, hm, t0, t1)){
 		memcpy(s2, s2tmp, FALCON_N * sizeof *s2);
 		memcpy(tmp, s1tmp, FALCON_N * sizeof *s1tmp);
 		return 1;

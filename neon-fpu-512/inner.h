@@ -319,11 +319,9 @@ int ZfN(is_short)(const int16_t *s1, const int16_t *s2);
  * Returned value is 1 on success (vector is short enough to be
  * acceptable), 0 otherwise.
  */
-int ZfN(is_short_half)(uint32_t sqn, const int16_t *s2);
-
-void ZfN(sign_short_s1)(uint32_t *sqn_out, int16_t *s1tmp, const uint16_t *hm, 
-                                    const double *t0);
-void ZfN(sign_short_s2)(int16_t *s2tmp, const double *t1);
+int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
+                      const int16_t *hm, const double *t0,
+                      const double *t1);
 
 /* ==================================================================== */
 /*
