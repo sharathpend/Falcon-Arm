@@ -281,6 +281,7 @@ int ZfN(is_short)(const int16_t *s1, const int16_t *s2)
 {
     int16x8x4_t neon_s1, neon_s2;
     int32x4_t neon_s, neon_sh;
+    int32x2_t tmp;
     uint32_t s;
     neon_s = vdupq_n_s32(0);
     neon_sh = vdupq_n_s32(0);
@@ -315,8 +316,12 @@ int ZfN(is_short)(const int16_t *s1, const int16_t *s2)
     }
     // 32x4
     neon_s = vhaddq_s32(neon_s, neon_sh);
-    // 32x4 -> 32x1
-    s = vaddvq_s32(neon_s);
+    // 32x4 -> 32x2
+    tmp = vqadd_s32(vget_low_s32(neon_s), vget_high_s32(neon_s));
+    
+    // 32x2 -> 32x1
+    // Use saturating add to prevent overflow
+    s = vqadds_s32(vget_lane_s32(tmp, 0), vget_lane_s32(tmp, 1));
 
     return s <= l2bound[FALCON_LOGN];
 }
@@ -331,6 +336,7 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
     int64x2x4_t neon_ts0, neon_ts1, neon_ts2, neon_ts3;   // 16
     int32x4x4_t neon_ts4, neon_ts5;                       // 8
     int32x4_t neon_s, neon_sh;                            // 2
+    int32x2_t tmp;
     uint32_t s;
 
     neon_s = vdupq_n_s32(0);
@@ -430,8 +436,12 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
 
     // 32x4
     neon_s = vhaddq_s32(neon_s, neon_sh);
-    // 32x4 -> 32x1
-    s = vaddvq_s32(neon_s);
+    // 32x4 -> 32x2
+    tmp = vqadd_s32(vget_low_s32(neon_s), vget_high_s32(neon_s));
 
+    // 32x2 -> 32x1
+    // Use saturating add to prevent overflow
+    s = vqadds_s32(vget_lane_s32(tmp, 0), vget_lane_s32(tmp, 1));
+    
     return s <= l2bound[FALCON_LOGN];
 }
