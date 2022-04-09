@@ -22,7 +22,7 @@
 #include "inner.h"
 #include "macrofx4.h"
 #include "macrof.h"
-#include <assert.h>
+// #include <assert.h>
 
 /* see inner.h */
 void ZfN(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
@@ -333,7 +333,7 @@ void ZfN(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned log
 /* see inner.h */
 void ZfN(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
 {
-    assert(logn >= 4);
+    // assert(logn >= 4);
     float64x2x4_t a_re, b_re, d_re, a_im, b_im, d_im; // 24
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -358,7 +358,7 @@ void ZfN(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
 /* see inner.h */
 void ZfN(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 {
-    assert(logn >= 4);
+    // assert(logn >= 4);
     /*
 	 * Since each coefficient is multiplied with its own conjugate,
 	 * the result contains only real values.
@@ -388,7 +388,7 @@ void ZfN(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
  */
 void ZfN(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
 {
-    assert(logn >= 3);
+    // assert(logn >= 3);
     // Total 9 registers
     float64x2x4_t neon_a, neon_c;
     const int falcon_n = 1 << logn;
@@ -405,7 +405,7 @@ void ZfN(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
 /* see inner.h */
 void ZfN(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
-    assert(logn >= 4);
+    // assert(logn >= 4);
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     float64x2x4_t a_re, a_im, b_re, b_im, c_re, c_im, m;
@@ -495,7 +495,7 @@ void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *r
         break;
 
     default:
-        assert(logn >= 4);
+        // assert(logn >= 4);
         for (int i = 0; i < hn; i += 8)
         {
             vloadx4(a_re, &a[i]);
@@ -523,7 +523,7 @@ void ZfN(poly_add_muladj_fft)(fpr *restrict d,
                              const fpr *restrict F, const fpr *restrict G,
                              const fpr *restrict f, const fpr *restrict g, unsigned logn)
 {
-    assert(logn >= 4);
+    // assert(logn >= 4);
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     float64x2x4_t F_re, F_im, G_re, G_im;
@@ -612,7 +612,7 @@ void ZfN(poly_mul_autoadj_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsi
         break;
 
     default:
-        assert(logn >= 4);
+        // assert(logn >= 4);
         for (int i = 0; i < hn; i += 8)
         {
             vloadx4(a_re, &a[i]);
@@ -813,7 +813,7 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
         break;
 
     default:
-        assert(logn >= 4);
+        // assert(logn >= 4);
         for (int i = 0; i < hn; i += 8)
         {
             vloadx4(g00_re, &g00[i]);
@@ -1010,7 +1010,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
         break;
 
     default:
-        assert(logn >= 4);
+        // assert(logn >= 4);
         for (int i = 0; i < hn; i += 8)
         {
             vloadx4(g00_re, &g00[i]);
