@@ -343,7 +343,6 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
         vloadx4(neon_tf1, &t0[i + 8]);
         vloadx4(neon_tf2, &t0[i + 16]);
         vloadx4(neon_tf3, &t0[i + 24]);
-        vload_s16_x4(neon_hm, &hm[i]);
 
         vfrintx4(neon_ts0, neon_tf0);
         vfrintx4(neon_ts1, neon_tf1);
@@ -366,10 +365,12 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
         neon_ts.val[3] = vmovn_high_s32(vmovn_s32(neon_ts5.val[2]), neon_ts5.val[3]);
 
         // hm = hm - fpr_rint(t0)
+        vload_s16_x4(neon_hm, &hm[i]);
         neon_hm.val[0] = vsubq_s16(neon_hm.val[0], neon_ts.val[0]);
         neon_hm.val[1] = vsubq_s16(neon_hm.val[1], neon_ts.val[1]);
         neon_hm.val[2] = vsubq_s16(neon_hm.val[2], neon_ts.val[2]);
         neon_hm.val[3] = vsubq_s16(neon_hm.val[3], neon_ts.val[3]);
+        vstore_s16_x4(&s1tmp[i], neon_hm);
 
         neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_hm.val[0]), vget_low_s16(neon_hm.val[0]));
         neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_hm.val[1]), vget_low_s16(neon_hm.val[1]));
@@ -380,8 +381,6 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
         neon_sh = vqdmlal_high_s16(neon_sh, neon_hm.val[1], neon_hm.val[1]);
         neon_sh = vqdmlal_high_s16(neon_sh, neon_hm.val[2], neon_hm.val[2]);
         neon_sh = vqdmlal_high_s16(neon_sh, neon_hm.val[3], neon_hm.val[3]);
-
-        vstore_s16_x4(&s1tmp[i], neon_hm);
     }
 
     // s2tmp
