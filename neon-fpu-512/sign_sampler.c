@@ -37,7 +37,7 @@
  * on zero and standard deviation 1.8205, with a precision of 72 bits.
  */
 int
-Zf(gaussian0_sampler)(prng *p)
+ZfN(gaussian0_sampler)(prng *p)
 {
 
 	static const uint32_t dist[] = {
@@ -253,7 +253,7 @@ Zf(sampler)(void *ctx, fpr mu, fpr isigma)
 		 *  - b = 0: z <= 0 and sampled against a Gaussian
 		 *    centered on 0.
 		 */
-		z0 = Zf(gaussian0_sampler)(&spc->p);
+		z0 = ZfN(gaussian0_sampler)(&spc->p);
 		b = (int)prng_get_u8(&spc->p) & 1;
 		z = b + ((b << 1) - 1) * z0;
 

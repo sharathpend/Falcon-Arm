@@ -918,7 +918,7 @@ typedef struct {
 
 int Zf(sampler)(void *ctx, fpr mu, fpr isigma);
 
-int Zf(gaussian0_sampler)(prng *p);
+int ZfN(gaussian0_sampler)(prng *p);
 
 /* ==================================================================== */
 
