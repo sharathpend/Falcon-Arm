@@ -25,7 +25,7 @@
 #include "poly.h"
 #include "ntt_consts.h"
 
-void ZfN(poly_smallints_to_bigints)(int16_t out[FALCON_N], const int8_t in[FALCON_N])
+void ZfN(poly_int8_to_int16)(int16_t out[FALCON_N], const int8_t in[FALCON_N])
 {
     // Total SIMD registers: 24 = 16 + 8
     int16x8x4_t a, b, e, f; // 16
@@ -242,7 +242,7 @@ void ZfN(poly_convert_to_unsigned)(int16_t f[FALCON_N])
     }
 }
 
-int ZfN(bigints_to_smallints)(int8_t G[FALCON_N], const int16_t t[FALCON_N])
+int ZfN(poly_int16_to_int8)(int8_t G[FALCON_N], const int16_t t[FALCON_N])
 {
     // Total SIMD registers: 32
     int16x8x4_t a, f;              // 8

@@ -56,10 +56,10 @@ int Zf(compute_public)(int16_t *h, const int8_t *f, const int8_t *g, int16_t *tm
 {
     int16_t *tt = tmp;
 
-    ZfN(poly_smallints_to_bigints)(h, g);
+    ZfN(poly_int8_to_int16)(h, g);
     ZfN(poly_ntt)(h, 0);
    
-    ZfN(poly_smallints_to_bigints)(tt, f);
+    ZfN(poly_int8_to_int16)(tt, f);
     ZfN(poly_ntt)(tt, 1);
 
     if (ZfN(poly_compare_with_zero)(tt))
@@ -85,15 +85,15 @@ int Zf(complete_private)(int8_t *G, const int8_t *f,
     t1 = (int16_t *)tmp;
     t2 = t1 + FALCON_N;
 
-    ZfN(poly_smallints_to_bigints)(t1, g);
+    ZfN(poly_int8_to_int16)(t1, g);
     ZfN(poly_ntt)(t1, 0);
 
-    ZfN(poly_smallints_to_bigints)(t2, F);
+    ZfN(poly_int8_to_int16)(t2, F);
     ZfN(poly_ntt)(t2, 1);
 
     ZfN(poly_montmul_ntt)(t1, t2);
 
-    ZfN(poly_smallints_to_bigints)(t2, f);
+    ZfN(poly_int8_to_int16)(t2, f);
     ZfN(poly_ntt)(t2, 1);
 
     if (ZfN(poly_compare_with_zero)(t2))
@@ -104,7 +104,7 @@ int Zf(complete_private)(int8_t *G, const int8_t *f,
 
     ZfN(poly_invntt)(t1);
 
-    if (ZfN(bigints_to_smallints)(G, t1))
+    if (ZfN(poly_int16_to_int8)(G, t1))
     {
         return 0;
     }
