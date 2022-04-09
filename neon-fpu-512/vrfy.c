@@ -35,17 +35,17 @@ int Zf(verify_raw)(const int16_t *c0, const int16_t *s2,
     int16_t *tt = tmp;
 
     /*
-     * Compute -s1 = s2*h - c0 mod phi mod q (in tt[]).
+     * Compute s1 = c0 - s2*h mod phi mod q (in tt[]).
      */
 
     memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
     ZfN(poly_ntt)(tt, 0);
     ZfN(poly_montmul_ntt)(tt, h);
     ZfN(poly_invntt)(tt);
-    ZfN(poly_sub_barrett)(tt, tt, c0);
+    ZfN(poly_sub_barrett)(tt, c0, tt);
 
     /*
-     * Signature is valid if and only if the aggregate (-s1,s2) vector
+     * Signature is valid if and only if the aggregate (s1,s2) vector
      * is short enough.
      */
     return ZfN(is_short)(tt, s2);
