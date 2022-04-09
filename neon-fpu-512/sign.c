@@ -959,8 +959,8 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	smallints_to_fpr(b11, F, FALCON_LOGN);
 	smallints_to_fpr(b10, G, FALCON_LOGN);
 	ZfN(FFT)(b01, FALCON_LOGN);
-	ZfN(FFT)(b11, FALCON_LOGN);
     ZfN(poly_neg)(b01, b01, FALCON_LOGN);
+	ZfN(FFT)(b11, FALCON_LOGN);
     ZfN(poly_neg)(b11, b11, FALCON_LOGN);
 	ZfN(FFT)(b00, FALCON_LOGN);
 	ZfN(FFT)(b10, FALCON_LOGN);
