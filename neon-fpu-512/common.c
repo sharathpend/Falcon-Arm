@@ -279,16 +279,20 @@ static const uint32_t l2bound[] = {
  */
 int ZfN(is_short)(const int16_t *s1, const int16_t *s2)
 {
-    int16x8x4_t neon_s1, neon_s2;
-    int32x4_t neon_s, neon_sh;
+    // Total SIMD register 18 = 16 + 2
+    int16x8x4_t neon_s1, neon_s2, neon_s3, neon_s4; // 16
+    int32x4_t neon_s, neon_sh;                      // 2
     int32x2_t tmp;
     uint32_t s;
     neon_s = vdupq_n_s32(0);
     neon_sh = vdupq_n_s32(0);
 
-    for (unsigned u = 0; u < FALCON_N; u += 32)
+    for (unsigned u = 0; u < FALCON_N; u += 128)
     {
         vload_s16_x4(neon_s1, &s1[u]);
+        vload_s16_x4(neon_s2, &s1[u + 32]);
+        vload_s16_x4(neon_s3, &s1[u + 64]);
+        vload_s16_x4(neon_s4, &s1[u + 96]);
 
         neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s1.val[0]), vget_low_s16(neon_s1.val[0]));
         neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s1.val[1]), vget_low_s16(neon_s1.val[1]));
@@ -299,10 +303,6 @@ int ZfN(is_short)(const int16_t *s1, const int16_t *s2)
         neon_sh = vqdmlal_high_s16(neon_sh, neon_s1.val[1], neon_s1.val[1]);
         neon_sh = vqdmlal_high_s16(neon_sh, neon_s1.val[2], neon_s1.val[2]);
         neon_sh = vqdmlal_high_s16(neon_sh, neon_s1.val[3], neon_s1.val[3]);
-    }
-    for (unsigned u = 0; u < FALCON_N; u += 32)
-    {
-        vload_s16_x4(neon_s2, &s2[u]);
 
         neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s2.val[0]), vget_low_s16(neon_s2.val[0]));
         neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s2.val[1]), vget_low_s16(neon_s2.val[1]));
@@ -313,12 +313,79 @@ int ZfN(is_short)(const int16_t *s1, const int16_t *s2)
         neon_sh = vqdmlal_high_s16(neon_sh, neon_s2.val[1], neon_s2.val[1]);
         neon_sh = vqdmlal_high_s16(neon_sh, neon_s2.val[2], neon_s2.val[2]);
         neon_sh = vqdmlal_high_s16(neon_sh, neon_s2.val[3], neon_s2.val[3]);
+
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[0]), vget_low_s16(neon_s3.val[0]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[1]), vget_low_s16(neon_s3.val[1]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[2]), vget_low_s16(neon_s3.val[2]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[3]), vget_low_s16(neon_s3.val[3]));
+
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[0], neon_s3.val[0]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[1], neon_s3.val[1]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[2], neon_s3.val[2]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[3], neon_s3.val[3]);
+
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[0]), vget_low_s16(neon_s4.val[0]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[1]), vget_low_s16(neon_s4.val[1]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[2]), vget_low_s16(neon_s4.val[2]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[3]), vget_low_s16(neon_s4.val[3]));
+
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[0], neon_s4.val[0]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[1], neon_s4.val[1]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[2], neon_s4.val[2]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[3], neon_s4.val[3]);
+    }
+    for (unsigned u = 0; u < FALCON_N; u += 128)
+    {
+        vload_s16_x4(neon_s1, &s2[u]);
+        vload_s16_x4(neon_s2, &s2[u + 32]);
+        vload_s16_x4(neon_s3, &s2[u + 64]);
+        vload_s16_x4(neon_s4, &s2[u + 96]);
+
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s1.val[0]), vget_low_s16(neon_s1.val[0]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s1.val[1]), vget_low_s16(neon_s1.val[1]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s1.val[2]), vget_low_s16(neon_s1.val[2]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s1.val[3]), vget_low_s16(neon_s1.val[3]));
+
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s1.val[0], neon_s1.val[0]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s1.val[1], neon_s1.val[1]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s1.val[2], neon_s1.val[2]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s1.val[3], neon_s1.val[3]);
+
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s2.val[0]), vget_low_s16(neon_s2.val[0]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s2.val[1]), vget_low_s16(neon_s2.val[1]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s2.val[2]), vget_low_s16(neon_s2.val[2]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s2.val[3]), vget_low_s16(neon_s2.val[3]));
+
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s2.val[0], neon_s2.val[0]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s2.val[1], neon_s2.val[1]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s2.val[2], neon_s2.val[2]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s2.val[3], neon_s2.val[3]);
+
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[0]), vget_low_s16(neon_s3.val[0]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[1]), vget_low_s16(neon_s3.val[1]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[2]), vget_low_s16(neon_s3.val[2]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s3.val[3]), vget_low_s16(neon_s3.val[3]));
+
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[0], neon_s3.val[0]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[1], neon_s3.val[1]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[2], neon_s3.val[2]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s3.val[3], neon_s3.val[3]);
+
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[0]), vget_low_s16(neon_s4.val[0]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[1]), vget_low_s16(neon_s4.val[1]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[2]), vget_low_s16(neon_s4.val[2]));
+        neon_s = vqdmlal_s16(neon_s, vget_low_s16(neon_s4.val[3]), vget_low_s16(neon_s4.val[3]));
+
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[0], neon_s4.val[0]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[1], neon_s4.val[1]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[2], neon_s4.val[2]);
+        neon_sh = vqdmlal_high_s16(neon_sh, neon_s4.val[3], neon_s4.val[3]);
     }
     // 32x4
     neon_s = vhaddq_s32(neon_s, neon_sh);
     // 32x4 -> 32x2
     tmp = vqadd_s32(vget_low_s32(neon_s), vget_high_s32(neon_s));
-    
+
     // 32x2 -> 32x1
     // Use saturating add to prevent overflow
     s = vqadds_s32(vget_lane_s32(tmp, 0), vget_lane_s32(tmp, 1));
@@ -442,6 +509,6 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
     // 32x2 -> 32x1
     // Use saturating add to prevent overflow
     s = vqadds_s32(vget_lane_s32(tmp, 0), vget_lane_s32(tmp, 1));
-    
+
     return s <= l2bound[FALCON_LOGN];
 }
