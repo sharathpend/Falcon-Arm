@@ -33,6 +33,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "m1cycles.h"
+
+
+#define TIME(s) s = rdtsc();
+// Result is clock cycles 
+#define  CALC(start, stop, ntests) (stop - start) / ntests;
+
 
 /*
  * This code uses only the external API.
@@ -70,13 +77,35 @@ xfree(void *buf)
  */
 typedef int (*bench_fun)(void *ctx, unsigned long num);
 
+
+static long long 
+do_bench_cycles(bench_fun bf, void *ctx, int iteration)
+{
+    long long start, stop;
+
+    /*
+    * Always do a few blank runs to "train" the caches and branch
+    * prediction.
+    */
+
+    bf(ctx, 10);
+
+    // Benchmark cycles
+    TIME(start);
+    bf(ctx, iteration);
+    TIME(stop);
+
+    return CALC(start, stop, iteration);
+
+}
+
 /*
  * Returned value is the time per iteration in nanoseconds. If the
  * benchmark function reports an error, 0.0 is returned.
  */
 static double
 do_bench(bench_fun bf, void *ctx, double threshold)
-{
+{  
 	unsigned long num;
 	int r;
 
@@ -283,6 +312,76 @@ bench_verify_ct(void *ctx, unsigned long num)
 	return 0;
 }
 
+
+static void
+test_speed_falcon_cycles(unsigned logn, int iteration)
+{
+       
+        bench_context bc;
+        size_t len;
+
+        printf("%4u:", 1u << logn);
+        fflush(stdout);
+
+        bc.logn = logn;
+        if (shake256_init_prng_from_system(&bc.rng) != 0) {
+                fprintf(stderr, "random seeding failed\n");
+                exit(EXIT_FAILURE);
+        }
+        len = FALCON_TMPSIZE_KEYGEN(logn);
+        len = maxsz(len, FALCON_TMPSIZE_SIGNDYN(logn));
+        len = maxsz(len, FALCON_TMPSIZE_SIGNTREE(logn));
+        len = maxsz(len, FALCON_TMPSIZE_EXPANDPRIV(logn));
+        len = maxsz(len, FALCON_TMPSIZE_VERIFY(logn));
+        bc.tmp = xmalloc(len);
+        bc.tmp_len = len;
+        bc.pk = xmalloc(FALCON_PUBKEY_SIZE(logn));
+        bc.sk = xmalloc(FALCON_PRIVKEY_SIZE(logn));
+        bc.esk = xmalloc(FALCON_EXPANDEDKEY_SIZE(logn));
+        bc.sig = xmalloc(FALCON_SIG_COMPRESSED_MAXSIZE(logn));
+        bc.sig_len = 0;
+        bc.sigct = xmalloc(FALCON_SIG_CT_SIZE(logn));
+        bc.sigct_len = 0;
+
+
+        printf(" %8lld",
+                do_bench_cycles(&bench_keygen, &bc, iteration/10));
+        fflush(stdout);
+        printf(" %8lld",
+                do_bench_cycles(&bench_expand_privkey, &bc, iteration));
+        fflush(stdout);
+        printf(" %8lld",
+                do_bench_cycles(&bench_sign_dyn, &bc, iteration));
+        fflush(stdout);
+        printf(" %8lld",
+                do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration));
+        fflush(stdout);
+        // printf(" %8lld",
+        //         do_bench_cycles(&bench_sign_tree, &bc, iteration));
+        // fflush(stdout);
+        // printf(" %8lld",
+        //         do_bench_cycles(&bench_sign_tree_ct, &bc, iteration));
+        fflush(stdout);
+        printf(" %8lld",
+                do_bench_cycles(&bench_verify, &bc, iteration));
+        fflush(stdout); 
+        printf(" %8lld",
+                do_bench_cycles(&bench_verify_ct, &bc, iteration));
+        fflush(stdout);
+
+        printf("\n\n");
+        fflush(stdout);
+
+        xfree(bc.tmp);
+        xfree(bc.pk);
+        xfree(bc.sk);
+        xfree(bc.esk);
+        xfree(bc.sig);
+        xfree(bc.sigct);
+}
+
+
+
 static void
 test_speed_falcon(unsigned logn, double threshold)
 {
@@ -351,32 +450,34 @@ test_speed_falcon(unsigned logn, double threshold)
 int
 main(int argc, char *argv[])
 {
-	double threshold;
+    setup_rdtsc();
 
-	if (argc < 2) {
-		threshold = 2.0;
-	} else if (argc == 2) {
-		threshold = atof(argv[1]);
-	} else {
-		threshold = -1.0;
-	}
-	if (threshold <= 0.0 || threshold > 60.0) {
-		fprintf(stderr,
-"usage: speed [ threshold ]\n"
-"'threshold' is the minimum time for a bench run, in seconds (must be\n"
-"positive and less than 60).\n");
-		exit(EXIT_FAILURE);
-	}
+	double threshold;
+    int iteration; 
+
+    iteration = 10000;
+    threshold = 2.0;
+
 	printf("time threshold = %.4f s\n", threshold);
 	printf("kg = keygen, ek = expand private key, sd = sign (without expanded key)\n");
 	printf("st = sign (with expanded key), vv = verify\n");
 	printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n");
-	printf("keygen in milliseconds, other values in microseconds\n");
+    printf("keygen in milliseconds, other values in microseconds\n");
 	printf("\n");
 	printf("degree  kg(ms)   ek(us)   sd(us)  sdc(us)   st(us)  stc(us)   vv(us)  vvc(us)\n");
 	fflush(stdout);
-	test_speed_falcon(8, threshold);
+    
+	// test_speed_falcon(8, threshold);
 	test_speed_falcon(9, threshold);
 	test_speed_falcon(10, threshold);
+
+
+    printf("All numbers are in cycles\n\n");
+    printf("degree  kg(c) \t  ek(c) \t  sd(c) \t sdc(c) \t  vv(c) \t vvc(c)\n");
+
+    // test_speed_falcon_cycles(9, iteration);
+    test_speed_falcon_cycles(10, iteration);
+
+
 	return 0;
 }
