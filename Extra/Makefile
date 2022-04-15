@@ -47,13 +47,13 @@ CC = clang
 CFLAGS = -Wall -Wextra -Wshadow -Wundef -O3 #-pg -fno-pie
 LD = clang
 LDFLAGS = #-pg -no-pie
-LIBS = #-lm
+LIBS = -lpapi
 
 # =====================================================================
 
-OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o m1cycles.o
+OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o
 
-all: test_falcon speed
+all: test_falcon
 
 clean:
 	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o
@@ -61,8 +61,11 @@ clean:
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
 
-speed: speed.o $(OBJ)
-	$(LD) $(LDFLAGS) -o speed speed.o $(OBJ) $(LIBS)
+speed_a72: speed_a72.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ $@.o $(OBJ) $(LIBS)
+
+speed_m1: speed_m1.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ $@.o $(OBJ)
 
 bench: bench.o $(OBJ)
 	$(LD) $(LDFLAGS) -o bench bench.o $(OBJ) $(LIBS)
@@ -97,8 +100,11 @@ shake.o: shake.c config.h inner.h fpr.h
 sign.o: sign.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o sign.o sign.c
 
-speed.o: speed.c falcon.h
-	$(CC) $(CFLAGS) -c -o speed.o speed.c
+speed_a72.o: speed_a72.c falcon.h
+	$(CC) $(CFLAGS) -c -o $@ $@.c $(LIBS)
+
+speed_m1.o: speed_m1.c falcon.h
+	$(CC) $(CFLAGS) -c -o $@ $@.c
 
 bench.o: bench.c $(OBJ)
 	$(CC) $(CFLAGS) -c -o bench.o bench.c
