@@ -51,7 +51,7 @@ LIBS = #-lm
 
 # =====================================================================
 
-OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o
+OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o m1cycles.o
 
 all: test_falcon speed
 
@@ -69,6 +69,9 @@ bench: bench.o $(OBJ)
 
 codec.o: codec.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o codec.o codec.c
+
+m1cycles.o: m1cycles.c m1cycles.h
+	$(CC) $(CFLAGS) -c -o $@ m1cycles.c
 
 common.o: common.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o common.o common.c
