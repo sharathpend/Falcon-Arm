@@ -75,6 +75,17 @@
     a.val[ia] = vzip1q_f64(t.val[it], b.val[ib]); \
     b.val[ib] = vzip2q_f64(t.val[it], b.val[ib]);
 
+// c[0] = c[0] + b[0]*a[0], c[1] = c[1] + b[1]*a[0]
+#define vfcmla(c, a, b) 	c = vcmlaq_f64(c, a, b);
+
+// c[0] = c[0] - b[1]*a[1], c[1] = c[1] + b[0]*a[1]
+#define vfcmla_90(c, a, b)  c = vcmlaq_rot90_f64(c, a, b);
+
+// c[0] = c[0] - b[0]*a[0], c[1] = c[1] - b[1]*a[0]
+#define vfcmla_180(c, a, b) c = vcmlaq_rot180_f64(c, a, b);
+
+// c[0] = c[0] + b[1]*a[1], c[1] = c[1] - b[0]*a[1]
+#define vfcmla_270(c, a, b) c = vcmlaq_rot270_f64(c, a, b);
 
 #if FMA == 1
 // d = c + a *b
