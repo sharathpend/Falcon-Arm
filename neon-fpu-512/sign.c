@@ -261,8 +261,8 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	 * Compute the FFT for the key elements, and negate f and F.
 	 */
 	ZfN(FFT)(rf, FALCON_LOGN);
-	ZfN(FFT)(rF, FALCON_LOGN);
     ZfN(poly_neg)(rf, rf, FALCON_LOGN);
+	ZfN(FFT)(rF, FALCON_LOGN);
     ZfN(poly_neg)(rF, rF, FALCON_LOGN);
     ZfN(FFT)(rg, FALCON_LOGN);
 	ZfN(FFT)(rG, FALCON_LOGN);
@@ -420,280 +420,37 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	const fpr *tree0, *tree1;
 
 	/*
-	 * When logn == 2, we inline the last two recursion levels.
-	 */
-	if (logn == 2) {
-        tree0 = tree + 4;
-        tree1 = tree + 8;
-
-        float64x2x2_t tmp;
-        float64x2_t a, b, c, c_re, c_im;
-        float64x2_t w01, w02, w13, w23, x01;
-        float64x2_t neon_i21, neon_1i2;
-        int64x2_t scvt;
-        double s_x0, s_x1, sigma;
-        int64_t s_w0, s_w1, s_w2, s_w3;
-        const double imagine[4] = {-1.0, 1.0, 1.0, -1.0};
-
-        scvt = vdupq_n_s64(0);
-        vload2(tmp, &t1[0]);
-        a = tmp.val[0]; // a_re, a_im
-        b = tmp.val[1]; // b_re, b_im
-        vloadx2(tmp, &imagine[0]);
-        neon_i21 = tmp.val[0];
-        neon_1i2 = tmp.val[1];
-
-        c = vaddq_f64(a, b);
-        w01 = vmulq_n_f64(c, 0.5);
-
-        c = vsubq_f64(a, b);
-        c_im = vmulq_f64(c, neon_i21);
-        w23 = vpaddq_f64(c, c_im);
-        w23 = vmulq_n_f64(w23, fpr_invsqrt8);
-
-        x01 = w23;
-        sigma = tree1[3];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if DEBUG
-        printv("w01", w01);
-        printv("w23", w23);
-#endif
-#if FAKE_GAUSS
-        s_w2 = gauss_test(s_x0, sigma);
-        s_w3 = gauss_test(s_x1, sigma);
-#else
-        s_w2 = samp(samp_ctx, s_x0, sigma);
-        s_w3 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(s_w2, scvt, 0);
-        scvt = vsetq_lane_s64(s_w3, scvt, 1);
-        w23 = vcvtq_f64_s64(scvt);
-
-        a = vsubq_f64(x01, w23);
-        b = vld1q_f64(&tree1[0]);
-
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
-
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        c = vpaddq_f64(c_re, c_im);
-        x01 = vaddq_f64(c, w01);
-
-        sigma = tree1[2];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        s_w0 = gauss_test(s_x0, sigma);
-        s_w1 = gauss_test(s_x1, sigma);
-#else
-        s_w0 = samp(samp_ctx, s_x0, sigma);
-        s_w1 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(s_w0, scvt, 0);
-        scvt = vsetq_lane_s64(s_w1, scvt, 1);
-        w01 = vcvtq_f64_s64(scvt);
-
-        a = w01;
-        b = w23;
-#if DEBUG
-        printv("w01", w01);
-        printv("w23", w23);
-#endif
-        c_re = vmulq_f64(b, neon_1i2);
-        c = vpaddq_f64(c_re, b);
-        c = vmulq_n_f64(c, fpr_invsqrt2);
-
-        tmp.val[0] = vaddq_f64(a, c);
-        tmp.val[1] = vsubq_f64(a, c);
-
-        vst2q_f64(&z1[0], tmp);
-#if DEBUG
-        printv("z1-02", tmp.val[0]);
-        printv("z1-13", tmp.val[1]);
-#endif
-        w02 = tmp.val[0];
-        w13 = tmp.val[1];
-        tmp = vld2q_f64(&t1[0]);
-
-        w02 = vsubq_f64(tmp.val[0], w02);
-        w13 = vsubq_f64(tmp.val[1], w13);
-
-        tmp = vld2q_f64(&tree[0]);
-        a = w02;
-        b = tmp.val[0];
-
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
-
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        w02 = vpaddq_f64(c_re, c_im);
-
-        a = w13;
-        b = tmp.val[1];
-
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
-
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        w13 = vpaddq_f64(c_re, c_im);
-
-#if DEBUG
-        printv("w02", w02);
-        printv("w13", w13);
-#endif
-        tmp = vld2q_f64(&t0[0]);
-        w02 = vaddq_f64(w02, tmp.val[0]);
-        w13 = vaddq_f64(w13, tmp.val[1]);
-
-        /*
-        * Second recursive invocation.
-        */
-        a = w02;
-        b = w13;
-        c = vaddq_f64(a, b);
-        w01 = vmulq_n_f64(c, 0.5);
-
-        c = vsubq_f64(a, b);
-        c_im = vmulq_f64(c, neon_i21);
-        w23 = vpaddq_f64(c, c_im);
-        w23 = vmulq_n_f64(w23, fpr_invsqrt8);
-
-        x01 = w23;
-        sigma = tree0[3];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        s_w2 = gauss_test(s_x0, sigma);
-        s_w3 = gauss_test(s_x1, sigma);
-#else
-        s_w2 = samp(samp_ctx, s_x0, sigma);
-        s_w3 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(s_w2, scvt, 0);
-        scvt = vsetq_lane_s64(s_w3, scvt, 1);
-        w23 = vcvtq_f64_s64(scvt);
-
-        a = vsubq_f64(x01, w23);
-        b = vld1q_f64(&tree0[0]);
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        c = vpaddq_f64(c_re, c_im);
-        x01 = vaddq_f64(c, w01);
-        sigma = tree0[2];
-
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        s_w0 = gauss_test(s_x0, sigma);
-        s_w1 = gauss_test(s_x1, sigma);
-#else
-        s_w0 = samp(samp_ctx, s_x0, sigma);
-        s_w1 = samp(samp_ctx, s_x1, sigma);
-#endif
-
-        scvt = vsetq_lane_s64(s_w0, scvt, 0);
-        scvt = vsetq_lane_s64(s_w1, scvt, 1);
-        a = vcvtq_f64_s64(scvt);
-
-        c_im = w23;
-        c_re = vmulq_f64(w23, neon_1i2);
-        c = vpaddq_f64(c_re, c_im);
-        c = vmulq_n_f64(c, fpr_invsqrt2);
-
-        tmp.val[0] = vaddq_f64(a, c);
-        tmp.val[1] = vsubq_f64(a, c);
-
-        vst2q_f64(&z0[0], tmp);
-
-        return;
-	}
-
-	/*
 	 * Case logn == 1 is reachable only when using Falcon-2 (the
 	 * smallest size for which Falcon is mathematically defined, but
 	 * of course way too insecure to be of any use).
 	 */
 	if (logn == 1) {
-        fpr sigma;
-        float64x2_t x01, y01, a, b, c, c_re, c_im, neon_1i2;
-        fpr s_x0, s_x1;
-        int64x2_t scvt;
-        int64_t y0, y1;
-        const double imagine[2] = {1.0, -1.0};
-        scvt = vdupq_n_s64(0);
-        neon_1i2 = vld1q_f64(&imagine[0]);
-        x01 = vld1q_f64(&t1[0]);
-        sigma = tree[3];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        y0 = gauss_test(s_x0, sigma);
-        y1 = gauss_test(s_x1, sigma);
-#else
-        y0 = samp(samp_ctx, s_x0, sigma);
-        y1 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(y0, scvt, 0);
-        scvt = vsetq_lane_s64(y1, scvt, 1);
-        y01 = vcvtq_f64_s64(scvt);
-        vst1q_f64(&z1[0], y01);
+        float64x2_t x, y, a, b, c, w;
+        fpr buf[2];
 
-        a = vsubq_f64(x01, y01);
-        b = vld1q_f64(&tree[0]);
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
+        z1[0] = fpr_of(samp(samp_ctx, t1[0], tree[3]));
+		z1[1] = fpr_of(samp(samp_ctx, t1[1], tree[3]));
 
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        c = vpaddq_f64(c_re, c_im);
-        x01 = vld1q_f64(&t0[0]);
-        x01 = vaddq_f64(c, x01);
-        sigma = tree[2];
+        vload(w, &t0[0]);
+        vload(x, &t1[0]);
+        vload(y, &z1[0]);
+        vload(b, &tree[0]);
+        
+        vfsub(a, x, y);
+        vfmul_lane(c, b, a, 0);
+        vfcmla_90(c, a, b);
+        vfadd(x, c, w);
 
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        y0 = gauss_test(s_x0, sigma);
-        y1 = gauss_test(s_x1, sigma);
-#else
-        y0 = samp(samp_ctx, s_x0, sigma);
-        y1 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(y0, scvt, 0);
-        scvt = vsetq_lane_s64(y1, scvt, 1);
-        y01 = vcvtq_f64_s64(scvt);
-        vst1q_f64(&z0[0], y01);
+        vstore(&buf[0], x);
 
-        return;
-	}
+        z0[0] = fpr_of(samp(samp_ctx, buf[0], tree[2]));
+		z0[1] = fpr_of(samp(samp_ctx, buf[1], tree[2]));
 
-	/*
-	 * Normal end of recursion is for logn == 0. Since the last
-	 * steps of the recursions were inlined in the blocks above
-	 * (when logn == 1 or 2), this case is not reachable, and is
-	 * retained here only for documentation purposes.
-
-	if (logn == 0) {
-		fpr x0, x1, sigma;
-
-		x0 = t0[0];
-		x1 = t1[0];
-		sigma = tree[0];
-		z0[0] = fpr_of(samp(samp_ctx, x0, sigma));
-		z1[0] = fpr_of(samp(samp_ctx, x1, sigma));
 		return;
 	}
 
-	 */
-
 	/*
-	 * General recursive case (logn >= 3).
+	 * General recursive case (logn >= 2).
 	 */
 
 	n = (size_t)1 << logn;
@@ -848,15 +605,19 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	b01 = b00 + FALCON_N;
 	b10 = b01 + FALCON_N;
 	b11 = b10 + FALCON_N;
+
 	smallints_to_fpr(b01, f, FALCON_LOGN);
-	smallints_to_fpr(b00, g, FALCON_LOGN);
-	smallints_to_fpr(b11, F, FALCON_LOGN);
-	smallints_to_fpr(b10, G, FALCON_LOGN);
     ZfN(FFT)(b01, FALCON_LOGN);
-	ZfN(FFT)(b11, FALCON_LOGN);
     ZfN(poly_neg)(b01, b01, FALCON_LOGN);
+
+	smallints_to_fpr(b11, F, FALCON_LOGN);
+	ZfN(FFT)(b11, FALCON_LOGN);
     ZfN(poly_neg)(b11, b11, FALCON_LOGN);
+
+	smallints_to_fpr(b00, g, FALCON_LOGN);
     ZfN(FFT)(b00, FALCON_LOGN);
+	
+    smallints_to_fpr(b10, G, FALCON_LOGN);
 	ZfN(FFT)(b10, FALCON_LOGN);
 
 	/*
@@ -954,16 +715,21 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	memmove(b11 + FALCON_N, t0, FALCON_N * 2 * sizeof *t0);
 	t0 = b11 + FALCON_N;
 	t1 = t0 + FALCON_N;
+
 	smallints_to_fpr(b01, f, FALCON_LOGN);
-	smallints_to_fpr(b00, g, FALCON_LOGN);
-	smallints_to_fpr(b11, F, FALCON_LOGN);
-	smallints_to_fpr(b10, G, FALCON_LOGN);
 	ZfN(FFT)(b01, FALCON_LOGN);
     ZfN(poly_neg)(b01, b01, FALCON_LOGN);
+
+	smallints_to_fpr(b11, F, FALCON_LOGN);
 	ZfN(FFT)(b11, FALCON_LOGN);
     ZfN(poly_neg)(b11, b11, FALCON_LOGN);
+
+	smallints_to_fpr(b00, g, FALCON_LOGN);
 	ZfN(FFT)(b00, FALCON_LOGN);
+
+	smallints_to_fpr(b10, G, FALCON_LOGN);
 	ZfN(FFT)(b10, FALCON_LOGN);
+    
 	tx = t1 + FALCON_N;
 	ty = tx + FALCON_N;
 
