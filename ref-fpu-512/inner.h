@@ -350,6 +350,8 @@ void Zf(to_ntt_monty)(uint16_t *h, unsigned logn);
 int Zf(verify_raw)(const uint16_t *c0, const int16_t *s2,
 	const uint16_t *h, unsigned logn, uint8_t *tmp);
 
+void mq_NTT(uint16_t *a, unsigned logn);
+void mq_iNTT(uint16_t *a, unsigned logn);
 /*
  * Compute the public key h[], given the private key elements f[] and
  * g[]. This computes h = g/f mod phi mod q, where phi is the polynomial
