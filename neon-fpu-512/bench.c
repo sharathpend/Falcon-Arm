@@ -10,92 +10,129 @@
 #include "api.h"
 #include "poly.h"
 
-#define NTESTS 1000000
-#define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);;
-// Result is nanosecond per call 
-#define  CALC(start, stop) ((double) ((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / NTESTS;
+#if _APPLE_M1_ == 1
+#include "m1cycles.h"
+#endif
 
+#define NTESTS 100000
 
+// Result is nanosecond per call
+#define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
+#define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
 
-void test_FFT()
+// Result is clock cycles
+#define TIME_CYCLES(s) s = rdtsc();
+#define CALC_CYCLES(start, stop, ntests) (stop - start) / ntests;
+
+void test_FFT(fpr *f, unsigned logn)
 {
     struct timespec start, stop;
+    long long start_cc, stop_cc;
     long long ns_fft, ns_ifft;
-
-    const unsigned logn = FALCON_LOGN;
-
-    fpr f[FALCON_N];
-    for (int i = 0; i < FALCON_N; i++)
+    long long cc_fft, cc_ifft;
+    unsigned ntests = NTESTS;
+    if (logn < 7)
     {
-        f[i] = (double) i;
+        ntests = NTESTS * 100;
     }
     /* =================================== */
-    
     TIME(start);
-    for (int i = 0; i < NTESTS; i++)
+    TIME_CYCLES(start_cc);
+    for (unsigned i = 0; i < ntests; i++)
     {
         ZfN(FFT)(f, logn);
     }
+    TIME_CYCLES(stop_cc);
     TIME(stop);
-    ns_fft = CALC(start, stop);
+    cc_fft = CALC_CYCLES(start_cc, stop_cc, ntests);
+    ns_fft = CALC(start, stop, ntests);
+
     /* =================================== */
     TIME(start);
-    for (int i = 0; i < NTESTS; i++)
+    TIME_CYCLES(start_cc);
+    for (unsigned i = 0; i < ntests; i++)
     {
         ZfN(iFFT)(f, logn);
     }
-    /* =================================== */
     TIME(stop);
-    ns_ifft = CALC(start, stop);
-    printf("FFT %u: %8lld - %8lld\n", logn, ns_fft, ns_ifft);
+    TIME_CYCLES(stop_cc);
+
+    /* =================================== */
+    cc_ifft = CALC_CYCLES(start_cc, stop_cc, ntests);
+    ns_ifft = CALC(start, stop, ntests);
+    printf("FFT (us) %u: %lld - %lld\n", logn, ns_fft, ns_ifft);
+    printf("FFT (cc) %u: %lld - %lld\n", logn, cc_fft, cc_ifft);
+    printf("=======\n");
 }
 
-void test_NTT()
+void test_NTT(int16_t *a)
 {
     struct timespec start, stop;
+    long long start_cc, stop_cc;
     long long ns_fft, ns_ifft;
+    long long cc_fft, cc_ifft;
 
     const unsigned logn = FALCON_LOGN;
 
-    int16_t a[FALCON_N];
-    for (int i = 0; i < FALCON_N; i++)
-    {
-        a[i] = rand() % FALCON_Q;
-    }
-
     TIME(start);
+    TIME_CYCLES(start_cc);
     for (int i = 0; i < NTESTS; i++)
     {
         ZfN(poly_ntt)(a, 0);
     }
+    TIME_CYCLES(stop_cc);
     TIME(stop);
-    ns_fft = CALC(start, stop);
+    cc_fft = CALC_CYCLES(start_cc, stop_cc, NTESTS);
+    ns_fft = CALC(start, stop, NTESTS);
+    
     /* =================================== */
     TIME(start);
+    TIME_CYCLES(start_cc);
     for (int i = 0; i < NTESTS; i++)
     {
         ZfN(poly_invntt)(a);
     }
+
     /* =================================== */
+    TIME_CYCLES(stop_cc);
     TIME(stop);
-    ns_ifft = CALC(start, stop);
-    printf("NTT %u: %8lld - %8lld\n", logn, ns_fft, ns_ifft);
+    cc_ifft = CALC_CYCLES(start_cc, stop_cc, NTESTS);
+    ns_ifft = CALC(start, stop, NTESTS);
+    printf("NTT (us) %u: %lld - %lld\n", logn, ns_fft, ns_ifft);
+    printf("NTT (cc) %u: %lld - %lld\n", logn, cc_fft, cc_ifft);
+    printf("=======\n");
 }
 
 int main()
 {
-    test_FFT();
-    test_NTT();
+    fpr f[FALCON_N];
+    int16_t a[FALCON_N];
+    for (int i = 0; i < FALCON_N; i++)
+    {
+        f[i] = (double)i;
+        a[i] = rand() % FALCON_Q;
+    }
+
+#if _APPLE_M1_ == 1
+    setup_rdtsc();
+#endif
+
+    for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    {
+        test_FFT(f, i);
+    }
+
+    test_NTT(a);
 
     return 0;
 }
 
-/* 
+/*
  * Result in nanosection
  * FFT          - iFFT
  *  9: 4609     - 4333
  * 10: 11389    - 10790
- * 
+ *
  * NTT          - iNTT
  *  9: 2560     - 2646
  * 10: 5426     - 5721
