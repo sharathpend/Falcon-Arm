@@ -203,7 +203,7 @@ falcon_keygen_make(
                 pk = pubkey;
                 pk_len = FALCON_PUBKEY_SIZE(logn);
                 pk[0] = 0x00 + logn;
-                v = Zf(modq_encode)(pk + 1, pk_len - 1, h);
+                v = Zf(modq_encode)(pk + 1, pk_len - 1, h, logn);
                 if (v != pk_len - 1) {
                         return FALCON_ERR_INTERNAL;
                 }
@@ -282,7 +282,7 @@ falcon_make_public(
         pk = pubkey;
         pk_len = FALCON_PUBKEY_SIZE(logn);
         pk[0] = 0x00 + logn;
-        v = Zf(modq_encode)(pk + 1, pk_len - 1, h);
+        v = Zf(modq_encode)(pk + 1, pk_len - 1, h, logn);
         if (v != pk_len - 1) {
                 return FALCON_ERR_INTERNAL;
         }
@@ -846,7 +846,7 @@ falcon_verify_finish(const void *sig, size_t sig_len, int sig_type,
         /*
          * Decode public key.
          */
-        if (Zf(modq_decode)(h, pk + 1, pubkey_len - 1)
+        if (Zf(modq_decode)(h, pk + 1, pubkey_len - 1, logn)
                 != pubkey_len - 1)
         {
                 return FALCON_ERR_FORMAT;
