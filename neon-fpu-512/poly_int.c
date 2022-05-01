@@ -124,10 +124,10 @@ void ZfN(poly_sub_barrett)(int16_t f[FALCON_N], const int16_t g[FALCON_N], const
 
     for (int i = 0; i < FALCON_N; i += 64)
     {
-        vload_s16_x4(a, &s[i]);
-        vload_s16_x4(b, &g[i]);
-        vload_s16_x4(c, &s[i + 32]);
-        vload_s16_x4(d, &g[i + 32]);
+        vload_s16_x4(a, &g[i]);
+        vload_s16_x4(b, &s[i]);
+        vload_s16_x4(c, &g[i + 32]);
+        vload_s16_x4(d, &s[i + 32]);
 
         e.val[0] = vsubq_s16(a.val[0], b.val[0]);
         e.val[1] = vsubq_s16(a.val[1], b.val[1]);
@@ -376,6 +376,7 @@ int ZfN(poly_check_bound_int8)(const int8_t t[FALCON_N],
  * Check if (t < low || t > high)
  * Return 1 if True
  * Otherwise 0
+ * Work for FALCON_N >= 32, or FALCON_LOGN >= 5
  */
 int ZfN(poly_check_bound_int16)(const int16_t t[FALCON_N], 
                     const int16_t low, const int16_t high)
