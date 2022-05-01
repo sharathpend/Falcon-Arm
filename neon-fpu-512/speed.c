@@ -357,11 +357,11 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
         printf(" %8lld",
                 do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration));
         fflush(stdout);
-        // printf(" %8lld",
-        //         do_bench_cycles(&bench_sign_tree, &bc, iteration));
-        // fflush(stdout);
-        // printf(" %8lld",
-        //         do_bench_cycles(&bench_sign_tree_ct, &bc, iteration));
+        printf(" %8lld",
+                do_bench_cycles(&bench_sign_tree, &bc, iteration));
+        fflush(stdout);
+        printf(" %8lld",
+                do_bench_cycles(&bench_sign_tree_ct, &bc, iteration));
         fflush(stdout);
         printf(" %8lld",
                 do_bench_cycles(&bench_verify, &bc, iteration));
@@ -429,11 +429,11 @@ test_speed_falcon(unsigned logn, double threshold)
         printf(" %8.2f",
                 do_bench(&bench_sign_dyn_ct, &bc, threshold) / 1000.0);
         fflush(stdout);
-        // printf(" %8.2f",
-        //         do_bench(&bench_sign_tree, &bc, threshold) / 1000.0);
-        // fflush(stdout);
-        // printf(" %8.2f",
-        //         do_bench(&bench_sign_tree_ct, &bc, threshold) / 1000.0);
+        printf(" %8.2f",
+                do_bench(&bench_sign_tree, &bc, threshold) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f",
+                do_bench(&bench_sign_tree_ct, &bc, threshold) / 1000.0);
         fflush(stdout);
         printf(" %8.2f",
                 do_bench(&bench_verify, &bc, threshold) / 1000.0);
