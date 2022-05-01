@@ -248,14 +248,14 @@ void Zf(i_shake256_extract)(
  *
  */
 
-size_t Zf(modq_encode)(void *out, size_t max_out_len, const uint16_t *x);
+size_t Zf(modq_encode)(void *out, size_t max_out_len, const uint16_t *x, unsigned logn);
 size_t Zf(trim_i16_encode)(void *out, size_t max_out_len,
 	const int16_t *x, unsigned logn, unsigned bits);
 size_t Zf(trim_i8_encode)(void *out, size_t max_out_len, 
                         const int8_t *x, unsigned bits);
 size_t Zf(comp_encode)(void *out, size_t max_out_len, const int16_t *x);
 
-size_t Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len);
+size_t Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len, unsigned logn);
 size_t Zf(trim_i16_decode)(int16_t *x, unsigned logn, unsigned bits,
 	const void *in, size_t max_in_len);
 size_t Zf(trim_i8_decode)(int8_t *x, unsigned bits, const void *in, size_t max_in_len);
@@ -687,20 +687,22 @@ void ZfN(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn);
 // void ZfN(poly_mul_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
 void ZfN(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn);
 
+void ZfN(poly_mul_add_fft)(fpr *c, const fpr *a, const fpr *restrict b, const fpr *restrict d, unsigned logn);
 /*
  * Multiply polynomial a with the adjoint of polynomial b. a and b MUST NOT
  * overlap. This function works only in FFT representation.
  */
 // void ZfN(poly_muladj_fft)(fpr *restrict a, const fpr *restrict b, unsigned logn);
 void ZfN(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn);
-
+void ZfN(poly_muladj_add_fft)(fpr *c, fpr *d,
+                              const fpr *a, const fpr *restrict b, unsigned logn);
 /*
  * Multiply polynomial with its own adjoint. This function works only in FFT
  * representation.
  */
 // void ZfN(poly_mulselfadj_fft)(fpr *a, unsigned logn);
 void ZfN(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn);
-
+void ZfN(poly_mulselfadj_add_fft)(fpr *c, const fpr *restrict d, const fpr *restrict a, unsigned logn);
 /*
  * Multiply polynomial with a real constant. This function works in both
  * normal and FFT representations.

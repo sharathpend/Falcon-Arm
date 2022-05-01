@@ -68,7 +68,7 @@ void ZfN(poly_add)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigne
 }
 
 /* see inner.h */
-/* 
+/*
  * c = a - b
  */
 void ZfN(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
@@ -112,8 +112,8 @@ void ZfN(poly_sub)(fpr *c, const fpr *restrict a, const fpr *restrict b, unsigne
 }
 
 /* see inner.h */
-/* 
- * c = -a 
+/*
+ * c = -a
  */
 void ZfN(poly_neg)(fpr *c, const fpr *restrict a, unsigned logn)
 {
@@ -200,21 +200,13 @@ void ZfN(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 static inline void ZfN(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
     // n = 2
-    float64x2_t neon_a, neon_b, neon_c, neon_d, neon_1i2;
-    const double imagine[2] = {1.0, -1.0};
-    vload(neon_1i2, &imagine[0]);
+    float64x2_t neon_a, neon_b, neon_c;
     // re | im
     vload(neon_a, &a[0]);
     vload(neon_b, &b[0]);
 
-    // re re | im im
-    vfmul(neon_c, neon_a, neon_b);
-    // 1 -1
-    vfmul(neon_c, neon_c, neon_1i2);
-    // im | re
-    vswap(neon_b, neon_b);
-    vfmul(neon_d, neon_a, neon_b);
-    neon_c = vpaddq_f64(neon_c, neon_d);
+    vfmul_lane(neon_c, neon_b, neon_a, 0);
+    vfcmla_90(neon_c, neon_a, neon_b);
 
     vstore(&c[0], neon_c);
 }
@@ -285,7 +277,7 @@ static inline void ZfN(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a
 }
 
 /* see inner.h */
-/* 
+/*
  * c = a * b
  */
 void ZfN(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned logn)
@@ -313,12 +305,154 @@ void ZfN(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned log
         for (int i = 0; i < hn; i += 8)
         {
             vloadx4(a_re, &a[i]);
-            vloadx4(b_re, &b[i]);
             vloadx4(a_im, &a[i + hn]);
+            vloadx4(b_re, &b[i]);
             vloadx4(b_im, &b[i + hn]);
 
             vfmulx4(c_re, a_re, b_re);
             vfmulx4(c_im, a_re, b_im);
+
+            vfmsx4(c_re, c_re, a_im, b_im);
+            vfmax4(c_im, c_im, a_im, b_re);
+
+            vstorex4(&c[i], c_re);
+            vstorex4(&c[i + hn], c_im);
+        }
+        break;
+    }
+}
+
+static inline void ZfN(poly_mul_fft_add_log1)(fpr *restrict c, const fpr *restrict d,
+                                              const fpr *restrict a, const fpr *restrict b)
+{
+    // n = 2
+    float64x2_t neon_a, neon_b, neon_c, neon_d;
+
+    // re | im
+    vload(neon_a, &a[0]);
+    vload(neon_b, &b[0]);
+    vload(neon_d, &d[0]);
+
+    vfma_lane(neon_c, neon_d, neon_b, neon_a, 0);
+    vfcmla_90(neon_c, neon_a, neon_b);
+
+    vstore(&c[0], neon_c);
+}
+
+static inline void ZfN(poly_mul_fft_add_log2)(fpr *restrict c, const fpr *restrict d,
+                                              const fpr *restrict a, const fpr *restrict b)
+{
+    // n = 4
+    float64x2x2_t neon_a, neon_b, neon_c, neon_d;
+    float64x2_t a_re, a_im, b_re, b_im, c_re, c_im, d_re, d_im;
+
+    // 0: re, re
+    // 1: im, im
+    vloadx2(neon_a, &a[0]);
+    vloadx2(neon_b, &b[0]);
+    vloadx2(neon_d, &d[0]);
+
+    a_re = neon_a.val[0];
+    a_im = neon_a.val[1];
+    b_re = neon_b.val[0];
+    b_im = neon_b.val[1];
+    d_re = neon_d.val[0];
+    d_im = neon_d.val[1];
+
+    vfma(c_re, d_re, a_re, b_re);
+    vfma(c_im, d_im, a_re, b_im);
+
+    vfms(c_re, c_re, a_im, b_im);
+    vfma(c_im, c_im, a_im, b_re);
+
+    neon_c.val[0] = c_re;
+    neon_c.val[1] = c_im;
+
+    vstorex2(&c[0], neon_c);
+}
+
+static inline void ZfN(poly_mul_fft_add_log3)(fpr *restrict c, const fpr *restrict d,
+                                              const fpr *restrict a, const fpr *restrict b)
+{
+    // n = 8
+    float64x2x4_t neon_a, neon_b, neon_c, neon_d;
+    float64x2x2_t a_re, a_im, b_re, b_im, c_re, c_im, d_re, d_im;
+
+    vloadx4(neon_a, &a[0]);
+    vloadx4(neon_b, &b[0]);
+    vloadx4(neon_d, &d[0]);
+
+    a_re.val[0] = neon_a.val[0];
+    a_re.val[1] = neon_a.val[1];
+    a_im.val[0] = neon_a.val[2];
+    a_im.val[1] = neon_a.val[3];
+
+    b_re.val[0] = neon_b.val[0];
+    b_re.val[1] = neon_b.val[1];
+    b_im.val[0] = neon_b.val[2];
+    b_im.val[1] = neon_b.val[3];
+
+    d_re.val[0] = neon_d.val[0];
+    d_re.val[1] = neon_d.val[1];
+    d_im.val[0] = neon_d.val[2];
+    d_im.val[1] = neon_d.val[3];
+
+    vfma(c_re.val[0], d_re.val[0], a_re.val[0], b_re.val[0]);
+    vfma(c_re.val[1], d_re.val[1], a_re.val[1], b_re.val[1]);
+    vfma(c_im.val[0], d_im.val[0], a_re.val[0], b_im.val[0]);
+    vfma(c_im.val[1], d_im.val[1], a_re.val[1], b_im.val[1]);
+
+    vfms(c_re.val[0], c_re.val[0], a_im.val[0], b_im.val[0]);
+    vfms(c_re.val[1], c_re.val[1], a_im.val[1], b_im.val[1]);
+    vfma(c_im.val[0], c_im.val[0], a_im.val[0], b_re.val[0]);
+    vfma(c_im.val[1], c_im.val[1], a_im.val[1], b_re.val[1]);
+
+    neon_c.val[0] = c_re.val[0];
+    neon_c.val[1] = c_re.val[1];
+    neon_c.val[2] = c_im.val[0];
+    neon_c.val[3] = c_im.val[1];
+
+    vstorex4(&c[0], neon_c);
+}
+
+/* see inner.h */
+/*
+ * c = d + a * b
+ */
+void ZfN(poly_mul_add_fft)(fpr *c, const fpr *restrict d,
+                           const fpr *a, const fpr *restrict b, unsigned logn)
+{
+    // Total 32 registers
+    float64x2x4_t a_re, b_re, a_im, b_im, d_re, d_im; // 32
+    float64x2x4_t c_re, c_im;                         // 8
+    const int falcon_n = 1 << logn;
+    const int hn = falcon_n >> 1;
+    switch (logn)
+    {
+    case 1:
+        ZfN(poly_mul_fft_add_log1)(c, d, a, b);
+        break;
+
+    case 2:
+        ZfN(poly_mul_fft_add_log2)(c, d, a, b);
+        break;
+
+    case 3:
+        ZfN(poly_mul_fft_add_log3)(c, d, a, b);
+        break;
+
+    default:
+        for (int i = 0; i < hn; i += 8)
+        {
+            vloadx4(a_re, &a[i]);
+            vloadx4(a_im, &a[i + hn]);
+            vloadx4(b_re, &b[i]);
+            vloadx4(b_im, &b[i + hn]);
+            vloadx4(d_re, &d[i]);
+            vloadx4(d_im, &d[i + hn]);
+
+            vfmax4(c_re, d_re, a_re, b_re);
+            vfmax4(c_im, d_im, a_re, b_im);
 
             vfmsx4(c_re, c_re, a_im, b_im);
             vfmax4(c_im, c_im, a_im, b_re);
@@ -340,8 +474,8 @@ void ZfN(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
     for (int i = 0; i < hn; i += 8)
     {
         vloadx4(a_re, &a[i]);
-        vloadx4(b_re, &b[i]);
         vloadx4(a_im, &a[i + hn]);
+        vloadx4(b_re, &b[i]);
         vloadx4(b_im, &b[i + hn]);
 
         vfmulx4(d_re, a_re, b_re);
@@ -355,14 +489,45 @@ void ZfN(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
     }
 }
 
+// c = d + a*b
+void ZfN(poly_muladj_add_fft)(fpr *c, fpr *d,
+                              const fpr *a, const fpr *restrict b, unsigned logn)
+{
+    // assert(logn >= 4);
+    float64x2x4_t a_re, b_re, d_re, a_im, b_im, d_im; // 24
+    const int falcon_n = 1 << logn;
+    const int hn = falcon_n >> 1;
+    for (int i = 0; i < hn; i += 8)
+    {
+        vloadx4(a_re, &a[i]);
+        vloadx4(a_im, &a[i + hn]);
+        vloadx4(b_re, &b[i]);
+        vloadx4(b_im, &b[i + hn]);
+        vloadx4(d_re, &d[i]);
+        vloadx4(d_im, &d[i + hn]);
+
+        vfmax4(d_re, d_re, a_re, b_re);
+        vfmax4(d_im, d_im, a_im, b_re);
+
+        vfmax4(d_re, d_re, a_im, b_im);
+        vfmsx4(d_im, d_im, a_re, b_im);
+
+        vstorex4(&c[i], d_re);
+        vstorex4(&c[i + hn], d_im);
+    }
+}
+
 /* see inner.h */
+/*
+ * c = a * adj(a)
+ */
 void ZfN(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 {
     // assert(logn >= 4);
     /*
-	 * Since each coefficient is multiplied with its own conjugate,
-	 * the result contains only real values.
-	 */
+     * Since each coefficient is multiplied with its own conjugate,
+     * the result contains only real values.
+     */
     float64x2x4_t a_re, a_im, c_re, c_im; // 16
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -382,8 +547,35 @@ void ZfN(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
     }
 }
 
+/*
+ * c = d + a * adj(a)
+ */
+void ZfN(poly_mulselfadj_add_fft)(fpr *c, const fpr *restrict d, const fpr *restrict a, unsigned logn)
+{
+    // assert(logn >= 4);
+    /*
+     * Since each coefficient is multiplied with its own conjugate,
+     * the result contains only real values.
+     */
+    float64x2x4_t a_re, a_im, c_re, d_re; // 16
+    const int falcon_n = 1 << logn;
+    const int hn = falcon_n >> 1;
+
+    for (int i = 0; i < hn; i += 8)
+    {
+        vloadx4(a_re, &a[i]);
+        vloadx4(a_im, &a[i + hn]);
+        vloadx4(d_re, &d[i]);
+
+        vfmax4(c_re, d_re, a_re, a_re);
+        vfmax4(c_re, c_re, a_im, a_im);
+
+        vstorex4(&c[i], c_re);
+    }
+}
+
 /* see inner.h */
-/* 
+/*
  * c = a * scalar_x
  */
 void ZfN(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
@@ -412,13 +604,13 @@ void ZfN(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restri
     for (int i = 0; i < hn; i += 8)
     {
         vloadx4(a_re, &a[i]);
-        vloadx4(b_re, &b[i]);
         vloadx4(a_im, &a[i + hn]);
+        vloadx4(b_re, &b[i]);
         vloadx4(b_im, &b[i + hn]);
 
         vfmulx4(m, b_re, b_re);
         vfmulx4(c_re, a_re, b_re);
-        
+
         vfmax4(m, m, b_im, b_im);
         vfmax4(c_re, c_re, a_im, b_im);
 
@@ -447,11 +639,11 @@ void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *r
     {
     case 1:
         // n = 2; hn = 1; i = 0
-        /* 
+        /*
          * x_re = a[0];
          * x_im = a[1];
          * y_re = b[0];
-         * y_im = b[1]; 
+         * y_im = b[1];
          * d[0] = 1.0/( (x_re*x_re) + (x_im*x_im) + (y_re*y_re) + (y_im*y_im) );
          */
         vload(a_re.val[0], &a[0]);
@@ -521,8 +713,8 @@ void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *r
 
 /* see inner.h */
 void ZfN(poly_add_muladj_fft)(fpr *restrict d,
-                             const fpr *restrict F, const fpr *restrict G,
-                             const fpr *restrict f, const fpr *restrict g, unsigned logn)
+                              const fpr *restrict F, const fpr *restrict G,
+                              const fpr *restrict f, const fpr *restrict g, unsigned logn)
 {
     // assert(logn >= 4);
     const int falcon_n = 1 << logn;
@@ -684,7 +876,7 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
 
         vswap(mu_re.val[1], mu_re.val[0]);
         // im: mu_im * g01_re - mu_re * g01_im
-        // re: mu_im * g01_im + mu_re * g01_re 
+        // re: mu_im * g01_im + mu_re * g01_re
         vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
         vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
 
@@ -843,10 +1035,9 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
     }
 }
 
-/* see inner.h */
 void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
-                        const fpr *restrict g00, const fpr *restrict g01,
-                        const fpr *restrict g11, unsigned logn)
+                         const fpr *restrict g00, const fpr *restrict g01,
+                         const fpr *restrict g11, unsigned logn)
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
@@ -879,7 +1070,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
 
         vswap(mu_re.val[1], mu_re.val[0]);
         // im: mu_im * g01_re - mu_re * g01_im
-        // re: mu_im * g01_im + mu_re * g01_re 
+        // re: mu_im * g01_im + mu_re * g01_re
         vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
         vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
 
@@ -905,6 +1096,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
         g11_re.val[0] = tmp.val[0];
         g11_im.val[0] = tmp.val[1];
 
+        // mu = g01 / g00
         vfmul(m.val[0], g00_re.val[0], g00_re.val[0]);
         vfma(m.val[0], m.val[0], g00_im.val[0], g00_im.val[0]);
         vfinv(m.val[0], m.val[0]);
@@ -917,13 +1109,13 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
 
         vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
         vfmul(mu_im.val[0], mu_im.val[0], m.val[0]);
-
+        // d = g01 = mu*g01
         vfmul(d_re.val[0], mu_re.val[0], g01_re.val[0]);
         vfmul(d_im.val[0], mu_im.val[0], g01_re.val[0]);
 
         vfma(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
         vfms(d_im.val[0], d_im.val[0], mu_re.val[0], g01_im.val[0]);
-
+        // d11 = g11 - g01 = g11 - d
         vfsub(g11_re.val[0], g11_re.val[0], d_re.val[0]);
         vfsub(g11_im.val[0], g11_im.val[0], d_im.val[0]);
 
@@ -936,6 +1128,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
         tmp.val[1] = mu_im.val[0];
         vstorex2(&l10[0], tmp);
 
+        break;
     case 3:
         //  n = 8; hn = 4
         vloadx4(g00_re, &g00[0]);
