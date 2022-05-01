@@ -314,6 +314,7 @@ static void ZfN(poly_splitFFT_log2)(fpr *restrict f0, fpr *restrict f1,
 
     vfmul_lane(t.val[1], s, v, 0);
     vfcmla_90(t.val[1], v, s);
+
     vfmuln(t.val[0], t.val[0], 0.5);
     vfmuln(t.val[1], t.val[1], 0.5);
 
@@ -470,8 +471,8 @@ static inline void ZfN(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
         vstore2(&f0[u + qn], t_im);
 
         vfsub(t_re.val[0], a_re.val[0], b_re.val[0]);
-        vfsub(t_im.val[0], a_im.val[0], b_im.val[0]);
         vfsub(t_re.val[1], a_re.val[1], b_re.val[1]);
+        vfsub(t_im.val[0], a_im.val[0], b_im.val[0]);
         vfsub(t_im.val[1], a_im.val[1], b_im.val[1]);
 
         vfmul(d_re.val[0], t_re.val[0], s_re.val[0]);
@@ -483,6 +484,15 @@ static inline void ZfN(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
         vfma(d_re.val[1], d_re.val[1], t_im.val[1], s_im.val[1]);
         vfms(d_im.val[0], d_im.val[0], t_re.val[0], s_im.val[0]);
         vfms(d_im.val[1], d_im.val[1], t_re.val[1], s_im.val[1]);
+
+        // 0, 4
+        // 8, 12
+        // 2, 6
+        // 10, 14
+        // vfmuln(d_re.val[0], d_re.val[0], 0.5);
+        // vfmuln(d_im.val[0], d_im.val[0], 0.5);
+        // vfmuln(d_re.val[1], d_re.val[1], 0.5);
+        // vfmuln(d_im.val[1], d_im.val[1], 0.5);
 
         vstore2(&f1[u], d_re);
         vstore2(&f1[u + qn], d_im);
@@ -516,13 +526,3 @@ void ZfN(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
     }
 }
 
-/*
- * TODO: since we have freedom to construct real and imagine point like this
- * [r0, i0], [r1, i1] ... this would be friendlier in cache.
- * The current construction is
- * [r0, r1, r2....], [i0, i1, i2, ....] so every load in memory is not continous.
- * And there is overhead for loading uncontinous memory because the distance
- * in bytes for float64 when N = 512, 1024 is huge.
-
- * Turn our this is not very neccesary
- */
