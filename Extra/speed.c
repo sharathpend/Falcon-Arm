@@ -38,7 +38,7 @@
 
 #define TIME(s) s = rdtsc();
 // Result is clock cycles 
-#define  CALC(start, stop, ntests) (stop - start) / ntests;
+#define  CALC(start, stop, ntests) (double)(stop - start) / (ntests);
 
 
 /*
@@ -78,7 +78,7 @@ xfree(void *buf)
 typedef int (*bench_fun)(void *ctx, unsigned long num);
 
 
-static long long 
+static double 
 do_bench_cycles(bench_fun bf, void *ctx, int iteration)
 {
     long long start, stop;
@@ -95,7 +95,7 @@ do_bench_cycles(bench_fun bf, void *ctx, int iteration)
     bf(ctx, iteration);
     TIME(stop);
 
-    return CALC(start, stop, iteration);
+    return CALC(start, stop, iteration*1000);
 
 }
 
@@ -344,28 +344,28 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
         bc.sigct_len = 0;
 
 
-        printf(" %8lld",
+        printf(" %8.2f",
                 do_bench_cycles(&bench_keygen, &bc, iteration/10));
         fflush(stdout);
-        printf(" %8lld",
+        printf(" %8.2f",
                 do_bench_cycles(&bench_expand_privkey, &bc, iteration));
         fflush(stdout);
-        printf(" %8lld",
+        printf(" %8.2f",
                 do_bench_cycles(&bench_sign_dyn, &bc, iteration));
         fflush(stdout);
-        printf(" %8lld",
+        printf(" %8.2f",
                 do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration));
         fflush(stdout);
-        // printf(" %8lld",
-        //         do_bench_cycles(&bench_sign_tree, &bc, iteration));
-        // fflush(stdout);
-        // printf(" %8lld",
-        //         do_bench_cycles(&bench_sign_tree_ct, &bc, iteration));
+        printf(" %8.2f",
+                do_bench_cycles(&bench_sign_tree, &bc, iteration));
         fflush(stdout);
-        printf(" %8lld",
+        printf(" %8.2f",
+                do_bench_cycles(&bench_sign_tree_ct, &bc, iteration));
+        fflush(stdout);
+        printf(" %8.2f",
                 do_bench_cycles(&bench_verify, &bc, iteration));
         fflush(stdout); 
-        printf(" %8lld",
+        printf(" %8.2f",
                 do_bench_cycles(&bench_verify_ct, &bc, iteration));
         fflush(stdout);
 
@@ -447,8 +447,7 @@ test_speed_falcon(unsigned logn, double threshold)
 	xfree(bc.sigct);
 }
 
-int
-main(int argc, char *argv[])
+int main(void)
 {
     setup_rdtsc();
 
@@ -472,10 +471,10 @@ main(int argc, char *argv[])
 	test_speed_falcon(10, threshold);
 
 
-    printf("All numbers are in cycles\n\n");
-    printf("degree  kg(c) \t  ek(c) \t  sd(c) \t sdc(c) \t  vv(c) \t vvc(c)\n");
+    printf("\nAll numbers are in cycles\n\n");
+    printf("degree  kg(kc)   ek(kc)   sd(kc)  sdc(kc)   st(kc)  stc(kc)   vv(kc)  vvc(kc)\n");
 
-    // test_speed_falcon_cycles(9, iteration);
+    test_speed_falcon_cycles(9, iteration);
     test_speed_falcon_cycles(10, iteration);
 
 
