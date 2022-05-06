@@ -37,14 +37,15 @@
 size_t
 Zf(modq_encode)(
 	void *out, size_t max_out_len,
-	const uint16_t *x)
+	const uint16_t *x, unsigned logn)
 {
-	size_t out_len, u;
+	size_t n, out_len, u;
 	uint8_t *buf;
 	uint32_t acc;
 	int acc_len;
 
-	out_len = ((FALCON_N * 14) + 7) >> 3;
+    n = 1 << logn;
+	out_len = ((n * 14) + 7) >> 3;
 	if (out == NULL) {
 		return out_len;
 	}
@@ -52,7 +53,7 @@ Zf(modq_encode)(
 		return 0;
 	}
 	
-	for (u = 0; u < FALCON_N; u ++) {
+	for (u = 0; u < n; u ++) {
 		if (x[u] >= FALCON_Q) {
 			return 0;
 		}
@@ -60,7 +61,7 @@ Zf(modq_encode)(
 	buf = out;
 	acc = 0;
 	acc_len = 0;
-	for (u = 0; u < FALCON_N; u ++) {
+	for (u = 0; u < n; u ++) {
 		acc = (acc << 14) | x[u];
 		acc_len += 14;
 		while (acc_len >= 8) {
@@ -76,14 +77,15 @@ Zf(modq_encode)(
 
 /* see inner.h */
 size_t
-Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len)
+Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len, unsigned logn)
 {
-	size_t in_len, u;
+	size_t n, in_len, u;
 	const uint8_t *buf;
 	uint32_t acc;
 	int acc_len;
 
-	in_len = ((FALCON_N * 14) + 7) >> 3;
+    n = 1 << logn;
+	in_len = ((n * 14) + 7) >> 3;
 	if (in_len > max_in_len) {
 		return 0;
 	}
@@ -91,7 +93,7 @@ Zf(modq_decode)(uint16_t *x, const void *in, size_t max_in_len)
 	acc = 0;
 	acc_len = 0;
 	u = 0;
-	while (u < FALCON_N) {
+	while (u < n) {
 		acc = (acc << 8) | (*buf ++);
 		acc_len += 8;
 		if (acc_len >= 14) {

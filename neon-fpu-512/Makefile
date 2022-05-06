@@ -10,7 +10,7 @@
 
 # CC = gcc
 CC = clang
-CFLAGS = -W -Wall -O3 -Wextra -Wpedantic
+CFLAGS = -W -Wall -O3 -Wextra -Wpedantic -Wshadow -Wundef
 LD = c99
 LDFLAGS = 
 LIBS = 
@@ -22,14 +22,17 @@ OBJ = codec.c util.c common.c fft.c fft_tree.c fpr.c keygen.c rng.c katrng.c \
 OBJ_SPEED = falcon.c speed.c
 OBJ_BENCH = bench.c
 OBJ_KAT = PQCgenKAT_sign.c
+OBJ_TEST_FALCON = falcon.c test_falcon.c
 
 HEAD = api.h fpr.h inner.h config.h katrng.h
 HEAD1 = falcon.h
 
 all: build
 kat: build/kat512fpu build/kat1024fpu
-bench: build/bench512 build/bench1024
-speed: build/speed512 build/speed1024
+bench512: build/bench512 
+bench1024: build/bench1024
+speed512: build/speed512 
+speed1024: build/speed1024
 
 build:
 	-mkdir build
@@ -39,18 +42,30 @@ clean:
 
 build/kat512fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DALGNAME=falcon512fpu  -o $@ $(OBJ) $(OBJ_KAT)
+	build/kat512fpu > /dev/null 2>&1
 
 build/kat1024fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DALGNAME=falcon1024fpu -o $@ $(OBJ) $(OBJ_KAT)
+	build/kat1024fpu > /dev/null 2>&1
 
 build/speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_SPEED)
+	sudo build/speed512
 
 build/speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_SPEED)
+	sudo build/speed1024
 
 build/bench512: $(OBJ) $(OBJ_BENCH)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) $(OBJ_BENCH)
+	sudo build/bench512
 
 build/bench1024: $(OBJ) $(OBJ_BENCH)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_BENCH)
+	sudo build/bench1024
+
+build/test_falcon9: $(OBJ) $(OBJ_TEST_FALCON)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+
+build/test_falcon10: $(OBJ) $(OBJ_TEST_FALCON)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10  -o $@ $(OBJ) $(OBJ_TEST_FALCON)

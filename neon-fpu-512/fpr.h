@@ -44,6 +44,15 @@
 typedef double fpr;
 
 static inline fpr
+FPR(double v)
+{
+	fpr x;
+
+	x = v;
+	return x;
+}
+
+static inline fpr
 fpr_of(int64_t i)
 {
 	return (double)i;

@@ -30,12 +30,15 @@ static void ZfN(FFT_log2)(fpr *f)
     x_im:   2 =   2 + (  1*  5 +   3*  4)
     y_re:   1 =   0 - (  1*  4 -   3*  5)
     y_im:   3 =   2 - (  1*  5 +   3*  4)
-    */
+    
+    Turn out this vectorize code is too short to be executed,
+    the scalar version is consistently faster
+
     float64x2x2_t t1, t2;
     float64x2_t s_re_im, v;
 
-    // re: 0, 2
-    // im: 1, 3
+    re: 0, 2
+    im: 1, 3
     vload2(t1, &f[0]);
     vload(s_re_im, &fpr_gm_tab[4]);
 
@@ -46,6 +49,24 @@ static void ZfN(FFT_log2)(fpr *f)
     vfsub(t2.val[1], t1.val[0], v);
 
     vstore2(&f[0], t2);
+    */
+
+    fpr x_re, x_im, y_re, y_im, v_re, v_im, s_re, s_im;
+
+    x_re = f[0];
+    x_im = f[2];
+    y_re = f[1];
+    y_im = f[3];
+    s_re = fpr_gm_tab[4];
+    s_im = fpr_gm_tab[5];
+    
+    v_re = y_re*s_re - y_im*s_im;
+    v_im = y_re*s_im + y_im*s_re;
+
+    f[0] = x_re + v_re;
+    f[2] = x_im + v_im;
+    f[1] = x_re - v_re;
+    f[3] = x_im - v_im;
 }
 
 static void ZfN(FFT_log3)(fpr *f)
@@ -750,54 +771,6 @@ static void ZfN(FFT_logn2)(fpr *f, unsigned logn, const uint8_t level)
         }
     }
 }
-/*
- * Support logn from [1, 10]
- * Can be easily extended to logn > 10
- */
-void ZfN(FFT)(fpr *f, const unsigned logn)
-{
-    uint8_t level = logn;
-    switch (logn)
-    {
-    case 1:
-        break;
-
-    case 2:
-        ZfN(FFT_log2)(f);
-        break;
-
-    case 3:
-        ZfN(FFT_log3)(f);
-        break;
-
-    case 4:
-        ZfN(FFT_log4)(f);
-        break;
-
-    case 5:
-        ZfN(FFT_log5)(f, logn);
-        break;
-
-    case 6:
-        ZfN(FFT_logn1)(f, logn, level--);
-        ZfN(FFT_log5)(f, logn);
-        break;
-
-    case 7:
-    case 9:
-        ZfN(FFT_logn2)(f, logn, level);
-        ZfN(FFT_log5)(f, logn);
-        break;
-
-    default:
-        // case 8:
-        // case 10:
-        ZfN(FFT_logn1)(f, logn, level--);
-        ZfN(FFT_logn2)(f, logn, level);
-        ZfN(FFT_log5)(f, logn);
-        break;
-    }
-}
 
 static 
 void ZfN(iFFT_log2)(fpr *f)
@@ -807,14 +780,16 @@ void ZfN(iFFT_log2)(fpr *f)
     y_im: 3 = (2 - 3) * 4 - (0 - 1) * 5
     x_re: 0 = 0 + 1
     x_im: 2 = 2 + 3
-     */
+
+    Turn out this vectorize code is too short to be executed,
+    the scalar version is consistently faster
+     
     float64x2x2_t tmp;
     float64x2_t v, s, t;
 
-    /*
-    0: 0, 2
-    1: 1, 3
-     */
+    // 0: 0, 2
+    // 1: 1, 3
+
     vload2(tmp, &f[0]);
     vload(s, &fpr_gm_tab[4]);
 
@@ -834,6 +809,24 @@ void ZfN(iFFT_log2)(fpr *f)
     vswap(tmp.val[1], tmp.val[1]);
 
     vstore2(&f[0], tmp);
+    */
+
+    fpr x_re, x_im, y_re, y_im, s_re, s_im;
+    x_re = f[0];
+    y_re = f[1];
+    x_im = f[2];
+    y_im = f[3];
+    s_re = fpr_gm_tab[4]/2;
+    s_im = fpr_gm_tab[5]/2;
+
+    f[0] = (x_re + y_re)/2;
+    f[2] = (x_im + y_im)/2;
+
+    x_re = x_re - y_re;
+    x_im = x_im - y_im;
+
+    f[1] = x_im * s_im + x_re * s_re;
+    f[3] = x_im * s_re - x_re * s_im;
 }
 
 static void ZfN(iFFT_log3)(fpr *f)
@@ -1502,15 +1495,60 @@ static void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const uint8_t level, ui
     // End function
 }
 
+/*
+ * Support logn from [1, 10]
+ * Can be easily extended to logn > 10
+ */
+void ZfN(FFT)(fpr *f, const unsigned logn)
+{
+    uint8_t level = logn;
+    switch (logn)
+    {
+    case 2:
+        ZfN(FFT_log2)(f);
+        break;
+
+    case 3:
+        ZfN(FFT_log3)(f);
+        break;
+
+    case 4:
+        ZfN(FFT_log4)(f);
+        break;
+
+    case 5:
+        ZfN(FFT_log5)(f, logn);
+        break;
+
+    case 6:
+        ZfN(FFT_logn1)(f, logn, level--);
+        ZfN(FFT_log5)(f, logn);
+        break;
+
+    case 7:
+    case 9:
+        ZfN(FFT_logn2)(f, logn, level);
+        ZfN(FFT_log5)(f, logn);
+        break;
+
+    case 8:
+    case 10:
+        ZfN(FFT_logn1)(f, logn, level--);
+        ZfN(FFT_logn2)(f, logn, level);
+        ZfN(FFT_log5)(f, logn);
+        break;
+    
+    default:
+        break;
+    }
+}
+
 void ZfN(iFFT)(fpr *f, const unsigned logn)
 {
     const uint8_t level = (logn - 5) & 1;
 
     switch (logn)
     {
-    case 1:
-        break;
-
     case 2:
         ZfN(iFFT_log2)(f);
         break;
@@ -1538,12 +1576,14 @@ void ZfN(iFFT)(fpr *f, const unsigned logn)
         ZfN(iFFT_logn2)(f, logn, level, 1);
         break;
 
-    default:
-        // case 8:
-        // case 10:
+    case 8:
+    case 10:
         ZfN(iFFT_log5)(f, logn, 0);
         ZfN(iFFT_logn2)(f, logn, level, 0);
         ZfN(iFFT_logn1)(f, logn, 1);
+        break;
+    
+    default:
         break;
     }
 }

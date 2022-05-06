@@ -101,7 +101,7 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 	 * Encode public key.
 	 */
 	pk[0] = 0x00 + FALCON_LOGN;
-	v = Zf(modq_encode)(pk + 1, CRYPTO_PUBLICKEYBYTES - 1, h);
+	v = Zf(modq_encode)(pk + 1, CRYPTO_PUBLICKEYBYTES - 1, h, FALCON_LOGN);
 	if (v != CRYPTO_PUBLICKEYBYTES - 1) {
 		return -1;
 	}
@@ -227,7 +227,7 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	if (pk[0] != 0x00 + FALCON_LOGN) {
 		return -1;
 	}
-	if (Zf(modq_decode)((uint16_t *)h, pk + 1, CRYPTO_PUBLICKEYBYTES - 1) != CRYPTO_PUBLICKEYBYTES - 1)
+	if (Zf(modq_decode)((uint16_t *)h, pk + 1, CRYPTO_PUBLICKEYBYTES - 1, FALCON_LOGN) != CRYPTO_PUBLICKEYBYTES - 1)
 	{
 		return -1;
 	}

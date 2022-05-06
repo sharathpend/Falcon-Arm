@@ -7,8 +7,6 @@
 #include <stddef.h>
 #include "util.h"
 #include "config.h"
-#include "api.h"
-#include "poly.h"
 
 #if _APPLE_M1_ == 1
 #include "m1cycles.h"
@@ -16,7 +14,7 @@
 // Result is cycle per call
 #define TIME(s) s = rdtsc();
 #define CALC(start, stop, ntests) (stop - start) / ntests;
-#else
+#else 
 // Result is nanosecond per call
 #define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
 #define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
@@ -26,6 +24,23 @@
 #define FALCON_LOGN 10
 #define FALCON_N (1 << FALCON_LOGN)
 #define FALCON_Q 12289
+
+
+// Result is clock cycles
+
+void print_farray(fpr *r, unsigned logn, const char *string)
+{
+    printf("%s=[\n", string);
+    const unsigned n = 1 << logn;
+    for (unsigned i = 0; i < n; i++)
+    {
+        // printf("[%3d]:%.20f\n", i, r[i]);
+        // printf("[%3d]:%f\n", i, r[i]);
+        printf("%.3f, ", r[i].v);
+    }
+    printf("]\n");
+    fflush(stdout); 
+}
 
 void test_FFT(fpr *f, unsigned logn)
 {
@@ -44,7 +59,7 @@ void test_FFT(fpr *f, unsigned logn)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(FFT)(f, logn);
+        Zf(FFT)(f, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -53,7 +68,7 @@ void test_FFT(fpr *f, unsigned logn)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(iFFT)(f, logn);
+        Zf(iFFT)(f, logn);
     }
     TIME(stop);
 
@@ -80,7 +95,7 @@ void test_NTT(uint16_t *a, unsigned logn)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_ntt)(a, 0);
+        mq_NTT(a, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -89,7 +104,7 @@ void test_NTT(uint16_t *a, unsigned logn)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_invntt)(a);
+        mq_iNTT(a, logn);
     }
     TIME(stop);
 
@@ -116,7 +131,7 @@ void test_poly_add(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_add)(c, a, b, logn);
+        Zf(poly_add)(c, a, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -141,7 +156,7 @@ void test_poly_sub(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_sub)(c, a, b, logn);
+        Zf(poly_sub)(c, a, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -166,7 +181,7 @@ void test_poly_neg(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_neg)(c, a, logn);
+        Zf(poly_neg)(c, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -191,7 +206,7 @@ void test_poly_adj_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_adj_fft)(c, a, logn);
+        Zf(poly_adj_fft)(c, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -216,7 +231,7 @@ void test_poly_mul_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_mul_fft)(c, a, b, logn);
+        Zf(poly_mul_fft)(c, a, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -241,7 +256,7 @@ void test_poly_invnorm2_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_invnorm2_fft)(c, a, b, logn);
+        Zf(poly_invnorm2_fft)(c, a, b, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -266,7 +281,7 @@ void test_poly_mul_autoadj_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *stri
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_mul_autoadj_fft)(c, a, b, logn);
+        Zf(poly_mul_autoadj_fft)(c, a, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -291,7 +306,7 @@ void test_poly_LDL_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_LDL_fft)(c, a, b, logn);
+        Zf(poly_LDL_fft)(c, a, b, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -316,7 +331,7 @@ void test_poly_LDLmv_fft(fpr *d11, fpr *l01, const fpr *c,const  fpr *a, const  
     TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
-        ZfN(poly_LDLmv_fft)(d11, l01, c, a, b, logn);
+        Zf(poly_LDLmv_fft)(d11, l01, c, a, b, logn);
     }
     TIME(stop);
     fft = CALC(start, stop, ntests);
@@ -327,16 +342,16 @@ void test_poly_LDLmv_fft(fpr *d11, fpr *l01, const fpr *c,const  fpr *a, const  
 
 int main()
 {
-    fpr f[FALCON_N], fa[FALCON_N], fb[FALCON_N], fc[FALCON_N], tmp[FALCON_N]={0};
+    fpr f[FALCON_N], fa[FALCON_N], fb[FALCON_N], fc[FALCON_N], tmp[FALCON_N] = {0};
     uint16_t a[FALCON_N];
     for (int i = 0; i < FALCON_N; i++)
     {
         double_t t;
         t = (double)i;
-        f[i] = t;
-        fa[i] = t;
-        fb[i] = t;
-        fc[i] = t;
+        f[i].v = t;
+        fa[i].v = t;
+        fb[i].v = t;
+        fc[i].v = t;
         a[i] = rand() % FALCON_Q;
     }
 
@@ -349,7 +364,8 @@ int main()
         test_FFT(f, i);
     }
 
-    test_NTT(a, FALCON_LOGN);
+    test_NTT(a, 9);
+    test_NTT(a, 10);
 
     for (unsigned i = 0; i <= FALCON_LOGN; i++)
     {
@@ -367,13 +383,6 @@ int main()
     return 0;
 }
 
-/*
- * Result in nanosection
- * FFT          - iFFT
- *  9: 4609     - 4333
- * 10: 11389    - 10790
- *
- * NTT          - iNTT
- *  9: 2560     - 2646
- * 10: 5426     - 5721
- */
+// Compile flags:
+// gcc -o bench bench.c fft.c fpr.c m1cycles.c vrfy.c common.c shake.c codec.c rng.c -O3; 
+// sudo ./bench 

@@ -8,7 +8,7 @@
 
 .POSIX:
 
-CC = c99
+CC = clang
 CFLAGS = -W -Wall -O2
 LD = c99
 LDFLAGS = 
