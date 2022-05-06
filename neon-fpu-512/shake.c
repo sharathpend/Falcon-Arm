@@ -30,7 +30,7 @@
  */
 
 #include <string.h>
-
+#include "KeccakP-1600-SnP.h"
 #include "inner.h"
 
 
@@ -58,6 +58,7 @@ static const uint64_t RC[] = {
 static void
 process_block(uint64_t *A)
 {
+
 	uint64_t t0, t1, t2, t3, t4;
 	uint64_t tt0, tt1, tt2, tt3;
 	uint64_t t, kt;
@@ -521,7 +522,8 @@ Zf(i_shake256_inject)(inner_shake256_context *sc, const uint8_t *in, size_t len)
 		in += clen;
 		len -= clen;
 		if (dptr == 136) {
-			process_block(sc->st.A);
+			// process_block(sc->st.A);
+            KeccakP1600_Permute_24rounds(sc->st.A);
 			dptr = 0;
 		}
 	}
@@ -556,7 +558,8 @@ Zf(i_shake256_extract)(inner_shake256_context *sc, uint8_t *out, size_t len)
 		size_t clen;
 
 		if (dptr == 136) {
-			process_block(sc->st.A);
+			// process_block(sc->st.A);
+            KeccakP1600_Permute_24rounds(sc->st.A);
 			dptr = 0;
 		}
 		clen = 136 - dptr;
