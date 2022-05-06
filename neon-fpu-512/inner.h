@@ -794,6 +794,9 @@ void ZfN(poly_merge_fft)(fpr *restrict f,
 
 void ZfN(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n);
 
+fpr ZfN(compute_bnorm)(const fpr *rt1, const fpr *rt2);
+
+int32_t ZfN(poly_small_sqnorm)(const int8_t *f); // common.c
 /* ==================================================================== */
 /*
  * Key pair generation.

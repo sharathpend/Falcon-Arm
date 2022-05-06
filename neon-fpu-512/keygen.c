@@ -4199,6 +4199,8 @@ Zf(keygen)(inner_shake256_context *rng,
 		 */
 		normf = poly_small_sqnorm(f, logn);
 		normg = poly_small_sqnorm(g, logn);
+        // normf = ZfN(poly_small_sqnorm)(f);
+        // normg = ZfN(poly_small_sqnorm)(g);
 		norm = (normf + normg) | -((normf | normg) >> 31);
 		if (norm >= 16823) {
 			continue;
@@ -4229,11 +4231,8 @@ Zf(keygen)(inner_shake256_context *rng,
 		ZfN(poly_mul_autoadj_fft)(rt2, rt2, rt3, logn);
 		ZfN(iFFT)(rt2, logn);
 
-		bnorm = fpr_zero;
-		for (u = 0; u < n; u ++) {
-			bnorm = fpr_add(bnorm, fpr_sqr(rt1[u]));
-			bnorm = fpr_add(bnorm, fpr_sqr(rt2[u]));
-		}
+        bnorm = ZfN(compute_bnorm)(rt1, rt2);
+
 		if (!fpr_lt(bnorm, fpr_bnorm_max)) {
 			continue;
 		}
