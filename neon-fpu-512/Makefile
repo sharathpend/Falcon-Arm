@@ -16,7 +16,7 @@ LDFLAGS =
 LIBS = 
 
 OBJ = codec.c util.c common.c fft.c fft_tree.c fpr.c keygen.c rng.c katrng.c \
-	  poly_float.c sign_sampler.c shake.c sign.c vrfy.c ntt.c ntt_consts.c \
+	  poly_float.c sampler.c shake.c sign.c vrfy.c ntt.c ntt_consts.c \
 	  poly_int.c m1cycles.c nist.c
 
 OBJ_SPEED = falcon.c speed.c
