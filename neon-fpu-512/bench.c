@@ -23,9 +23,6 @@
 #endif
 
 #define NTESTS 10000
-#define FALCON_LOGN 10
-#define FALCON_N (1 << FALCON_LOGN)
-#define FALCON_Q 12289
 
 void print_header()
 {
