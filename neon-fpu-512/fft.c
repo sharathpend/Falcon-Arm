@@ -829,84 +829,6 @@ void ZfN(iFFT_log2)(fpr *f)
 
 static void ZfN(iFFT_log3)(fpr *f)
 {
-#if _APPLE_M1_ == 1
-    /*
-     * Total instructions: 29
-
-    y_im: 5 = (4 - 5) *  8 - (0 - 1) *  9
-    y_re: 1 = (4 - 5) *  9 + (0 - 1) *  8
-    y_im: 7 = (6 - 7) * 10 - (2 - 3) * 11
-    y_re: 3 = (6 - 7) * 11 + (2 - 3) * 10
-    x_re: 0 = 0 + 1
-    x_im: 4 = 4 + 5
-    x_re: 2 = 2 + 3
-    x_im: 6 = 6 + 7
-     */
-
-    float64x2x4_t t;
-    float64x2x2_t v, s;
-
-    // 0, 4
-    // 1, 5
-    // 2, 6
-    // 3, 7
-    vload4(t, &f[0]);
-    vloadx2(s, &fpr_gm_tab[8]);
-
-    vfsub(v.val[0], t.val[0], t.val[1]);
-    vfsub(v.val[1], t.val[2], t.val[3]);
-
-    vfadd(t.val[0], t.val[0], t.val[1]);
-    vfadd(t.val[2], t.val[2], t.val[3]);
-
-    // 5,1 <- 1,5
-    // 7,3 <- 3,7
-    vswap(v.val[0], v.val[0]);
-    vswap(v.val[1], v.val[1]);
-
-    vfmul_lane(t.val[1], s.val[0], v.val[0], 0);
-    vfmul_lane(t.val[3], s.val[1], v.val[1], 0);
-
-    vfcmla_90(t.val[1], v.val[0], s.val[0]);
-    vfcmla_90(t.val[3], v.val[1], s.val[1]);
-
-    /*
-    y_im: 6 = (4 - 6) * 4 - (0 - 2) * 5
-    y_im: 7 = (5 - 7) * 4 - (1 - 3) * 5
-
-    x_re: 0 = 0 + 2
-    x_im: 4 = 4 + 6
-    x_re: 1 = 1 + 3
-    x_im: 5 = 5 + 7
-    */
-
-    vfsub(v.val[0], t.val[0], t.val[2]);
-    vfsub(v.val[1], t.val[1], t.val[3]);
-
-    vfadd(t.val[0], t.val[0], t.val[2]);
-    vfadd(t.val[1], t.val[1], t.val[3]);
-
-    vload(s.val[0], &fpr_gm_tab[4]);
-
-    vswap(v.val[0], v.val[0]);
-
-    vfmuln(s.val[0], s.val[0], 0.25);
-    vfmul_lane(t.val[2], s.val[0], v.val[0], 0);
-    vfmul_lane(t.val[3], s.val[0], v.val[1], 0);
-
-    vfcmla_90(t.val[2], v.val[0], s.val[0]);
-    vfcmla_90(t.val[3], v.val[1], s.val[0]);
-
-    vfmuln(t.val[0], t.val[0], 0.25);
-    vfmuln(t.val[1], t.val[1], 0.25);
-
-    vswap(t.val[1], t.val[1]);
-    vswap(t.val[2], t.val[2]);
-    vswap(t.val[3], t.val[3]);
-
-    vstore4(&f[0], t);
-
-#else 
     /* 
      * Total instructions: 27
     y_re: 1 = (4 - 5) *  9 + (0 - 1) *  8
@@ -980,8 +902,6 @@ static void ZfN(iFFT_log3)(fpr *f)
     tmp.val[3] = y_re_im.val[1];
 
     vstorex4(&f[0], tmp);
-
-#endif 
 }
 
 static void ZfN(iFFT_log4)(fpr *f)
