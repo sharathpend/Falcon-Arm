@@ -17,7 +17,7 @@ LIBS = -lpapi
 
 OBJ = codec.c util.c common.c fft.c fft_tree.c \
 	  fpr.c keygen.c rng.c katrng.c poly_float.c sampler.c  shake.c \
-	  sign.c vrfy.c ntt.c ntt_consts.c poly_int.c m1cycles.c nist.c
+	  sign.c vrfy.c ntt.c ntt_consts.c poly_int.c nist.c
 
 OBJ_SPEED_M1 = m1cycles.c falcon.c speed_m1.c
 OBJ_SPEED_A72 = falcon.c speed_a72.c
@@ -49,13 +49,21 @@ build/kat1024fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DALGNAME=falcon1024fpu -o $@ $(OBJ) $(OBJ_KAT)
 	build/kat1024fpu > /dev/null 2>&1
 
-build/speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_SPEED)
+build/speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_A72)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_SPEED_A72)
 	sudo build/speed512
 
-build/speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_SPEED)
+build/speed512_m1: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_M1)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_SPEED_M1)
+	sudo build/speed512_m1
+
+build/speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_A72)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_SPEED_A72)
 	sudo build/speed1024
+
+build/speed1024_m1: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_M1)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_SPEED_M1)
+	sudo build/speed1024_m1
 
 build/bench512: $(OBJ) $(OBJ_BENCH)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) $(OBJ_BENCH)
