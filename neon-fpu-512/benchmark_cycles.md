@@ -311,3 +311,24 @@
 | poly_merge_fft |        8 |      182
 | poly_merge_fft |        9 |      358
 | poly_merge_fft |       10 |      710
+
+
+| logn | Forward FFT | Inverse FFT cycles
+|:-------------|----------:|-----------:|
+| FFT 0 | 11 | 11
+| FFT 1 | 11 | 11
+| FFT 2 | 21 | 22
+| FFT 3 | 35 | 35
+| FFT 4 | 51 | 47
+| FFT 5 | 69 | 61
+| FFT 6 | 153 | 141
+| FFT 7 | 300 | 314
+| FFT 8 | 693 | 707
+| FFT 9  | 1462 | 1520
+| FFT 10 | 3397 | 3424
+
+
+| logn | Forward NTT | Inverse NTT cycles
+|:-------------|----------:|-----------:|
+| NTT 9  | 760 | 773 
+| NTT 10 | 1605  | 1661
