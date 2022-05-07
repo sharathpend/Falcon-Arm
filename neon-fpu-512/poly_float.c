@@ -1050,7 +1050,8 @@ static inline void ZfN(poly_LDL_fft_log3)(const fpr *restrict g00, fpr *restrict
 /* see inner.h */
 void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict g11, unsigned logn)
 {
-    const int hn = 1 << (logn - 1);
+    const int falcon_n = 1 << logn;
+    const int hn = falcon_n >> 1;
     float64x2x4_t g00_re, g00_im, g01_re, g01_im, g11_re, g11_im;
     float64x2x4_t mu_re, mu_im, m, d_re, d_im;
 
@@ -1293,7 +1294,8 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
                          const fpr *restrict g00, const fpr *restrict g01,
                          const fpr *restrict g11, unsigned logn)
 {
-    const int hn = 1 << (logn - 1);
+    const int falcon_n = 1 << logn;
+    const int hn = falcon_n >> 1;
     float64x2x4_t g00_re, g00_im, g01_re, g01_im, g11_re, g11_im;
     float64x2x4_t mu_re, mu_im, m, d_re, d_im;
 
