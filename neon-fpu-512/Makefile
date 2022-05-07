@@ -15,7 +15,7 @@ LD = c99
 LDFLAGS = 
 LIBS = 
 
-OBJ = KeccakP-1600-armv8a-neon.s codec.c util.c common.c fft.c fft_tree.c \
+OBJ = codec.c util.c common.c fft.c fft_tree.c \
 	  fpr.c keygen.c rng.c katrng.c poly_float.c sampler.c  shake.c \
 	  sign.c vrfy.c ntt.c ntt_consts.c poly_int.c m1cycles.c nist.c
 
@@ -24,7 +24,7 @@ OBJ_BENCH = bench.c
 OBJ_KAT = PQCgenKAT_sign.c
 OBJ_TEST_FALCON = falcon.c test_falcon.c
 
-HEAD = api.h fpr.h inner.h config.h katrng.h KeccakP-1600-SnP.h
+HEAD = api.h fpr.h inner.h config.h katrng.h
 HEAD1 = falcon.h
 
 all: build
