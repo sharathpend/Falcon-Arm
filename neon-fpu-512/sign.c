@@ -145,14 +145,13 @@ ffLDL_fft(fpr *restrict tree, const fpr *restrict g00,
 
 	memcpy(d00, g00, n * sizeof *g00);
 	ZfN(poly_LDLmv_fft)(d11, tree, g00, g01, g11, logn);
-
 	ZfN(poly_split_fft)(tmp, tmp + hn, d00, logn);
-	ZfN(poly_split_fft)(d00, d00 + hn, d11, logn);
+	ZfN(poly_split_fft)(d00, d00 + hn, d11, logn);    
 	memcpy(d11, tmp, n * sizeof *tmp);
-	ffLDL_fft_inner(tree + n,
-		d11, d11 + hn, logn - 1, tmp);
-	ffLDL_fft_inner(tree + n + ffLDL_treesize(logn - 1),
-		d00, d00 + hn, logn - 1, tmp);
+
+	ffLDL_fft_inner(tree + n, d11, d11 + hn, logn - 1, tmp);
+	ffLDL_fft_inner(tree + n + ffLDL_treesize(logn - 1), d00, d00 + hn, logn - 1, tmp);
+
 }
 
 /*
@@ -247,25 +246,28 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	 * We load the private key elements directly into the B0 matrix,
 	 * since B0 = [[g, -f], [G, -F]].
 	 */
-	rf = b01;
 	rg = b00;
-	rF = b11;
+	rf = b01;
 	rG = b10;
+	rF = b11;
+
+	smallints_to_fpr(rg, g, FALCON_LOGN);
+    ZfN(FFT)(rg, FALCON_LOGN);
 
 	smallints_to_fpr(rf, f, FALCON_LOGN);
-	smallints_to_fpr(rg, g, FALCON_LOGN);
-	smallints_to_fpr(rF, F, FALCON_LOGN);
+	ZfN(FFT)(rf, FALCON_LOGN);
+    ZfN(poly_neg)(rf, rf, FALCON_LOGN);
+
 	smallints_to_fpr(rG, G, FALCON_LOGN);
+	ZfN(FFT)(rG, FALCON_LOGN);
+
+	smallints_to_fpr(rF, F, FALCON_LOGN);
+	ZfN(FFT)(rF, FALCON_LOGN);
+    ZfN(poly_neg)(rF, rF, FALCON_LOGN);
 
 	/*
 	 * Compute the FFT for the key elements, and negate f and F.
 	 */
-	ZfN(FFT)(rf, FALCON_LOGN);
-	ZfN(FFT)(rF, FALCON_LOGN);
-    ZfN(poly_neg)(rf, rf, FALCON_LOGN);
-    ZfN(poly_neg)(rF, rF, FALCON_LOGN);
-    ZfN(FFT)(rg, FALCON_LOGN);
-	ZfN(FFT)(rG, FALCON_LOGN);
 
 	/*
 	 * The Gram matrix is G = B·B*. Formulas are:
@@ -283,18 +285,15 @@ Zf(expand_privkey)(fpr *restrict expanded_key,
 	gxx = g11 + FALCON_N;
 
     ZfN(poly_mulselfadj_fft)(g00, b00, FALCON_LOGN);
-    ZfN(poly_mulselfadj_fft)(gxx, b01, FALCON_LOGN);
-    ZfN(poly_add)(g00, g00, gxx, FALCON_LOGN);
-
+    ZfN(poly_mulselfadj_add_fft)(g00, g00, b01, FALCON_LOGN);
+        
     ZfN(poly_muladj_fft)(g01, b00, b10, FALCON_LOGN);
-    ZfN(poly_muladj_fft)(gxx, b01, b11, FALCON_LOGN);
-    ZfN(poly_add)(g01, g01, gxx, FALCON_LOGN);
-
+    ZfN(poly_muladj_add_fft)(g01, g01, b01, b11, FALCON_LOGN);
+    
     ZfN(poly_mulselfadj_fft)(g11, b10, FALCON_LOGN);
-    ZfN(poly_mulselfadj_fft)(gxx, b11, FALCON_LOGN);
-    ZfN(poly_add)(g11, g11, gxx, FALCON_LOGN);
-
-	/*
+    ZfN(poly_mulselfadj_add_fft)(g11, g11, b11, FALCON_LOGN);
+    
+    /*
 	 * Compute the Falcon tree.
 	 */
 	ffLDL_fft(tree, g00, g01, g11, FALCON_LOGN, gxx);
@@ -390,9 +389,7 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	 */
 	ZfN(poly_sub)(z1, t1, tmp + (n << 1), logn);
 	memcpy(t1, tmp + (n << 1), n * sizeof *tmp);
-	ZfN(poly_mul_fft)(tmp, tmp, z1, logn);
-	ZfN(poly_add)(t0, t0, tmp, logn);
-
+    ZfN(poly_mul_add_fft)(t0, t0, tmp, z1, logn);
 
 	/*
 	 * Second recursive invocation, on the split tb0 (currently in t0)
@@ -419,199 +416,138 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	size_t n, hn;
 	const fpr *tree0, *tree1;
 
-	/*
+    /*
 	 * When logn == 2, we inline the last two recursion levels.
 	 */
 	if (logn == 2) {
-        tree0 = tree + 4;
-        tree1 = tree + 8;
+		fpr x0, x1, y0, y1, w0, w1, w2, w3, sigma;
+		fpr a_re, a_im, b_re, b_im, c_re, c_im;
 
-        float64x2x2_t tmp;
-        float64x2_t a, b, c, c_re, c_im;
-        float64x2_t w01, w02, w13, w23, x01;
-        float64x2_t neon_i21, neon_1i2;
-        int64x2_t scvt;
-        double s_x0, s_x1, sigma;
-        int64_t s_w0, s_w1, s_w2, s_w3;
-        const double imagine[4] = {-1.0, 1.0, 1.0, -1.0};
+		tree0 = tree + 4;
+		tree1 = tree + 8;
+        
+		/*
+		 * We split t1 into w*, then do the recursive invocation,
+		 * with output in w*. We finally merge back into z1.
+		 */
+        // Split
+		a_re = t1[0];
+		a_im = t1[2];
+		b_re = t1[1];
+		b_im = t1[3];
+		c_re = fpr_add(a_re, b_re);
+		c_im = fpr_add(a_im, b_im);
+		w0 = fpr_half(c_re);
+		w1 = fpr_half(c_im);
+		c_re = fpr_sub(a_re, b_re);
+		c_im = fpr_sub(a_im, b_im);
+		w2 = fpr_mul(fpr_add(c_re, c_im), fpr_invsqrt8);
+		w3 = fpr_mul(fpr_sub(c_im, c_re), fpr_invsqrt8);
 
-        scvt = vdupq_n_s64(0);
-        vload2(tmp, &t1[0]);
-        a = tmp.val[0]; // a_re, a_im
-        b = tmp.val[1]; // b_re, b_im
-        vloadx2(tmp, &imagine[0]);
-        neon_i21 = tmp.val[0];
-        neon_1i2 = tmp.val[1];
+        // Sampling
+		x0 = w2;
+		x1 = w3;
+		sigma = tree1[3];
+		w2 = fpr_of(samp(samp_ctx, x0, sigma));
+		w3 = fpr_of(samp(samp_ctx, x1, sigma));
+		a_re = fpr_sub(x0, w2);
+		a_im = fpr_sub(x1, w3);
+		b_re = tree1[0];
+		b_im = tree1[1];
+		c_re = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
+		c_im = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
+		x0 = fpr_add(c_re, w0);
+		x1 = fpr_add(c_im, w1);
+		sigma = tree1[2];
+		w0 = fpr_of(samp(samp_ctx, x0, sigma));
+		w1 = fpr_of(samp(samp_ctx, x1, sigma));
 
-        c = vaddq_f64(a, b);
-        w01 = vmulq_n_f64(c, 0.5);
+        // Merge
+		a_re = w0;
+		a_im = w1;
+		b_re = w2;
+		b_im = w3;
+		c_re = fpr_mul(fpr_sub(b_re, b_im), fpr_invsqrt2);
+		c_im = fpr_mul(fpr_add(b_re, b_im), fpr_invsqrt2);
+		z1[0] = w0 = fpr_add(a_re, c_re);
+		z1[2] = w2 = fpr_add(a_im, c_im);
+		z1[1] = w1 = fpr_sub(a_re, c_re);
+		z1[3] = w3 = fpr_sub(a_im, c_im);
 
-        c = vsubq_f64(a, b);
-        c_im = vmulq_f64(c, neon_i21);
-        w23 = vpaddq_f64(c, c_im);
-        w23 = vmulq_n_f64(w23, fpr_invsqrt8);
+		/*
+		 * Compute tb0 = t0 + (t1 - z1) * L. Value tb0 ends up in w*.
+		 */
+		w0 = fpr_sub(t1[0], w0);
+		w1 = fpr_sub(t1[1], w1);
+		w2 = fpr_sub(t1[2], w2);
+		w3 = fpr_sub(t1[3], w3);
 
-        x01 = w23;
-        sigma = tree1[3];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if DEBUG
-        printv("w01", w01);
-        printv("w23", w23);
-#endif
-#if FAKE_GAUSS
-        s_w2 = gauss_test(s_x0, sigma);
-        s_w3 = gauss_test(s_x1, sigma);
-#else
-        s_w2 = samp(samp_ctx, s_x0, sigma);
-        s_w3 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(s_w2, scvt, 0);
-        scvt = vsetq_lane_s64(s_w3, scvt, 1);
-        w23 = vcvtq_f64_s64(scvt);
+		a_re = w0;
+		a_im = w2;
+		b_re = tree[0];
+		b_im = tree[2];
+		w0 = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
+		w2 = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
+		a_re = w1;
+		a_im = w3;
+		b_re = tree[1];
+		b_im = tree[3];
+		w1 = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
+		w3 = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
 
-        a = vsubq_f64(x01, w23);
-        b = vld1q_f64(&tree1[0]);
+		w0 = fpr_add(w0, t0[0]);
+		w1 = fpr_add(w1, t0[1]);
+		w2 = fpr_add(w2, t0[2]);
+		w3 = fpr_add(w3, t0[3]);
 
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
+		/*
+		 * Second recursive invocation.
+		 */
+        // Split
+		a_re = w0;
+		a_im = w2;
+		b_re = w1;
+		b_im = w3;
+		c_re = fpr_add(a_re, b_re);
+		c_im = fpr_add(a_im, b_im);
+		w0 = fpr_half(c_re);
+		w1 = fpr_half(c_im);
+		c_re = fpr_sub(a_re, b_re);
+		c_im = fpr_sub(a_im, b_im);
+		w2 = fpr_mul(fpr_add(c_re, c_im), fpr_invsqrt8);
+		w3 = fpr_mul(fpr_sub(c_im, c_re), fpr_invsqrt8);
 
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        c = vpaddq_f64(c_re, c_im);
-        x01 = vaddq_f64(c, w01);
+        // Sampling
+		x0 = w2;
+		x1 = w3;
+		sigma = tree0[3];
+		w2 = y0 = fpr_of(samp(samp_ctx, x0, sigma));
+		w3 = y1 = fpr_of(samp(samp_ctx, x1, sigma));
+		a_re = fpr_sub(x0, y0);
+		a_im = fpr_sub(x1, y1);
+		b_re = tree0[0];
+		b_im = tree0[1];
+		c_re = fpr_sub(fpr_mul(a_re, b_re), fpr_mul(a_im, b_im));
+		c_im = fpr_add(fpr_mul(a_re, b_im), fpr_mul(a_im, b_re));
+		x0 = fpr_add(c_re, w0);
+		x1 = fpr_add(c_im, w1);
+		sigma = tree0[2];
+		w0 = fpr_of(samp(samp_ctx, x0, sigma));
+		w1 = fpr_of(samp(samp_ctx, x1, sigma));
 
-        sigma = tree1[2];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        s_w0 = gauss_test(s_x0, sigma);
-        s_w1 = gauss_test(s_x1, sigma);
-#else
-        s_w0 = samp(samp_ctx, s_x0, sigma);
-        s_w1 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(s_w0, scvt, 0);
-        scvt = vsetq_lane_s64(s_w1, scvt, 1);
-        w01 = vcvtq_f64_s64(scvt);
+        // Merge
+		a_re = w0;
+		a_im = w1;
+		b_re = w2;
+		b_im = w3;
+		c_re = fpr_mul(fpr_sub(b_re, b_im), fpr_invsqrt2);
+		c_im = fpr_mul(fpr_add(b_re, b_im), fpr_invsqrt2);
+		z0[0] = fpr_add(a_re, c_re);
+		z0[2] = fpr_add(a_im, c_im);
+		z0[1] = fpr_sub(a_re, c_re);
+		z0[3] = fpr_sub(a_im, c_im);
 
-        a = w01;
-        b = w23;
-#if DEBUG
-        printv("w01", w01);
-        printv("w23", w23);
-#endif
-        c_re = vmulq_f64(b, neon_1i2);
-        c = vpaddq_f64(c_re, b);
-        c = vmulq_n_f64(c, fpr_invsqrt2);
-
-        tmp.val[0] = vaddq_f64(a, c);
-        tmp.val[1] = vsubq_f64(a, c);
-
-        vst2q_f64(&z1[0], tmp);
-#if DEBUG
-        printv("z1-02", tmp.val[0]);
-        printv("z1-13", tmp.val[1]);
-#endif
-        w02 = tmp.val[0];
-        w13 = tmp.val[1];
-        tmp = vld2q_f64(&t1[0]);
-
-        w02 = vsubq_f64(tmp.val[0], w02);
-        w13 = vsubq_f64(tmp.val[1], w13);
-
-        tmp = vld2q_f64(&tree[0]);
-        a = w02;
-        b = tmp.val[0];
-
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
-
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        w02 = vpaddq_f64(c_re, c_im);
-
-        a = w13;
-        b = tmp.val[1];
-
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
-
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        w13 = vpaddq_f64(c_re, c_im);
-
-#if DEBUG
-        printv("w02", w02);
-        printv("w13", w13);
-#endif
-        tmp = vld2q_f64(&t0[0]);
-        w02 = vaddq_f64(w02, tmp.val[0]);
-        w13 = vaddq_f64(w13, tmp.val[1]);
-
-        /*
-        * Second recursive invocation.
-        */
-        a = w02;
-        b = w13;
-        c = vaddq_f64(a, b);
-        w01 = vmulq_n_f64(c, 0.5);
-
-        c = vsubq_f64(a, b);
-        c_im = vmulq_f64(c, neon_i21);
-        w23 = vpaddq_f64(c, c_im);
-        w23 = vmulq_n_f64(w23, fpr_invsqrt8);
-
-        x01 = w23;
-        sigma = tree0[3];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        s_w2 = gauss_test(s_x0, sigma);
-        s_w3 = gauss_test(s_x1, sigma);
-#else
-        s_w2 = samp(samp_ctx, s_x0, sigma);
-        s_w3 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(s_w2, scvt, 0);
-        scvt = vsetq_lane_s64(s_w3, scvt, 1);
-        w23 = vcvtq_f64_s64(scvt);
-
-        a = vsubq_f64(x01, w23);
-        b = vld1q_f64(&tree0[0]);
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        c = vpaddq_f64(c_re, c_im);
-        x01 = vaddq_f64(c, w01);
-        sigma = tree0[2];
-
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        s_w0 = gauss_test(s_x0, sigma);
-        s_w1 = gauss_test(s_x1, sigma);
-#else
-        s_w0 = samp(samp_ctx, s_x0, sigma);
-        s_w1 = samp(samp_ctx, s_x1, sigma);
-#endif
-
-        scvt = vsetq_lane_s64(s_w0, scvt, 0);
-        scvt = vsetq_lane_s64(s_w1, scvt, 1);
-        a = vcvtq_f64_s64(scvt);
-
-        c_im = w23;
-        c_re = vmulq_f64(w23, neon_1i2);
-        c = vpaddq_f64(c_re, c_im);
-        c = vmulq_n_f64(c, fpr_invsqrt2);
-
-        tmp.val[0] = vaddq_f64(a, c);
-        tmp.val[1] = vsubq_f64(a, c);
-
-        vst2q_f64(&z0[0], tmp);
-
-        return;
+		return;
 	}
 
 	/*
@@ -620,80 +556,32 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	 * of course way too insecure to be of any use).
 	 */
 	if (logn == 1) {
-        fpr sigma;
-        float64x2_t x01, y01, a, b, c, c_re, c_im, neon_1i2;
-        fpr s_x0, s_x1;
-        int64x2_t scvt;
-        int64_t y0, y1;
-        const double imagine[2] = {1.0, -1.0};
-        scvt = vdupq_n_s64(0);
-        neon_1i2 = vld1q_f64(&imagine[0]);
-        x01 = vld1q_f64(&t1[0]);
-        sigma = tree[3];
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        y0 = gauss_test(s_x0, sigma);
-        y1 = gauss_test(s_x1, sigma);
-#else
-        y0 = samp(samp_ctx, s_x0, sigma);
-        y1 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(y0, scvt, 0);
-        scvt = vsetq_lane_s64(y1, scvt, 1);
-        y01 = vcvtq_f64_s64(scvt);
-        vst1q_f64(&z1[0], y01);
+        float64x2_t x, y, a, b, c, w;
+        fpr buf[2];
 
-        a = vsubq_f64(x01, y01);
-        b = vld1q_f64(&tree[0]);
-        c_re = vmulq_f64(a, b);
-        c_re = vmulq_f64(c_re, neon_1i2);
+        z1[0] = fpr_of(samp(samp_ctx, t1[0], tree[3]));
+		z1[1] = fpr_of(samp(samp_ctx, t1[1], tree[3]));
 
-        b = vextq_f64(b, b, 1);
-        c_im = vmulq_f64(a, b);
-        c = vpaddq_f64(c_re, c_im);
-        x01 = vld1q_f64(&t0[0]);
-        x01 = vaddq_f64(c, x01);
-        sigma = tree[2];
+        vload(w, &t0[0]);
+        vload(x, &t1[0]);
+        vload(y, &z1[0]);
+        vload(b, &tree[0]);
+        
+        vfsub(a, x, y);
+        vfmul_lane(c, b, a, 0);
+        vfcmla_90(c, a, b);
+        vfadd(x, c, w);
 
-        s_x0 = vgetq_lane_f64(x01, 0);
-        s_x1 = vgetq_lane_f64(x01, 1);
-#if FAKE_GAUSS
-        y0 = gauss_test(s_x0, sigma);
-        y1 = gauss_test(s_x1, sigma);
-#else
-        y0 = samp(samp_ctx, s_x0, sigma);
-        y1 = samp(samp_ctx, s_x1, sigma);
-#endif
-        scvt = vsetq_lane_s64(y0, scvt, 0);
-        scvt = vsetq_lane_s64(y1, scvt, 1);
-        y01 = vcvtq_f64_s64(scvt);
-        vst1q_f64(&z0[0], y01);
+        vstore(&buf[0], x);
 
-        return;
-	}
+        z0[0] = fpr_of(samp(samp_ctx, buf[0], tree[2]));
+		z0[1] = fpr_of(samp(samp_ctx, buf[1], tree[2]));
 
-	/*
-	 * Normal end of recursion is for logn == 0. Since the last
-	 * steps of the recursions were inlined in the blocks above
-	 * (when logn == 1 or 2), this case is not reachable, and is
-	 * retained here only for documentation purposes.
-
-	if (logn == 0) {
-		fpr x0, x1, sigma;
-
-		x0 = t0[0];
-		x1 = t1[0];
-		sigma = tree[0];
-		z0[0] = fpr_of(samp(samp_ctx, x0, sigma));
-		z1[0] = fpr_of(samp(samp_ctx, x1, sigma));
 		return;
 	}
 
-	 */
-
 	/*
-	 * General recursive case (logn >= 3).
+	 * General recursive case (logn >= 2).
 	 */
 
 	n = (size_t)1 << logn;
@@ -715,8 +603,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	 * Compute tb0 = t0 + (t1 - z1) * L. Value tb0 ends up in tmp[].
 	 */
 	ZfN(poly_sub)(tmp, t1, z1, logn);
-	ZfN(poly_mul_fft)(tmp, tmp, tree, logn);
-	ZfN(poly_add)(tmp, tmp, t0, logn);
+    ZfN(poly_mul_add_fft)(tmp, t0, tmp, tree, logn);
 
 	/*
 	 * Second recursive invocation.
@@ -774,7 +661,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	tx = t1 + FALCON_N;
 	ty = tx + FALCON_N;
     
-	/*
+    /*
 	 * Apply sampling. Output is written back in [tx, ty].
 	 */
 	ffSampling_fft(samp, samp_ctx, tx, ty, tree, t0, t1, FALCON_LOGN, ty + FALCON_N);
@@ -782,20 +669,14 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	/*
 	 * Get the lattice point corresponding to that tiny vector.
 	 */
-	memcpy(t0, tx, FALCON_N * sizeof *tx);
-	memcpy(t1, ty, FALCON_N * sizeof *ty);
-	ZfN(poly_mul_fft)(tx, tx, b00, FALCON_LOGN);
-	ZfN(poly_mul_fft)(ty, ty, b10, FALCON_LOGN);
-	ZfN(poly_add)(tx, tx, ty, FALCON_LOGN);
-	ZfN(poly_mul_fft)(ty, t0, b01, FALCON_LOGN);
-    
-	memcpy(t0, tx, FALCON_N * sizeof *tx);
-	ZfN(poly_mul_fft)(t1, t1, b11, FALCON_LOGN);
-	ZfN(poly_add)(t1, t1, ty, FALCON_LOGN);
-
+	ZfN(poly_mul_fft)(t0, tx, b00, FALCON_LOGN);
+	ZfN(poly_mul_add_fft)(t0, t0, ty, b10, FALCON_LOGN);
 	ZfN(iFFT)(t0, FALCON_LOGN);
+	
+    ZfN(poly_mul_fft)(t1, tx, b01, FALCON_LOGN);
+	ZfN(poly_mul_add_fft)(t1, t1, ty, b11, FALCON_LOGN);
 	ZfN(iFFT)(t1, FALCON_LOGN);
-
+    
 	/*
 	 * Compute the signature.
 	 */
@@ -812,7 +693,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 
     s1tmp = (int16_t *)tx;
 	s2tmp = (int16_t *)tmp;
-	
+
     if (ZfN(is_short_tmp)(s1tmp, s2tmp, (int16_t *) hm, t0, t1)){
 		memcpy(s2, s2tmp, FALCON_N * sizeof *s2);
 		memcpy(tmp, s1tmp, FALCON_N * sizeof *s1tmp);
@@ -848,16 +729,22 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	b01 = b00 + FALCON_N;
 	b10 = b01 + FALCON_N;
 	b11 = b10 + FALCON_N;
-	smallints_to_fpr(b01, f, FALCON_LOGN);
+    t0 = b11 + FALCON_N;
+	t1 = t0 + FALCON_N;
+
 	smallints_to_fpr(b00, g, FALCON_LOGN);
-	smallints_to_fpr(b11, F, FALCON_LOGN);
-	smallints_to_fpr(b10, G, FALCON_LOGN);
-    ZfN(FFT)(b01, FALCON_LOGN);
-	ZfN(FFT)(b11, FALCON_LOGN);
-    ZfN(poly_neg)(b01, b01, FALCON_LOGN);
-    ZfN(poly_neg)(b11, b11, FALCON_LOGN);
     ZfN(FFT)(b00, FALCON_LOGN);
+	
+	smallints_to_fpr(b01, f, FALCON_LOGN);
+    ZfN(FFT)(b01, FALCON_LOGN);
+    ZfN(poly_neg)(b01, b01, FALCON_LOGN);
+
+    smallints_to_fpr(b10, G, FALCON_LOGN);
 	ZfN(FFT)(b10, FALCON_LOGN);
+
+	smallints_to_fpr(b11, F, FALCON_LOGN);
+	ZfN(FFT)(b11, FALCON_LOGN);
+    ZfN(poly_neg)(b11, b11, FALCON_LOGN);
 
 	/*
 	 * Compute the Gram matrix G = B·B*. Formulas are:
@@ -872,23 +759,23 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 *
 	 * We _replace_ the matrix B with the Gram matrix, but we
 	 * must keep b01 and b11 for computing the target vector.
+     * 
+     * Memory layout: 
+     * b00 | b01 | b10 | b11 | t0 | t1
+     * g00 | g01 | g11 | b01 | t0 | t1
 	 */
-	t0 = b11 + FALCON_N;
-	t1 = t0 + FALCON_N;
+	
+	ZfN(poly_muladj_fft)(t1, b00, b10, FALCON_LOGN);   // t1 <- b00*adj(b10)
 
 	ZfN(poly_mulselfadj_fft)(t0, b01, FALCON_LOGN);    // t0 <- b01*adj(b01)
-
-	ZfN(poly_muladj_fft)(t1, b00, b10, FALCON_LOGN);   // t1 <- b00*adj(b10)
 	ZfN(poly_mulselfadj_fft)(b00, b00, FALCON_LOGN);   // b00 <- b00*adj(b00)
 	ZfN(poly_add)(b00, b00, t0, FALCON_LOGN);      // b00 <- g00
-	
-	memcpy(t0, b01, FALCON_N * sizeof *b01);
-    ZfN(poly_muladj_fft)(b01, b01, b11, FALCON_LOGN);  // b01 <- b01*adj(b11)
-	ZfN(poly_add)(b01, b01, t1, FALCON_LOGN);      // b01 <- g01
+    
+    memcpy(t0, b01, FALCON_N * sizeof *b01);
+    ZfN(poly_muladj_add_fft)(b01, t1, b01, b11, FALCON_LOGN);  // b01 <- b01*adj(b11)
 	
     ZfN(poly_mulselfadj_fft)(b10, b10, FALCON_LOGN);   // b10 <- b10*adj(b10)
-	ZfN(poly_mulselfadj_fft)(t1, b11, FALCON_LOGN);    // t1 <- b11*adj(b11)
-	ZfN(poly_add)(b10, b10, t1, FALCON_LOGN);      // b10 <- g11
+	ZfN(poly_mulselfadj_add_fft)(b10, b10, b11, FALCON_LOGN);    // t1 = g11 <- b11*adj(b11)
 
     /*
 	 * We rename variables to make things clearer. The three elements
@@ -954,16 +841,21 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	memmove(b11 + FALCON_N, t0, FALCON_N * 2 * sizeof *t0);
 	t0 = b11 + FALCON_N;
 	t1 = t0 + FALCON_N;
-	smallints_to_fpr(b01, f, FALCON_LOGN);
+
 	smallints_to_fpr(b00, g, FALCON_LOGN);
-	smallints_to_fpr(b11, F, FALCON_LOGN);
-	smallints_to_fpr(b10, G, FALCON_LOGN);
+	ZfN(FFT)(b00, FALCON_LOGN);
+
+	smallints_to_fpr(b01, f, FALCON_LOGN);
 	ZfN(FFT)(b01, FALCON_LOGN);
     ZfN(poly_neg)(b01, b01, FALCON_LOGN);
+
+	smallints_to_fpr(b10, G, FALCON_LOGN);
+	ZfN(FFT)(b10, FALCON_LOGN);
+    
+	smallints_to_fpr(b11, F, FALCON_LOGN);
 	ZfN(FFT)(b11, FALCON_LOGN);
     ZfN(poly_neg)(b11, b11, FALCON_LOGN);
-	ZfN(FFT)(b00, FALCON_LOGN);
-	ZfN(FFT)(b10, FALCON_LOGN);
+
 	tx = t1 + FALCON_N;
 	ty = tx + FALCON_N;
 
@@ -972,14 +864,11 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 
 
-	ZfN(poly_mul_fft)(tx, t0, b00, FALCON_LOGN);
-	ZfN(poly_mul_fft)(ty, t1, b10, FALCON_LOGN);
-	ZfN(poly_add)(tx, tx, ty, FALCON_LOGN);
+    ZfN(poly_mul_fft)(tx, t0, b00, FALCON_LOGN);
 	ZfN(poly_mul_fft)(ty, t0, b01, FALCON_LOGN);
-
-	memcpy(t0, tx, FALCON_N * sizeof *tx);
-	ZfN(poly_mul_fft)(t1, t1, b11, FALCON_LOGN);
-	ZfN(poly_add)(t1, t1, ty, FALCON_LOGN);
+	ZfN(poly_mul_add_fft)(t0, tx, t1, b10, FALCON_LOGN);
+    ZfN(poly_mul_add_fft)(t1, ty, t1, b11, FALCON_LOGN);
+	
 	ZfN(iFFT)(t0, FALCON_LOGN);
 	ZfN(iFFT)(t1, FALCON_LOGN);
 

@@ -3091,10 +3091,10 @@ solve_NTRU_intermediate(unsigned logn_top,
 	 * and adj(g) in rt3 and rt4, respectively.
 	 */
 	ZfN(FFT)(rt3, logn);
-	ZfN(FFT)(rt4, logn);
-	ZfN(poly_invnorm2_fft)(rt5, rt3, rt4, logn);
 	ZfN(poly_adj_fft)(rt3, rt3, logn);
+	ZfN(FFT)(rt4, logn);
 	ZfN(poly_adj_fft)(rt4, rt4, logn);
+	ZfN(poly_invnorm2_fft)(rt5, rt3, rt4, logn);
 
 	/*
 	 * Reduce F and G repeatedly.
@@ -3151,8 +3151,8 @@ solve_NTRU_intermediate(unsigned logn_top,
 		 * Compute (F*adj(f)+G*adj(g))/(f*adj(f)+g*adj(g)) in rt2.
 		 */
 		ZfN(FFT)(rt1, logn);
-		ZfN(FFT)(rt2, logn);
 		ZfN(poly_mul_fft)(rt1, rt1, rt3, logn);
+		ZfN(FFT)(rt2, logn);
 		ZfN(poly_mul_fft)(rt2, rt2, rt4, logn);
 		ZfN(poly_add)(rt2, rt2, rt1, logn);
 		ZfN(poly_mul_autoadj_fft)(rt2, rt2, rt5, logn);
@@ -3602,6 +3602,8 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 	rt2 = rt1 + n;
 	rt3 = rt2 + n;
 	rt4 = rt3 + n;
+	rt5 = rt4 + n;
+	rt6 = rt5 + n;
 
 	/*
 	 * We now have:
@@ -3622,8 +3624,6 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 	 *   rt6 = 1 / (f*adj(f) + g*adj(g))
 	 * (Note that rt6 is half-length.)
 	 */
-	rt5 = rt4 + n;
-	rt6 = rt5 + n;
 	ZfN(poly_add_muladj_fft)(rt5, rt1, rt2, rt3, rt4, logn);
 	ZfN(poly_invnorm2_fft)(rt6, rt3, rt4, logn);
 
@@ -3656,10 +3656,11 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 	 * Subtract k*f from F, and k*g from G.
 	 */
 	ZfN(poly_mul_fft)(rt3, rt3, rt5, logn);
-	ZfN(poly_mul_fft)(rt4, rt4, rt5, logn);
 	ZfN(poly_sub)(rt1, rt1, rt3, logn);
-	ZfN(poly_sub)(rt2, rt2, rt4, logn);
 	ZfN(iFFT)(rt1, logn);
+    
+	ZfN(poly_mul_fft)(rt4, rt4, rt5, logn);
+	ZfN(poly_sub)(rt2, rt2, rt4, logn);
 	ZfN(iFFT)(rt2, logn);
 
 	/*
@@ -4198,6 +4199,8 @@ Zf(keygen)(inner_shake256_context *rng,
 		 */
 		normf = poly_small_sqnorm(f, logn);
 		normg = poly_small_sqnorm(g, logn);
+        // normf = ZfN(poly_small_sqnorm)(f);
+        // normg = ZfN(poly_small_sqnorm)(g);
 		norm = (normf + normg) | -((normf | normg) >> 31);
 		if (norm >= 16823) {
 			continue;
@@ -4209,24 +4212,27 @@ Zf(keygen)(inner_shake256_context *rng,
 		rt1 = (fpr *)tmp;
 		rt2 = rt1 + n;
 		rt3 = rt2 + n;
-		poly_small_to_fp(rt1, f, logn);
-		poly_small_to_fp(rt2, g, logn);
+		
+        poly_small_to_fp(rt1, f, logn);
 		ZfN(FFT)(rt1, logn);
-		ZfN(FFT)(rt2, logn);
-		ZfN(poly_invnorm2_fft)(rt3, rt1, rt2, logn);
 		ZfN(poly_adj_fft)(rt1, rt1, logn);
+
+		poly_small_to_fp(rt2, g, logn);
+		ZfN(FFT)(rt2, logn);
 		ZfN(poly_adj_fft)(rt2, rt2, logn);
+
+		ZfN(poly_invnorm2_fft)(rt3, rt1, rt2, logn);
+
 		ZfN(poly_mulconst)(rt1, rt1, fpr_q, logn);
-		ZfN(poly_mulconst)(rt2, rt2, fpr_q, logn);
 		ZfN(poly_mul_autoadj_fft)(rt1, rt1, rt3, logn);
-		ZfN(poly_mul_autoadj_fft)(rt2, rt2, rt3, logn);
 		ZfN(iFFT)(rt1, logn);
+        
+		ZfN(poly_mulconst)(rt2, rt2, fpr_q, logn);
+		ZfN(poly_mul_autoadj_fft)(rt2, rt2, rt3, logn);
 		ZfN(iFFT)(rt2, logn);
-		bnorm = fpr_zero;
-		for (u = 0; u < n; u ++) {
-			bnorm = fpr_add(bnorm, fpr_sqr(rt1[u]));
-			bnorm = fpr_add(bnorm, fpr_sqr(rt2[u]));
-		}
+
+        bnorm = ZfN(compute_bnorm)(rt1, rt2);
+
 		if (!fpr_lt(bnorm, fpr_bnorm_max)) {
 			continue;
 		}

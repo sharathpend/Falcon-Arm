@@ -30,7 +30,6 @@
  */
 
 #include <string.h>
-
 #include "inner.h"
 
 
@@ -58,6 +57,7 @@ static const uint64_t RC[] = {
 static void
 process_block(uint64_t *A)
 {
+
 	uint64_t t0, t1, t2, t3, t4;
 	uint64_t tt0, tt1, tt2, tt3;
 	uint64_t t, kt;

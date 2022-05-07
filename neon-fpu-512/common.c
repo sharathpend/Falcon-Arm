@@ -512,3 +512,61 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
 
     return s <= l2bound[FALCON_LOGN];
 }
+
+// TODO: doesn't work
+int32_t ZfN(poly_small_sqnorm)(const int8_t *f)
+{
+    int8x16x4_t a;
+    int16x8x4_t b, c;
+    int32x4_t norm, norm_sh;
+
+    norm = vdupq_n_s32(0);
+    norm_sh = vdupq_n_s32(0);
+
+    for (int i = 0; i < FALCON_N; i += 64)
+    {
+        a = vld1q_s8_x4(&f[0]);
+
+        b.val[0] = vmovl_s8(vget_low_s8(a.val[0]));
+        b.val[1] = vmovl_high_s8(a.val[0]);
+        b.val[2] = vmovl_s8(vget_low_s8(a.val[1]));
+        b.val[3] = vmovl_high_s8(a.val[1]);
+
+        c.val[0] = vmovl_s8(vget_low_s8(a.val[2]));
+        c.val[1] = vmovl_high_s8(a.val[2]);
+        c.val[2] = vmovl_s8(vget_low_s8(a.val[3]));
+        c.val[3] = vmovl_high_s8(a.val[3]);
+
+        norm = vqdmlal_s16(norm, vget_low_s16(b.val[0]), vget_low_s16(b.val[0]));
+        norm = vqdmlal_s16(norm, vget_low_s16(b.val[1]), vget_low_s16(b.val[1]));
+        norm = vqdmlal_s16(norm, vget_low_s16(b.val[2]), vget_low_s16(b.val[2]));
+        norm = vqdmlal_s16(norm, vget_low_s16(b.val[3]), vget_low_s16(b.val[3]));
+
+        norm = vqdmlal_high_s16(norm, b.val[0], b.val[0]);
+        norm = vqdmlal_high_s16(norm, b.val[1], b.val[1]);
+        norm = vqdmlal_high_s16(norm, b.val[2], b.val[2]);
+        norm = vqdmlal_high_s16(norm, b.val[3], b.val[3]);
+
+        norm_sh = vqdmlal_s16(norm_sh, vget_low_s16(c.val[0]), vget_low_s16(c.val[0]));
+        norm_sh = vqdmlal_s16(norm_sh, vget_low_s16(c.val[1]), vget_low_s16(c.val[1]));
+        norm_sh = vqdmlal_s16(norm_sh, vget_low_s16(c.val[2]), vget_low_s16(c.val[2]));
+        norm_sh = vqdmlal_s16(norm_sh, vget_low_s16(c.val[3]), vget_low_s16(c.val[3]));
+
+        norm_sh = vqdmlal_high_s16(norm_sh, c.val[0], c.val[0]);
+        norm_sh = vqdmlal_high_s16(norm_sh, c.val[1], c.val[1]);
+        norm_sh = vqdmlal_high_s16(norm_sh, c.val[2], c.val[2]);
+        norm_sh = vqdmlal_high_s16(norm_sh, c.val[3], c.val[3]);
+    }
+    // 32x4
+    norm = vhaddq_s32(norm, norm_sh);
+    // 32x4 -> 32x2
+    int32x2_t tmp;
+    tmp = vqadd_s32(vget_low_s32(norm), vget_high_s32(norm));
+
+    // 32x2 -> 32x1
+    // Use saturating add to prevent overflow
+    int32_t s;
+    s = vqadds_s32(vget_lane_s32(tmp, 0), vget_lane_s32(tmp, 1));
+
+    return s;
+}

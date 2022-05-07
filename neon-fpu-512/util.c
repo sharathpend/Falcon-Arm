@@ -76,25 +76,25 @@ void smallints_to_fpr(fpr *r, const int8_t *t, const unsigned logn)
 
 void print_farray(fpr *r, unsigned logn, const char *string)
 {
-    printf("%s:\n", string);
+    printf("%s=[\n", string);
     const unsigned n = 1 << logn;
     for (unsigned i = 0; i < n; i++)
     {
         // printf("[%3d]:%.20f\n", i, r[i]);
         // printf("[%3d]:%f\n", i, r[i]);
-        printf("%.10f, ", r[i]);
+        printf("%.3f, ", r[i]);
     }
-    printf("\n");
+    printf("]\n");
     fflush(stdout); 
 }
 
-void print_iarray(int8_t *a, const char* string)
+void print_iarray(int8_t *a, int bound, const char* string)
 {
     printf("%s:\n", string);
-    for (int i =0; i < 512; i++)
+    for (int i =0; i < bound; i++)
     {
         printf("%d, ", a[i] & 0xff);
     }
-    printf("\n");
+    printf("]\n");
     fflush(stdout);
 }

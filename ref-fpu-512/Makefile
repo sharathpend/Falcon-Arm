@@ -8,7 +8,7 @@
 
 .POSIX:
 
-CC = c99
+CC = clang
 CFLAGS = -W -Wall -O2
 LD = c99
 LDFLAGS = 
@@ -66,4 +66,4 @@ build/PQCgenKAT_sign.o: PQCgenKAT_sign.c $(HEAD2)
 	$(CC) $(CFLAGS) -I . -DALGNAME=falcon512fpu -c -o build/PQCgenKAT_sign.o PQCgenKAT_sign.c
 
 build/katrng.o: katrng.c $(HEAD2)
-	$(CC) $(CFLAGS) -I . -c -o build/katrng.o katrng.c
+	$(CC) $(CFLAGS) -I . -c -o build/katrng.o katrng.c 

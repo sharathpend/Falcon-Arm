@@ -316,7 +316,7 @@ static void
 test_speed_falcon_cycles(unsigned logn, int iteration)
 {
         printf("All numbers are in cycles\n\n");
-        printf("degree  kg(c) \t  ek(c) \t  sd(c) \t sdc(c) \t  vv(c) \t vvc(c)\n");
+        printf("degree  kg(kc)   ek(kc)   sd(kc)  sdc(kc)   st(kc)  stc(kc)   vv(kc)  vvc(kc)\n");
 
         bench_context bc;
 
@@ -345,29 +345,29 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
         bc.sigct_len = 0;
 
 
-        printf(" %8lld",
-                do_bench_cycles(&bench_keygen, &bc, iteration/10));
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_keygen, &bc, iteration/10) / 1000);
         fflush(stdout);
-        printf(" %8lld",
-                do_bench_cycles(&bench_expand_privkey, &bc, iteration));
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_expand_privkey, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8lld",
-                do_bench_cycles(&bench_sign_dyn, &bc, iteration));
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_sign_dyn, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8lld",
-                do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration));
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration)/1000);
         fflush(stdout);
-        // printf(" %8lld",
-        //         do_bench_cycles(&bench_sign_tree, &bc, iteration));
-        // fflush(stdout);
-        // printf(" %8lld",
-        //         do_bench_cycles(&bench_sign_tree_ct, &bc, iteration));
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_sign_tree, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8lld",
-                do_bench_cycles(&bench_verify, &bc, iteration));
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_sign_tree_ct, &bc, iteration)/1000);
+        fflush(stdout);
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_verify, &bc, iteration)/1000);
         fflush(stdout); 
-        printf(" %8lld",
-                do_bench_cycles(&bench_verify_ct, &bc, iteration));
+        printf(" %8.2f",
+                (double) do_bench_cycles(&bench_verify_ct, &bc, iteration)/1000);
         fflush(stdout);
 
         printf("\n\n");
@@ -387,8 +387,7 @@ test_speed_falcon(unsigned logn, double threshold)
 {
         printf("keygen in milliseconds, other values in microseconds\n");
         printf("\n");
-        printf("degree  kg(ms)   ek(us)   sd(us)  sdc(us)   vv(us)  vvc(us)\n");
-        // printf("degree  kg(ms)   ek(us)   sd(us)  sdc(us)   st(us)  stc(us)   vv(us)  vvc(us)\n");
+        printf("degree  kg(ms)   ek(us)   sd(us)  sdc(us)   st(us)  stc(us)   vv(us)  vvc(us)\n");
 
 
         bench_context bc;
@@ -429,11 +428,11 @@ test_speed_falcon(unsigned logn, double threshold)
         printf(" %8.2f",
                 do_bench(&bench_sign_dyn_ct, &bc, threshold) / 1000.0);
         fflush(stdout);
-        // printf(" %8.2f",
-        //         do_bench(&bench_sign_tree, &bc, threshold) / 1000.0);
-        // fflush(stdout);
-        // printf(" %8.2f",
-        //         do_bench(&bench_sign_tree_ct, &bc, threshold) / 1000.0);
+        printf(" %8.2f",
+                do_bench(&bench_sign_tree, &bc, threshold) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f",
+                do_bench(&bench_sign_tree_ct, &bc, threshold) / 1000.0);
         fflush(stdout);
         printf(" %8.2f",
                 do_bench(&bench_verify, &bc, threshold) / 1000.0);

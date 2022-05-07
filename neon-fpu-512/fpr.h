@@ -44,6 +44,15 @@
 typedef double fpr;
 
 static inline fpr
+FPR(double v)
+{
+	fpr x;
+
+	x = v;
+	return x;
+}
+
+static inline fpr
 fpr_of(int64_t i)
 {
 	return (double)i;
@@ -241,9 +250,6 @@ extern const fpr fpr_gm_tab[];
 
 #define fpr_p2_tab   Zf(fpr_p2_tab)
 extern const fpr fpr_p2_tab[];
-
-#define fpr_gm_tab_half   Zf(fpr_gm_tab_half)
-extern const fpr fpr_gm_tab_half[];
 
 /* ====================================================================== */
 
