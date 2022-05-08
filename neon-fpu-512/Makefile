@@ -8,19 +8,18 @@
 
 .POSIX:
 
-# CC = gcc
-CC = clang
+CC = gcc
+# CC = clang
 CFLAGS = -W -Wall -O3 -Wextra -Wpedantic -Wshadow -Wundef
 LD = c99
 LDFLAGS = 
-LIBS = -lpapi
+LIBS =
 
 OBJ = codec.c util.c common.c fft.c fft_tree.c \
 	  fpr.c keygen.c rng.c katrng.c poly_float.c sampler.c  shake.c \
 	  sign.c vrfy.c ntt.c ntt_consts.c poly_int.c nist.c
 
-OBJ_SPEED_M1 = m1cycles.c falcon.c speed_m1.c
-OBJ_SPEED_A72 = falcon.c speed_a72.c
+OBJ_SPEED = falcon.c speed.c
 OBJ_BENCH = bench.c
 OBJ_KAT = PQCgenKAT_sign.c
 OBJ_TEST_FALCON = falcon.c test_falcon.c
@@ -28,61 +27,76 @@ OBJ_TEST_FALCON = falcon.c test_falcon.c
 HEAD = api.h fpr.h inner.h config.h katrng.h
 HEAD1 = falcon.h
 
-all: build
+all: build kat
 kat: build/kat512fpu build/kat1024fpu
-bench512: build/bench512 
-bench1024: build/bench1024
-speed512: build/speed512 
-speed1024: build/speed1024
+m1_test: build/m1_test_falcon512 build/m1_test_falcon1024
+m1: build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
+a72_test: build/a72_test_falcon512 build/a72_test_falcon1024
+a72: build/a72_speed512 build/a72_speed1024 build/a72_bench512 build/a72_bench1024
+
 
 build:
 	-mkdir build
 
 clean:
-	-rm -f build/kat512fpu build/kat1024fpu build/bench512 build/bench1024 build/speed512 build/speed1024
+	-rm build/kat512fpu build/kat1024fpu
+	-rm build/m1_test_falcon512 build/m1_test_falcon1024
+	-rm build/a72_test_falcon512 build/a72_test_falcon1024
+	-rm build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
+	-rm build/a72_speed512 build/a72_speed1024 build/a72_bench512 build/a72_bench1024
 
 build/kat512fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DALGNAME=falcon512fpu  -o $@ $(OBJ) $(OBJ_KAT)
-	build/kat512fpu > /dev/null 2>&1
+	$@
 
 build/kat1024fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DALGNAME=falcon1024fpu -o $@ $(OBJ) $(OBJ_KAT)
-	build/kat1024fpu > /dev/null 2>&1
+	$@
 
-build/speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_A72)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_SPEED_A72)
-	sudo build/speed512
-
-build/speed512_m1: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_M1)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_SPEED_M1)
-	sudo build/speed512_m1
-
-build/speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_A72)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_SPEED_A72)
-	sudo build/speed1024
-
-build/speed1024_m1: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_M1)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_SPEED_M1)
-	sudo build/speed1024_m1
-
-build/bench512_m1: $(OBJ) $(OBJ_BENCH) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) $(OBJ_BENCH) m1cycles.c 
+build/m1_speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DAPPLE_M1=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED)
 	sudo $@
 
-build/bench1024_m1: $(OBJ) $(OBJ_BENCH) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_BENCH) m1cycles.c 
+build/m1_speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED)
 	sudo $@
 
-build/bench512: $(OBJ) $(OBJ_BENCH) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) $(OBJ_BENCH) -lpapi
+build/m1_bench512: $(OBJ) $(OBJ_BENCH) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DAPPLE_M1=1 -DBENCH_CYCLES=1 -o $@ m1cycles.c $(OBJ) $(OBJ_BENCH)
 	sudo $@
 
-build/bench1024: $(OBJ) $(OBJ_BENCH) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_BENCH) -lpapi
+build/m1_bench1024: $(OBJ) $(OBJ_BENCH) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=1 -DBENCH_CYCLES=1 -o $@ m1cycles.c $(OBJ) $(OBJ_BENCH)
 	sudo $@
 
-build/test_falcon9: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+build/m1_test_falcon512: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DAPPLE_M1=1 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+	$@
 
-build/test_falcon10: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10  -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+build/m1_test_falcon1024: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=1 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+	$@
+
+################### A72 ###################
+
+build/a72_speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DAPPLE_M1=0 -o $@ $(OBJ) hal.c $(OBJ_SPEED)
+	$@
+
+build/a72_speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ $(OBJ) hal.c $(OBJ_SPEED)
+	$@
+
+build/a72_bench512: $(OBJ) $(OBJ_BENCH) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DBENCH_CYCLES=1 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) $(OBJ_BENCH)
+	$@
+
+build/a72_bench1024: $(OBJ) $(OBJ_BENCH) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DBENCH_CYCLES=1 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) $(OBJ_BENCH) 
+	$@
+
+build/a72_test_falcon512: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DAPPLE_M1=0 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+
+build/a72_test_falcon1024: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
