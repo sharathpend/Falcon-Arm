@@ -11,11 +11,20 @@
 #include "poly.h"
 
 #if BENCH_CYCLES == 1
+#if _APPLE_M1_ == 1
 #include "m1cycles.h"
 
 // Result is cycle per call
 #define TIME(s) s = rdtsc();
 #define CALC(start, stop, ntests) (stop - start) / ntests;
+#else 
+#include <papi.h>
+
+// Result is cycle per call
+#define TIME(s) s = get_cycle_count();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+#endif 
+
 #else
 // Result is nanosecond per call
 #define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
@@ -23,6 +32,13 @@
 #endif
 
 #define NTESTS 10000
+
+uint64_t get_cycle_count()
+{
+    uint64_t val;
+    asm volatile("mrs %0, cntvct_el0" : "=r" (val));
+    return val;
+}
 
 void print_header()
 {
@@ -39,9 +55,9 @@ void test_FFT(fpr *f, unsigned logn)
 #endif
     long long fft, ifft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
-        ntests = NTESTS * 1000;
+        ntests = NTESTS * 10000;
     }
     /* =================================== */
     TIME(start);
@@ -66,7 +82,7 @@ void test_FFT(fpr *f, unsigned logn)
     printf("=======\n");
 }
 
-void test_NTT(uint16_t *a, unsigned logn)
+void test_NTT(int16_t *a, unsigned logn)
 {
 #if BENCH_CYCLES == 0
     struct timespec start, stop;
@@ -75,9 +91,9 @@ void test_NTT(uint16_t *a, unsigned logn)
 #endif
     long long fft, ifft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
-        ntests = NTESTS * 1000;
+        ntests = NTESTS * 10000;
     }
     /* =================================== */
     TIME(start);
@@ -111,7 +127,7 @@ void test_poly_add(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -136,7 +152,7 @@ void test_poly_sub(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -161,7 +177,7 @@ void test_poly_neg(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -186,7 +202,7 @@ void test_poly_adj_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -211,9 +227,9 @@ void test_poly_mul_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
-        ntests = NTESTS * 1000;
+        ntests = NTESTS * 10000;
     }
     /* =================================== */
     TIME(start);
@@ -236,9 +252,9 @@ void test_poly_invnorm2_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
-        ntests = NTESTS * 1000;
+        ntests = NTESTS * 10000;
     }
     /* =================================== */
     TIME(start);
@@ -261,7 +277,7 @@ void test_poly_mul_autoadj_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *stri
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -286,7 +302,7 @@ void test_poly_LDL_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -311,7 +327,7 @@ void test_poly_LDLmv_fft(fpr *d11, fpr *l01, const fpr *c, const fpr *a, const f
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -337,7 +353,7 @@ void test_poly_split_fft(fpr *restrict f0, fpr *restrict f1,
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -363,7 +379,7 @@ void test_poly_merge_fft(fpr *restrict f, const fpr *restrict f0,
 #endif
     long long fft;
     unsigned ntests = NTESTS;
-    if (logn < 7)
+    if (logn < 5)
     {
         ntests = NTESTS * 10000;
     }
@@ -382,7 +398,7 @@ void test_poly_merge_fft(fpr *restrict f, const fpr *restrict f0,
 int main()
 {
     fpr f[FALCON_N], fa[FALCON_N], fb[FALCON_N], fc[FALCON_N], tmp[FALCON_N] = {0};
-    uint16_t a[FALCON_N];
+    int16_t a[FALCON_N];
     for (int i = 0; i < FALCON_N; i++)
     {
         double_t t;
@@ -395,7 +411,9 @@ int main()
     }
 
 #if BENCH_CYCLES == 1
+#if _APPLE_M1_ == 1
     setup_rdtsc();
+#endif
 #endif
 
     for (unsigned i = 0; i <= FALCON_LOGN; i++)

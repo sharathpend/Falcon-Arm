@@ -74,11 +74,11 @@ build/bench1024_m1: $(OBJ) $(OBJ_BENCH) $(HEAD)
 	sudo $@
 
 build/bench512: $(OBJ) $(OBJ_BENCH) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) $(OBJ_BENCH)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -o $@ $(OBJ) $(OBJ_BENCH) -lpapi
 	sudo $@
 
 build/bench1024: $(OBJ) $(OBJ_BENCH) $(HEAD)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_BENCH)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -o $@ $(OBJ) $(OBJ_BENCH) -lpapi
 	sudo $@
 
 build/test_falcon9: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
