@@ -53,6 +53,8 @@ build/kat1024fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DALGNAME=falcon1024fpu -o $@ $(OBJ) $(OBJ_KAT)
 	$@
 
+################### APPLE M1 ###################
+
 build/m1_speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DAPPLE_M1=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED)
 	sudo $@
@@ -80,11 +82,11 @@ build/m1_test_falcon1024: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
 ################### A72 ###################
 
 build/a72_speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DAPPLE_M1=0 -o $@ $(OBJ) hal.c $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) $(OBJ_SPEED)
 	$@
 
 build/a72_speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ $(OBJ) hal.c $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) $(OBJ_SPEED)
 	$@
 
 build/a72_bench512: $(OBJ) $(OBJ_BENCH) $(HEAD)
@@ -97,6 +99,8 @@ build/a72_bench1024: $(OBJ) $(OBJ_BENCH) $(HEAD)
 
 build/a72_test_falcon512: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DAPPLE_M1=0 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+	$@
 
 build/a72_test_falcon1024: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+	$@
