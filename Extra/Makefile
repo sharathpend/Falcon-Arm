@@ -77,11 +77,11 @@ a72_bench: hal.o bench_a72.o $(OBJ)
 
 m1_speed: m1cycles.o speed_m1.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ m1cycles.o speed_m1.o $(OBJ)
-	./$@
+	sudo ./$@
 
 m1_bench: m1cycles.o bench_m1.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ m1cycles.o bench_m1.o $(OBJ) $(LIBS)
-	./$@
+	sudo ./$@
 
 codec.o: codec.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o codec.o codec.c
@@ -120,7 +120,7 @@ speed_a72.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAPPLE_M1=0 -c -o $@ speed.c
 
 speed_m1.o: speed.c falcon.h
-	$(CC) $(CFLAGS) -DAPPLE_M1=1 -c -o $@ speed.c
+	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ speed.c
 
 bench_a72.o: bench.c $(OBJ)
 	$(CC) $(CFLAGS) -DAPPLE_M1=0 -DBENCH_CYCLES=1 -c -o $@ bench.c
