@@ -50,13 +50,18 @@
 #define CALC(start, stop, ntests) (stop - start) / ntests;
 #endif 
 
-
+#define ITERATIONS 10000
 
 /*
  * This code uses only the external API.
  */
 
 #include "falcon.h"
+
+static int cmp_uint64_t(const void *a, const void *b)
+{
+    return (int)((*((const uint64_t *)a)) - (*((const uint64_t *)b)));
+}
 
 static void *
 xmalloc(size_t len)
@@ -92,20 +97,24 @@ static long long
 do_bench_cycles(bench_fun bf, void *ctx, int iteration)
 {
     long long start, stop;
+    uint64_t times[ITERATIONS];
 
+    bf(ctx, 10);
     /*
     * Always do a few blank runs to "train" the caches and branch
     * prediction.
     */
 
-    bf(ctx, 10);
-
-    // Benchmark cycles
-    TIME(start);
-    bf(ctx, iteration);
-    TIME(stop);
-
-    return CALC(start, stop, iteration);
+    for (int i = 0; i < iteration; i++)
+    {
+        // Benchmark cycles
+        TIME(start);
+        bf(ctx, 1);
+        TIME(stop);
+        times[i] = stop - start;
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    return times[iteration >> 1];
 
 }
 
@@ -475,7 +484,7 @@ main(void)
         int iteration;
 
         threshold = 2.0;
-        iteration = 10000;
+        iteration = ITERATIONS;
         
         printf("time threshold = %.4f s\n", threshold);
         printf("kg = keygen, ek = expand private key, sd = sign (without expanded key)\n");
