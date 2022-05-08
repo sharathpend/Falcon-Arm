@@ -556,7 +556,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 	 * of course way too insecure to be of any use).
 	 */
 	if (logn == 1) {
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
         float64x2_t x, y, a, b, c, w;
         fpr buf[2];
 

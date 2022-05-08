@@ -36,16 +36,32 @@
 #include "m1cycles.h"
 
 
-#define TIME(s) s = rdtsc();
-// Result is clock cycles 
-#define  CALC(start, stop, ntests) (double)(stop - start) / (ntests);
+#if APPLE_M1 == 1
+#include "m1cycles.h"
 
+// Result is cycle per call
+#define TIME(s) s = rdtsc();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+#else 
+#include "hal.h"
+
+// Result is cycle per call
+#define TIME(s) s = hal_get_time();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+#endif 
+
+#define ITERATIONS 10000
 
 /*
  * This code uses only the external API.
  */
 
 #include "falcon.h"
+
+static int cmp_uint64_t(const void *a, const void *b)
+{
+    return (int)((*((const uint64_t *)a)) - (*((const uint64_t *)b)));
+}
 
 static void *
 xmalloc(size_t len)
@@ -78,24 +94,28 @@ xfree(void *buf)
 typedef int (*bench_fun)(void *ctx, unsigned long num);
 
 
-static double 
+static long long 
 do_bench_cycles(bench_fun bf, void *ctx, int iteration)
 {
     long long start, stop;
+    uint64_t times[ITERATIONS];
 
+    bf(ctx, 10);
     /*
     * Always do a few blank runs to "train" the caches and branch
     * prediction.
     */
 
-    bf(ctx, 10);
-
-    // Benchmark cycles
-    TIME(start);
-    bf(ctx, iteration);
-    TIME(stop);
-
-    return CALC(start, stop, iteration*1000);
+    for (int i = 0; i < iteration; i++)
+    {
+        // Benchmark cycles
+        TIME(start);
+        bf(ctx, 1);
+        TIME(stop);
+        times[i] = stop - start;
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    return times[iteration >> 1];
 
 }
 
@@ -345,28 +365,28 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
 
 
         printf(" %8.2f",
-                do_bench_cycles(&bench_keygen, &bc, iteration/10));
+                (double) do_bench_cycles(&bench_keygen, &bc, iteration/10) / 1000);
         fflush(stdout);
         printf(" %8.2f",
-                do_bench_cycles(&bench_expand_privkey, &bc, iteration));
+                (double) do_bench_cycles(&bench_expand_privkey, &bc, iteration)/1000);
         fflush(stdout);
         printf(" %8.2f",
-                do_bench_cycles(&bench_sign_dyn, &bc, iteration));
+                (double) do_bench_cycles(&bench_sign_dyn, &bc, iteration)/1000);
         fflush(stdout);
         printf(" %8.2f",
-                do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration));
+                (double) do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration)/1000);
         fflush(stdout);
         printf(" %8.2f",
-                do_bench_cycles(&bench_sign_tree, &bc, iteration));
+                (double) do_bench_cycles(&bench_sign_tree, &bc, iteration)/1000);
         fflush(stdout);
         printf(" %8.2f",
-                do_bench_cycles(&bench_sign_tree_ct, &bc, iteration));
+                (double) do_bench_cycles(&bench_sign_tree_ct, &bc, iteration)/1000);
         fflush(stdout);
         printf(" %8.2f",
-                do_bench_cycles(&bench_verify, &bc, iteration));
+                (double) do_bench_cycles(&bench_verify, &bc, iteration)/1000);
         fflush(stdout); 
         printf(" %8.2f",
-                do_bench_cycles(&bench_verify_ct, &bc, iteration));
+                (double) do_bench_cycles(&bench_verify_ct, &bc, iteration)/1000);
         fflush(stdout);
 
         printf("\n\n");
@@ -449,33 +469,35 @@ test_speed_falcon(unsigned logn, double threshold)
 
 int main(void)
 {
+#if APPLE_M1 == 1
     setup_rdtsc();
+#endif
 
 	double threshold;
     int iteration; 
 
-    iteration = 10000;
+    iteration = ITERATIONS;
     threshold = 2.0;
 
 	printf("time threshold = %.4f s\n", threshold);
 	printf("kg = keygen, ek = expand private key, sd = sign (without expanded key)\n");
 	printf("st = sign (with expanded key), vv = verify\n");
 	printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n");
+    
+    printf("\nAll numbers are in cycles\n\n");
+    fflush(stdout);
+    printf("degree  kg(kc)   ek(kc)   sd(kc)  sdc(kc)   st(kc)  stc(kc)   vv(kc)  vvc(kc)\n");
+    test_speed_falcon_cycles(9, iteration);
+    test_speed_falcon_cycles(10, iteration);
+
+
+
     printf("keygen in milliseconds, other values in microseconds\n");
 	printf("\n");
 	printf("degree  kg(ms)   ek(us)   sd(us)  sdc(us)   st(us)  stc(us)   vv(us)  vvc(us)\n");
 	fflush(stdout);
-    
-	// test_speed_falcon(8, threshold);
 	test_speed_falcon(9, threshold);
 	test_speed_falcon(10, threshold);
-
-
-    printf("\nAll numbers are in cycles\n\n");
-    printf("degree  kg(kc)   ek(kc)   sd(kc)  sdc(kc)   st(kc)  stc(kc)   vv(kc)  vvc(kc)\n");
-
-    test_speed_falcon_cycles(9, iteration);
-    test_speed_falcon_cycles(10, iteration);
 
 
 	return 0;

@@ -235,7 +235,7 @@ static inline void ZfN(poly_mergeFFT_log2)(fpr *f, const fpr *f0, const fpr *f1)
     b_re = 0*4 - 1*5
     b_im = 0*5 + 1*4
      */
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
 
     float64x2_t a_re_im, b_re_im, d_re_im, s_re_im;
     float64x2x2_t t_re_im;
@@ -312,12 +312,12 @@ static void ZfN(poly_splitFFT_log2)(fpr *restrict f0, fpr *restrict f1,
     n = 4; hn = 2; qn = 1;
     f0[0] = 0 = 0 + 1
     f0[1] = 2 = 2 + 3
-
+    
     f1[1] = 3 = (2 - 3)*4 - (0 - 1)*5
     f1[0] = 1 = (2 - 3)*5 + (0 - 1)*4
     */
 
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
     float64x2x2_t t;
     float64x2_t s, v;
 

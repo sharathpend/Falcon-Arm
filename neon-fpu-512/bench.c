@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
 #include <stddef.h>
 #include "util.h"
@@ -10,40 +9,45 @@
 #include "api.h"
 #include "poly.h"
 
+#define ITERATIONS 100000
+uint64_t times[ITERATIONS];
+
 #if BENCH_CYCLES == 1
-#if _APPLE_M1_ == 1
+
+#if APPLE_M1 == 1
+
+// Result is cycle per call
 #include "m1cycles.h"
 
-// Result is cycle per call
 #define TIME(s) s = rdtsc();
 #define CALC(start, stop, ntests) (stop - start) / ntests;
-#else 
-#include <papi.h>
+#else
 
 // Result is cycle per call
-#define TIME(s) s = get_cycle_count();
-#define CALC(start, stop, ntests) (stop - start) / ntests;
-#endif 
+#include "hal.h"
 
-#else
-// Result is nanosecond per call
-#define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
-#define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 10000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
+#define TIME(s) s = hal_get_time();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
 #endif
 
-#define NTESTS 10000
+#else
 
-uint64_t get_cycle_count()
-{
-    uint64_t val;
-    asm volatile("mrs %0, cntvct_el0" : "=r" (val));
-    return val;
-}
+#include <time.h>
+// Result is nanosecond per call
+
+#define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
+#define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
+#endif
 
 void print_header()
 {
     printf("\n| Function | logn | cycles |\n");
     printf("|:-------------|----------:|-----------:|\n");
+}
+
+static int cmp_uint64_t(const void *a, const void *b)
+{
+    return (int)((*((const uint64_t *)a)) - (*((const uint64_t *)b)));
 }
 
 void test_FFT(fpr *f, unsigned logn)
@@ -54,32 +58,34 @@ void test_FFT(fpr *f, unsigned logn)
     long long start, stop;
 #endif
     long long fft, ifft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(FFT)(f, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(iFFT)(f, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
 
     /* =================================== */
-    ifft = CALC(start, stop, ntests);
-    printf("FFT %u: %lld - %lld\n", logn, fft, ifft);
-    printf("=======\n");
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);    
+    ifft = times[ITERATIONS >> 1];
+    printf("| FFT %u | %8lld | %8lld\n", logn, fft, ifft);
 }
 
 void test_NTT(int16_t *a, unsigned logn)
@@ -90,32 +96,34 @@ void test_NTT(int16_t *a, unsigned logn)
     long long start, stop;
 #endif
     long long fft, ifft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_ntt)(a, 0);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_invntt)(a);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
 
     /* =================================== */
-    ifft = CALC(start, stop, ntests);
-    printf("NTT %u: %lld - %lld\n", logn, fft, ifft);
-    printf("=======\n");
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    ifft = times[ITERATIONS >> 1];
+    printf("| NTT %u | %8lld | %8lld\n", logn, fft, ifft);
 }
 
 void test_poly_add(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
@@ -126,19 +134,19 @@ void test_poly_add(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_add)(c, a, b, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -151,19 +159,19 @@ void test_poly_sub(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_sub)(c, a, b, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -176,19 +184,19 @@ void test_poly_neg(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_neg)(c, a, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -201,19 +209,19 @@ void test_poly_adj_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_adj_fft)(c, a, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -226,19 +234,19 @@ void test_poly_mul_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_mul_fft)(c, a, b, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -251,19 +259,19 @@ void test_poly_invnorm2_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_invnorm2_fft)(c, a, b, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -276,19 +284,19 @@ void test_poly_mul_autoadj_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *stri
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_mul_autoadj_fft)(c, a, b, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -301,19 +309,19 @@ void test_poly_LDL_fft(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_LDL_fft)(c, a, b, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -326,19 +334,19 @@ void test_poly_LDLmv_fft(fpr *d11, fpr *l01, const fpr *c, const fpr *a, const f
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_LDLmv_fft)(d11, l01, c, a, b, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -352,19 +360,19 @@ void test_poly_split_fft(fpr *restrict f0, fpr *restrict f1,
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_split_fft)(f0, f1, f, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -378,19 +386,19 @@ void test_poly_merge_fft(fpr *restrict f, const fpr *restrict f0,
     long long start, stop;
 #endif
     long long fft;
-    unsigned ntests = NTESTS;
-    if (logn < 5)
-    {
-        ntests = NTESTS * 10000;
-    }
+    unsigned ntests = ITERATIONS;
+    
     /* =================================== */
-    TIME(start);
     for (unsigned i = 0; i < ntests; i++)
     {
+        TIME(start);
         ZfN(poly_merge_fft)(f, f0, f1, logn);
+        TIME(stop);
+
+        times[i] = stop - start;
     }
-    TIME(stop);
-    fft = CALC(start, stop, ntests);
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
 
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
@@ -411,7 +419,7 @@ int main()
     }
 
 #if BENCH_CYCLES == 1
-#if _APPLE_M1_ == 1
+#if APPLE_M1 == 1
     setup_rdtsc();
 #endif
 #endif
@@ -422,7 +430,7 @@ int main()
     }
 
     test_NTT(a, FALCON_LOGN);
-    
+
     print_header();
     for (unsigned i = 0; i <= FALCON_LOGN; i++)
     {
@@ -481,14 +489,3 @@ int main()
 
     return 0;
 }
-
-/*
- * Result in nanosection
- * FFT          - iFFT
- *  9: 4609     - 4333
- * 10: 11389    - 10790
- *
- * NTT          - iNTT
- *  9: 2560     - 2646
- * 10: 5426     - 5721
- */
