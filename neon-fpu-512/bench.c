@@ -9,7 +9,7 @@
 #include "api.h"
 #include "poly.h"
 
-#define ITERATIONS 10000
+#define ITERATIONS 100000
 uint64_t times[ITERATIONS];
 
 #if BENCH_CYCLES == 1
