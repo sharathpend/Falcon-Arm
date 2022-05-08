@@ -83,6 +83,7 @@ void test_FFT(fpr *f, unsigned logn)
     }
 
     /* =================================== */
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);    
     ifft = times[ITERATIONS >> 1];
     printf("| FFT %u | %8lld | %8lld\n", logn, fft, ifft);
 }
@@ -120,6 +121,7 @@ void test_NTT(int16_t *a, unsigned logn)
     }
 
     /* =================================== */
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
     ifft = times[ITERATIONS >> 1];
     printf("| NTT %u | %8lld | %8lld\n", logn, fft, ifft);
 }
