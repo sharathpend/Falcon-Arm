@@ -45,15 +45,17 @@
 
 CC = clang
 CFLAGS = -Wall -Wextra -Wshadow -Wundef -O3 #-pg -fno-pie
-LD = clang
+LD = clang -Wall -Wextra -Wshadow -Wundef -O3 #-pg -fno-pie
 LDFLAGS = #-pg -no-pie
-LIBS = -lpapi
+LIBS =
 
 # =====================================================================
 
 OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o
 
 all: test_falcon
+a72: a72_speed a72_bench
+m1: m1_speed m1_bench
 
 clean:
 	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o
@@ -61,20 +63,30 @@ clean:
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
 
-speed_a72: speed_a72.o $(OBJ)
-	$(LD) $(LDFLAGS) -o $@ $@.o $(OBJ) $(LIBS)
+a72_speed: hal.o speed_a72.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ hal.o speed_a72.o $(OBJ) $(LIBS)
+	./$@
 
-speed_m1: speed_m1.o $(OBJ)
-	$(LD) $(LDFLAGS) -o $@ $@.o $(OBJ)
+a72_bench: hal.o bench_a72.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ hal.o bench_a72.o $(OBJ) $(LIBS)
+	./$@
 
-bench: bench.o $(OBJ)
-	$(LD) $(LDFLAGS) -o bench bench.o $(OBJ) $(LIBS)
+m1_speed: m1cycles.o speed_m1.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ m1cycles.o speed_m1.o $(OBJ)
+	./$@
+
+m1_bench: m1cycles.o bench_m1.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ m1cycles.o bench_m1.o $(OBJ) $(LIBS)
+	./$@
 
 codec.o: codec.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o codec.o codec.c
 
 m1cycles.o: m1cycles.c m1cycles.h
 	$(CC) $(CFLAGS) -c -o $@ m1cycles.c
+
+hal.o: hal.c hal.h
+	$(CC) $(CFLAGS) -c -o $@ hal.c
 
 common.o: common.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o common.o common.c
@@ -100,14 +112,17 @@ shake.o: shake.c config.h inner.h fpr.h
 sign.o: sign.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o sign.o sign.c
 
-speed_a72.o: speed_a72.c falcon.h
-	$(CC) $(CFLAGS) -c -o $@ $@.c $(LIBS)
+speed_a72.o: speed.c falcon.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=0 -c -o $@ speed.c
 
-speed_m1.o: speed_m1.c falcon.h
-	$(CC) $(CFLAGS) -c -o $@ $@.c
+speed_m1.o: speed.c falcon.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=1 -c -o $@ speed.c
 
-bench.o: bench.c $(OBJ)
-	$(CC) $(CFLAGS) -c -o bench.o bench.c
+bench_a72.o: bench.c $(OBJ)
+	$(CC) $(CFLAGS) -DAPPLE_M1=0 -DBENCH_CYCLES=1 -c -o $@ bench.c
+
+bench_m1.o: bench.c $(OBJ)
+	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ bench.c
 
 test_falcon.o: test_falcon.c falcon.h config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o test_falcon.o test_falcon.c
