@@ -8,10 +8,10 @@
 
 .POSIX:
 
-CC = gcc
-# CC = clang
+# CC = gcc
+CC = clang
 CFLAGS = -W -Wall -O3 -Wextra -Wpedantic -Wshadow -Wundef
-LD = c99
+LD = clang
 LDFLAGS = 
 LIBS =
 
