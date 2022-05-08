@@ -199,7 +199,7 @@ void ZfN(poly_adj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
 
 static inline void ZfN(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b)
 {
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
     // n = 2
     float64x2_t neon_a, neon_b, neon_c;
     // re | im
@@ -341,7 +341,7 @@ void ZfN(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned log
 static inline void ZfN(poly_mul_fft_add_log1)(fpr *restrict c, const fpr *restrict d,
                                               const fpr *restrict a, const fpr *restrict b)
 {
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
     // n = 2
     float64x2_t neon_a, neon_b, neon_c, neon_d;
 
@@ -895,7 +895,7 @@ static inline void ZfN(poly_LDL_fft_log1)(const fpr *restrict g00, fpr *restrict
     // 1 / ( g00_re^2 + g00_im^2 )
     m.val[0] = vdupq_n_f64(1 / vaddvq_f64(m.val[0]));
 
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
     // re: g01_re * g00_re + g01_im * g00_im
     // im: g01_im * g00_re - g01_re * g00_im
     vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
@@ -914,7 +914,7 @@ static inline void ZfN(poly_LDL_fft_log1)(const fpr *restrict g00, fpr *restrict
 #endif 
     vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
 
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
     vswap(mu_re.val[1], mu_re.val[0]);
     // im: mu_im * g01_re - mu_re * g01_im
     // re: mu_im * g01_im + mu_re * g01_re
@@ -1136,7 +1136,7 @@ static inline void ZfN(poly_LDLmv_fft_log1)(fpr *restrict d11, fpr *restrict l10
     // 1 / ( g00_re^2 + g00_im^2 )
     m.val[0] = vdupq_n_f64(1 / vaddvq_f64(m.val[0]));
 
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
     // re: g01_re * g00_re + g01_im * g00_im
     // im: g01_im * g00_re - g01_re * g00_im
     vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
@@ -1155,7 +1155,7 @@ static inline void ZfN(poly_LDLmv_fft_log1)(fpr *restrict d11, fpr *restrict l10
 #endif 
     vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
 
-#if _APPLE_M1_ == 1
+#if COMPLEX == 1
     vswap(mu_re.val[1], mu_re.val[0]);
     // im: mu_im * g01_re - mu_re * g01_im
     // re: mu_im * g01_im + mu_re * g01_re
