@@ -25,7 +25,34 @@
 /*
  * Enable FMA/FMS instruction, this affect accuracy but better speed
  */
+#ifndef FMA
 #define FMA 1
+#endif
+
+/* 
+ * By default, benchmark using APPLE_M1 is disable 
+ */
+#ifndef APPLE_M1
+#define APPLE_M1 0
+#endif
+
+/* 
+ * By default, benchmark using cycle count is disable, 
+ * thus only return result in nanosecond
+ */
+#ifndef BENCH_CYCLES
+#define BENCH_CYCLES 0
+#endif
+
+/* 
+ * By default, complex instruction on ARMv8.2 is auto enable on M1
+ * otherwise it is disable
+ */
+#if APPLE_M1 == 1
+#define COMPLEX 1
+#else
+#define COMPLEX 0
+#endif
 
 /*
  * Define Table for Forward and Inverse NTT, for better caching purpose
@@ -42,6 +69,4 @@
 #define FALCON_MONT2 10952 // pow(4, 16, 12289)
 #define FALCON_MONT_QINV 10908
 
-#define _APPLE_M1_ 0
-#define BENCH_CYCLES 1
 #endif
