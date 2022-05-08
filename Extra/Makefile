@@ -59,6 +59,10 @@ m1: m1_speed m1_bench
 
 clean:
 	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o
+	-rm -f bench_a72.o hal.o speed_a72.o
+	-rm -f bench_m1.o m1cycles.o speed_m1.o
+	-rm -f a72_bench a72_speed
+	-rm -f m1_bench m1_speed
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
