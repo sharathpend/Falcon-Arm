@@ -56,11 +56,11 @@ build/kat1024fpu: $(HEAD) $(OBJ)
 ################### APPLE M1 ###################
 
 build/m1_speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DAPPLE_M1=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DAPPLE_M1=1 -DBENCH_CYCLES=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED)
 	sudo $@
 
 build/m1_speed1024: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
-	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=1 -DBENCH_CYCLES=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED)
 	sudo $@
 
 build/m1_bench512: $(OBJ) $(OBJ_BENCH) $(HEAD)
