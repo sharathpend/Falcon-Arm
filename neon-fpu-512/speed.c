@@ -34,12 +34,22 @@
 #include <string.h>
 #include <time.h>
 #include "config.h"
+
+
+#if APPLE_M1 == 1
 #include "m1cycles.h"
 
-
+// Result is cycle per call
 #define TIME(s) s = rdtsc();
-// Result is clock cycles 
-#define  CALC(start, stop, ntests) (stop - start) / ntests;
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+#else 
+#include "hal.h"
+
+// Result is cycle per call
+#define TIME(s) s = hal_get_time();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+#endif 
+
 
 
 /*
@@ -453,9 +463,13 @@ test_speed_falcon(unsigned logn, double threshold)
 }
 
 int
-main(int argc, char *argv[])
+main(void)
 {
-        setup_rdtsc();
+#if BENCH_CYCLES == 1
+#if APPLE_M1 == 1
+    setup_rdtsc();
+#endif
+#endif
 
         double threshold;
         int iteration;
@@ -468,7 +482,7 @@ main(int argc, char *argv[])
         printf("st = sign (with expanded key), vv = verify\n");
         printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n");
         
-        test_speed_falcon(FALCON_LOGN, threshold);
         test_speed_falcon_cycles(FALCON_LOGN, iteration);
+        test_speed_falcon(FALCON_LOGN, threshold);
         return 0;
 }
