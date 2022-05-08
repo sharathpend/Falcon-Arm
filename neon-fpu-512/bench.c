@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
 #include <stddef.h>
 #include "util.h"
@@ -12,33 +11,31 @@
 
 #if BENCH_CYCLES == 1
 #if APPLE_M1 == 1
+
+// Result is cycle per call
 #include "m1cycles.h"
 
-// Result is cycle per call
 #define TIME(s) s = rdtsc();
 #define CALC(start, stop, ntests) (stop - start) / ntests;
-#else 
-#include "hal.h"
+#else
 
 // Result is cycle per call
+#include "hal.h"
+
 #define TIME(s) s = hal_get_time();
 #define CALC(start, stop, ntests) (stop - start) / ntests;
-#endif 
+#endif
 
 #else
+
+#include <time.h>
 // Result is nanosecond per call
+
 #define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
 #define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
 #endif
 
 #define NTESTS 10000
-
-uint64_t get_cycle_count()
-{
-    uint64_t val;
-    asm volatile("mrs %0, cntvct_el0" : "=r" (val));
-    return val;
-}
 
 void print_header()
 {
@@ -78,8 +75,7 @@ void test_FFT(fpr *f, unsigned logn)
 
     /* =================================== */
     ifft = CALC(start, stop, ntests);
-    printf("FFT %u: %lld - %lld\n", logn, fft, ifft);
-    printf("=======\n");
+    printf("| FFT %u | %lld | %lld\n", logn, fft, ifft);
 }
 
 void test_NTT(int16_t *a, unsigned logn)
@@ -114,8 +110,7 @@ void test_NTT(int16_t *a, unsigned logn)
 
     /* =================================== */
     ifft = CALC(start, stop, ntests);
-    printf("NTT %u: %lld - %lld\n", logn, fft, ifft);
-    printf("=======\n");
+    printf("| NTT %u | %lld | %lld\n", logn, fft, ifft);
 }
 
 void test_poly_add(fpr *c, fpr *a, fpr *b, unsigned logn, char *string)
@@ -422,7 +417,7 @@ int main()
     }
 
     test_NTT(a, FALCON_LOGN);
-    
+
     print_header();
     for (unsigned i = 0; i <= FALCON_LOGN; i++)
     {
@@ -481,14 +476,3 @@ int main()
 
     return 0;
 }
-
-/*
- * Result in nanosection
- * FFT          - iFFT
- *  9: 4609     - 4333
- * 10: 11389    - 10790
- *
- * NTT          - iNTT
- *  9: 2560     - 2646
- * 10: 5426     - 5721
- */
