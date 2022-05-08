@@ -84,11 +84,9 @@ static const fpr fpr_ptwo63 = 9223372036854775808.0 ;
 static inline int64_t
 fpr_rint(fpr x)
 {
-    float64x1_t neon_x;
-    int64x1_t neon_s;
-    neon_x = vdup_n_f64(x);
-    neon_s = vcvtn_s64_f64(neon_x);
-    return vget_lane_s64(neon_s, 0);
+    int64_t t;
+    __asm__ ( "fcvtns   %x0, %d1": "=r" (t) : "w" (x));
+    return t;
 }
 
 static inline int64_t
