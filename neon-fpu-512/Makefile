@@ -39,11 +39,11 @@ build:
 	-mkdir build
 
 clean:
-	-rm build/kat512fpu build/kat1024fpu
-	-rm build/m1_test_falcon512 build/m1_test_falcon1024
-	-rm build/a72_test_falcon512 build/a72_test_falcon1024
-	-rm build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
-	-rm build/a72_speed512 build/a72_speed1024 build/a72_bench512 build/a72_bench1024
+	-rm -f build/kat512fpu build/kat1024fpu
+	-rm -f build/m1_test_falcon512 build/m1_test_falcon1024
+	-rm -f build/a72_test_falcon512 build/a72_test_falcon1024
+	-rm -f build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
+	-rm -f build/a72_speed512 build/a72_speed1024 build/a72_bench512 build/a72_bench1024
 
 build/kat512fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DALGNAME=falcon512fpu  -o $@ $(OBJ) $(OBJ_KAT)
