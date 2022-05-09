@@ -34,7 +34,6 @@ void ZfN(poly_int8_to_int16)(int16_t out[FALCON_N], const int8_t in[FALCON_N])
     for (int i = 0; i < FALCON_N; i += 128)
     {
         c = vld1q_s8_x4(&in[i]);
-        d = vld1q_s8_x4(&in[i + 64]);
 
         a.val[0] = vmovl_s8(vget_low_s8(c.val[0]));
         a.val[2] = vmovl_s8(vget_low_s8(c.val[1]));
@@ -45,6 +44,8 @@ void ZfN(poly_int8_to_int16)(int16_t out[FALCON_N], const int8_t in[FALCON_N])
         a.val[3] = vmovl_high_s8(c.val[1]);
         b.val[1] = vmovl_high_s8(c.val[2]);
         b.val[3] = vmovl_high_s8(c.val[3]);
+
+        d = vld1q_s8_x4(&in[i + 64]);
 
         e.val[0] = vmovl_s8(vget_low_s8(d.val[0]));
         e.val[2] = vmovl_s8(vget_low_s8(d.val[1]));
@@ -83,7 +84,6 @@ void ZfN(poly_div_12289)(int16_t f[FALCON_N], const int16_t g[FALCON_N])
     {
         // Find y0 = g^12287
         vload_s16_x4(y0, &g[i]);
-        vload_s16_x4(src, &f[i]);
 
         // y0 is already in Montgomery domain
 
@@ -105,6 +105,9 @@ void ZfN(poly_div_12289)(int16_t f[FALCON_N], const int16_t g[FALCON_N])
         montmul_x4(y16, y15, y10, neon_qmvm, k);
         montmul_x4(y17, y16, y16, neon_qmvm, t);
         montmul_x4(y18, y17, y0, neon_qmvm, k);
+        
+        vload_s16_x4(src, &f[i]);
+
         montmul_x4(dst, y18, src, neon_qmvm, t);
 
         vstore_s16_x4(&f[i], dst);
@@ -126,13 +129,14 @@ void ZfN(poly_sub_barrett)(int16_t f[FALCON_N], const int16_t g[FALCON_N], const
     {
         vload_s16_x4(a, &g[i]);
         vload_s16_x4(b, &s[i]);
-        vload_s16_x4(c, &g[i + 32]);
-        vload_s16_x4(d, &s[i + 32]);
 
         e.val[0] = vsubq_s16(a.val[0], b.val[0]);
         e.val[1] = vsubq_s16(a.val[1], b.val[1]);
         e.val[2] = vsubq_s16(a.val[2], b.val[2]);
         e.val[3] = vsubq_s16(a.val[3], b.val[3]);
+
+        vload_s16_x4(c, &g[i + 32]);
+        vload_s16_x4(d, &s[i + 32]);
 
         h.val[0] = vsubq_s16(c.val[0], d.val[0]);
         h.val[1] = vsubq_s16(c.val[1], d.val[1]);
@@ -165,7 +169,6 @@ uint16_t ZfN(poly_compare_with_zero)(int16_t f[FALCON_N])
     for (int i = 0; i < FALCON_N; i += 64)
     {
         vload_s16_x4(a, &f[i]);
-        vload_s16_x4(b, &f[i + 32]);
 
         // Compare bitwise Equal to zero (vector)
         // a == 0 ? 1 : 0;
@@ -173,6 +176,8 @@ uint16_t ZfN(poly_compare_with_zero)(int16_t f[FALCON_N])
         c.val[1] = vceqzq_s16(a.val[1]);
         c.val[2] = vceqzq_s16(a.val[2]);
         c.val[3] = vceqzq_s16(a.val[3]);
+
+        vload_s16_x4(b, &f[i + 32]);
 
         d.val[0] = vceqzq_s16(b.val[0]);
         d.val[1] = vceqzq_s16(b.val[1]);
@@ -212,13 +217,14 @@ void ZfN(poly_convert_to_unsigned)(int16_t f[FALCON_N])
     for (int i = 0; i < FALCON_N; i += 64)
     {
         vload_s16_x4(a0, &f[i]);
-        vload_s16_x4(a1, &f[i + 32]);
 
         b0.val[0] = vcltzq_s16(a0.val[0]);
         b0.val[1] = vcltzq_s16(a0.val[1]);
         b0.val[2] = vcltzq_s16(a0.val[2]);
         b0.val[3] = vcltzq_s16(a0.val[3]);
 
+        vload_s16_x4(a1, &f[i + 32]);
+        
         b1.val[0] = vcltzq_s16(a1.val[0]);
         b1.val[1] = vcltzq_s16(a1.val[1]);
         b1.val[2] = vcltzq_s16(a1.val[2]);

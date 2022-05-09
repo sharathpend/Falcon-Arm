@@ -42,8 +42,6 @@ static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsign
     {
         u1 = u << 1;
         u2 = u1 + falcon_n;
-        vloadx4(f0_re, &f0[u]);
-        vloadx4(f0_im, &f0[u + qn]);
         vloadx4(f1_re, &f1[u]);
         vloadx4(f1_im, &f1[u + qn]);
 
@@ -65,6 +63,8 @@ static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsign
         vfms(d_re.val[3], d_re.val[3], f1_im.val[3], s_tmp3.val[1]);
 
         // f_re0
+        vloadx4(f0_re, &f0[u]);
+
         // vfaddx4(v0, f0_re, tmp);
         vfadd(x_tmp.val[0], f0_re.val[0], d_re.val[0]);
         vfsub(x_tmp.val[1], f0_re.val[0], d_re.val[0]);
@@ -95,6 +95,8 @@ static void ZfN(poly_mergeFFT_log5)(fpr *f, const fpr *f0, const fpr *f1, unsign
         vfma(d_im.val[3], d_im.val[3], f1_im.val[3], s_tmp3.val[0]);
 
         // f_re0
+        vloadx4(f0_im, &f0[u + qn]);
+        
         // vfaddx4(v0, f0_im, tmp);
         vfadd(x_tmp.val[0], f0_im.val[0], d_im.val[0]);
         vfsub(x_tmp.val[1], f0_im.val[0], d_im.val[0]);
@@ -131,7 +133,6 @@ static inline void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1)
     float64x2x4_t v0, v1;                             // 12
     float64x2x2_t s_tmp, s_re, s_im, d_re, d_im, tmp; // 12
 
-    vloadx4(v0, &f0[0]);
     vloadx4(v1, &f1[0]);
     // 16, 18, 20, 22
     // 17, 19, 21, 23
@@ -151,6 +152,8 @@ static inline void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1)
     vfms(d_re.val[1], d_re.val[1], v1.val[3], s_im.val[1]);
     vfma(d_im.val[0], d_im.val[0], v1.val[2], s_re.val[0]);
     vfma(d_im.val[1], d_im.val[1], v1.val[3], s_re.val[1]);
+
+    vloadx4(v0, &f0[0]);
 
     vfadd(tmp.val[0], v0.val[0], d_re.val[0]);
     vfsub(tmp.val[1], v0.val[0], d_re.val[0]);
@@ -190,9 +193,6 @@ static inline void ZfN(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
     float64x2_t a_re, a_im, d_re, d_im, b_re, b_im, t_re, t_im; // 6
     float64x2x2_t tmp, s_re_im;                                 // 2
 
-    vloadx2(tmp, &f0[0]);
-    a_re = tmp.val[0];
-    a_im = tmp.val[1];
     vloadx2(tmp, &f1[0]);
     d_re = tmp.val[0];
     d_im = tmp.val[1];
@@ -206,6 +206,9 @@ static inline void ZfN(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
     vfms(b_re, b_re, d_im, s_re_im.val[1]);
     vfma(b_im, b_im, d_im, s_re_im.val[0]);
 
+    vloadx2(tmp, &f0[0]);
+    a_re = tmp.val[0];
+    a_im = tmp.val[1];
     // 0, 2
     // 4, 6
     vfadd(t_re, a_re, b_re);
@@ -401,15 +404,15 @@ static inline void ZfN(poly_splitFFT_log3)(fpr *restrict f0, fpr *restrict f1, c
     a_im = tmp.val[0];
     b_im = tmp.val[1];
 
-    // 8, 10
-    // 9, 11
-    vload2(s_re_im, &fpr_gm_tab[8]);
-
     vfsub(t_re, a_re, b_re);
     vfsub(t_im, a_im, b_im);
 
     vfadd(a_re, a_re, b_re);
     vfadd(a_im, a_im, b_im);
+
+    // 8, 10
+    // 9, 11
+    vload2(s_re_im, &fpr_gm_tab[8]);
 
     vfmul(d_re, t_re, s_re_im.val[0]);
     vfmul(d_im, t_im, s_re_im.val[0]);
@@ -486,14 +489,14 @@ static inline void ZfN(poly_splitFFT_log4)(fpr *restrict f0, fpr *restrict f1,
         b_im.val[0] = tmp.val[1];
         a_im.val[1] = tmp.val[2];
         b_im.val[1] = tmp.val[3];
-        // s_re = 16, 20, 18, 22
-        // s_im = 17, 21, 19, 23
-        vload4(s_re_im, &fpr_gm_tab[u1 + falcon_n]);
-
         vfadd(t_re.val[0], a_re.val[0], b_re.val[0]);
         vfadd(t_im.val[0], a_im.val[0], b_im.val[0]);
         vfadd(t_re.val[1], a_re.val[1], b_re.val[1]);
         vfadd(t_im.val[1], a_im.val[1], b_im.val[1]);
+
+        // s_re = 16, 20, 18, 22
+        // s_im = 17, 21, 19, 23
+        vload4(s_re_im, &fpr_gm_tab[u1 + falcon_n]);
 
         vfmuln(s_re.val[0], s_re_im.val[0], 0.5);
         vfmuln(s_re.val[1], s_re_im.val[2], 0.5);
