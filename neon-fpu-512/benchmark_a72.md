@@ -2,22 +2,22 @@
 
 | FFT | Foward FFT | Inverse FFT
 |:-------------|----------:|-----------:|
-| FFT 0 |       10 |       10
-| FFT 1 |       10 |       10
-| FFT 2 |       13 |       15
-| FFT 3 |       41 |       44
-| FFT 4 |       90 |       90
-| FFT 5 |      304 |      257
-| FFT 6 |      796 |      703
-| FFT 7 |     1713 |     1511
-| FFT 8 |     4096 |     3700
-| FFT 9 |     8683 |     7737
-| FFT 10 |    20187 |    18438
+| FFT 0 |       21 |        9
+| FFT 1 |       21 |        9
+| FFT 2 |       25 |       20
+| FFT 3 |       54 |       49
+| FFT 4 |       92 |       88
+| FFT 5 |      221 |      217
+| FFT 6 |      540 |      543
+| FFT 7 |     1155 |     1216
+| FFT 8 |     2770 |     2913
+| FFT 9 |     5951 |     6135
+| FFT 10 |    14060 |    14705
 
 | NTT | Foward NTT | Inverse NTT
 |:-------------|----------:|-----------:|
-| NTT 9 |     4052 |     4268
-| NTT 10 |     8200 |     9090
+| NTT 9 |     3518 |     3936
+| NTT 10 |     7579 |     9021
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
@@ -78,16 +78,16 @@
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_mul_fft |        0 |       10
-| poly_mul_fft |        1 |       11
+| poly_mul_fft |        1 |       12
 | poly_mul_fft |        2 |        9
 | poly_mul_fft |        3 |       17
 | poly_mul_fft |        4 |       48
-| poly_mul_fft |        5 |       88
-| poly_mul_fft |        6 |      166
-| poly_mul_fft |        7 |      322
-| poly_mul_fft |        8 |      634
-| poly_mul_fft |        9 |     1258
-| poly_mul_fft |       10 |     2830
+| poly_mul_fft |        5 |       85
+| poly_mul_fft |        6 |      161
+| poly_mul_fft |        7 |      313
+| poly_mul_fft |        8 |      617
+| poly_mul_fft |        9 |     1225
+| poly_mul_fft |       10 |     2459
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
@@ -147,40 +147,40 @@
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
-| poly_split_fft |        0 |        9
+| poly_split_fft |        0 |       10
 | poly_split_fft |        1 |        9
 | poly_split_fft |        2 |       13
-| poly_split_fft |        3 |       24
-| poly_split_fft |        4 |       55
-| poly_split_fft |        5 |       98
-| poly_split_fft |        6 |      183
-| poly_split_fft |        7 |      352
-| poly_split_fft |        8 |      691
-| poly_split_fft |        9 |     1397
-| poly_split_fft |       10 |     2776
+| poly_split_fft |        3 |       21
+| poly_split_fft |        4 |       53
+| poly_split_fft |        5 |       86
+| poly_split_fft |        6 |      158
+| poly_split_fft |        7 |      302
+| poly_split_fft |        8 |      591
+| poly_split_fft |        9 |     1188
+| poly_split_fft |       10 |     2658
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_merge_fft |        0 |       10
-| poly_merge_fft |        1 |        9
-| poly_merge_fft |        2 |       12
-| poly_merge_fft |        3 |       17
-| poly_merge_fft |        4 |       43
-| poly_merge_fft |        5 |       83
-| poly_merge_fft |        6 |      154
-| poly_merge_fft |        7 |      296
-| poly_merge_fft |        8 |      580
-| poly_merge_fft |        9 |     1218
-| poly_merge_fft |       10 |     2810
+| poly_merge_fft |        1 |       10
+| poly_merge_fft |        2 |       14
+| poly_merge_fft |        3 |       23
+| poly_merge_fft |        4 |       40
+| poly_merge_fft |        5 |       77
+| poly_merge_fft |        6 |      138
+| poly_merge_fft |        7 |      260
+| poly_merge_fft |        8 |      504
+| poly_merge_fft |        9 |     1004
+| poly_merge_fft |       10 |     2029
 
 
 | degree | kg(ms) |  ek(us) |  sd(us) | sdc(us) |  st(us) | stc(us) |  vv(us) | vvc(us)
 | ---- | ------ | -- | -- | --- |--- |--- |---| --- |
 |  512:  |  19.03 |  116.69 |  583.41 |  626.47 |  414.85 |  453.67 |   33.43 |   77.12
-| 1024:  |  55.40 |  250.61 | 1200.56 | 1292.99 |  836.92 |  913.47 |   69.16 |  151.11
+| 1024:  |  55.40 |  250.61 | 1189.01 | 1292.99 |  836.92 |  913.47 |   69.16 |  151.11
 
 
 | degree |  kg(kc)   | ek(kc) |  sd(kc) | sdc(kc) |  st(kc) | stc(kc) |  vv(kc) | vvc(kc)
 | ---- | ------ | -- | -- | --- |--- |--- |---| --- |
 |  512:  | 31417.68  | 209.54 | 1044.61 | 1128.44 |  744.35 |  816.24 |   61.26 |  138.64
-| 1024:  | 88141.58  | 452.12 | 2164.05 | 2320.12 | 1507.48 | 1640.51 |  125.20 |  271.60
+| 1024:  | 88141.58  | 452.12 | 2137.04 | 2320.12 | 1507.48 | 1640.51 |  125.20 |  271.60
