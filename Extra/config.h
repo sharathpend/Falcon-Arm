@@ -63,8 +63,8 @@
  * FALCON_ASM_CORTEXM4 is defined to 1, in which case the emulated code
  * will be used.
  *
-#define FALCON_FPNATIVE   1
  */
+#define FALCON_FPNATIVE   1
 
 /*
  * Use emulated floating-point implementation.
@@ -131,8 +131,8 @@
  * and signatures might theoretically change, but only with low probability,
  * less than 2^(-40); produced signatures are still safe and interoperable).
  *
-#define FALCON_FMA   1
  */
+#define FALCON_FMA   1
 
 /*
  * Assert that the platform uses little-endian encoding. If enabled,
@@ -141,8 +141,8 @@
  * generation). If not defined explicitly, then autodetection is
  * applied.
  *
-#define FALCON_LE   1
  */
+#define FALCON_LE   1
 
 /*
  * Assert that the platform tolerates accesses to unaligned multibyte
