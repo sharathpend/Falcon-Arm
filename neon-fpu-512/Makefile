@@ -20,6 +20,7 @@ OBJ = codec.c util.c common.c fft.c fft_tree.c \
 	  sign.c vrfy.c ntt.c ntt_consts.c poly_int.c nist.c
 
 OBJ_SPEED = falcon.c speed.c
+OBJ_SPEED_Ghz = falcon.c speed_freq.c
 OBJ_BENCH = bench.c
 OBJ_KAT = PQCgenKAT_sign.c
 OBJ_TEST_FALCON = falcon.c test_falcon.c
@@ -31,8 +32,10 @@ all: build kat
 kat: build/kat512fpu build/kat1024fpu
 m1_test: build/m1_test_falcon512 build/m1_test_falcon1024
 m1: build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
+m1_ghz: build/m1_speed512_ghz build/m1_speed1024_ghz
 a72_test: build/a72_test_falcon512 build/a72_test_falcon1024
 a72: build/a72_speed512 build/a72_speed1024 build/a72_bench512 build/a72_bench1024
+a72_ghz: build/a72_speed512_ghz build/a72_speed1024_ghz
 
 
 build:
@@ -40,10 +43,12 @@ build:
 
 clean:
 	-rm -f build/kat512fpu build/kat1024fpu
-	-rm -f build/m1_test_falcon512 build/m1_test_falcon1024
 	-rm -f build/a72_test_falcon512 build/a72_test_falcon1024
-	-rm -f build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
 	-rm -f build/a72_speed512 build/a72_speed1024 build/a72_bench512 build/a72_bench1024
+	-rm -f build/a72_speed512_ghz build/a72_speed1024_ghz
+	-rm -f build/m1_test_falcon512 build/m1_test_falcon1024
+	-rm -f build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
+	-rm -f m1_ghz: build/m1_speed512_ghz build/m1_speed1024_ghz
 
 build/kat512fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DALGNAME=falcon512fpu  -o $@ $(OBJ) $(OBJ_KAT)
@@ -79,6 +84,13 @@ build/m1_test_falcon1024: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=1 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
 	$@
 
+build/m1_speed512_ghz: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_Ghz)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DAPPLE_M1=1 -DBENCH_CYCLES=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED_Ghz)
+	sudo $@
+
+build/m1_speed1024_ghz: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_Ghz)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=1 -DBENCH_CYCLES=1 -o $@ m1cycles.c $(OBJ) $(OBJ_SPEED_Ghz)
+	sudo $@
 ################### A72 ###################
 
 build/a72_speed512: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED)
@@ -103,4 +115,12 @@ build/a72_test_falcon512: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
 
 build/a72_test_falcon1024: $(OBJ) $(OBJ_TEST_FALCON) $(HEAD)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ $(OBJ) $(OBJ_TEST_FALCON)
+	$@
+
+build/a72_speed512_ghz: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_Ghz)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) $(OBJ_SPEED_Ghz)
+	$@
+
+build/a72_speed1024_ghz: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_Ghz)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) $(OBJ_SPEED_Ghz)
 	$@
