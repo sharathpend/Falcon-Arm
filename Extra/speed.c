@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "m1cycles.h"
 
 
 #if APPLE_M1 == 1
