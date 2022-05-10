@@ -628,7 +628,10 @@ void ZfN(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
     }
 }
 
-/* see inner.h */
+/* see inner.h 
+ * Unused in the implementation
+ */
+
 void ZfN(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restrict b, unsigned logn)
 {
     // assert(logn >= 4);
