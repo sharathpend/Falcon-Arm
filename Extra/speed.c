@@ -396,28 +396,28 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
         bc.sigct_len = 0;
 
 
-        printf(" %8.2f",
+        printf("| %8.2f|",
                 (double) do_bench_cycles(&bench_keygen, &bc, iteration/10) / 1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_expand_privkey, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_dyn, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_tree, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_tree_ct, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_verify, &bc, iteration)/1000);
         fflush(stdout); 
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_verify_ct, &bc, iteration)/1000);
         fflush(stdout);
 
@@ -463,28 +463,28 @@ test_speed_falcon(unsigned logn, int iteration)
 	bc.sigct = xmalloc(FALCON_SIG_CT_SIZE(logn));
 	bc.sigct_len = 0;
 
-	printf(" %8.2f",
+	printf("| %8.2f|",
 		do_bench_time(&bench_keygen, &bc, iteration) / 1000000.0);
 	fflush(stdout);
-	printf(" %8.2f",
+	printf(" %8.2f|",
 		do_bench_time(&bench_expand_privkey, &bc, iteration) / 1000.0);
 	fflush(stdout);
-	printf(" %8.2f",
+	printf(" %8.2f|",
 		do_bench_time(&bench_sign_dyn, &bc, iteration) / 1000.0);
 	fflush(stdout);
-	printf(" %8.2f",
+	printf(" %8.2f|",
 		do_bench_time(&bench_sign_dyn_ct, &bc, iteration) / 1000.0);
 	fflush(stdout);
-	printf(" %8.2f",
+	printf(" %8.2f|",
 		do_bench_time(&bench_sign_tree, &bc, iteration) / 1000.0);
 	fflush(stdout);
-	printf(" %8.2f",
+	printf(" %8.2f|",
 		do_bench_time(&bench_sign_tree_ct, &bc, iteration) / 1000.0);
 	fflush(stdout);
-	printf(" %8.2f",
+	printf(" %8.2f|",
 		do_bench_time(&bench_verify, &bc, iteration) / 1000.0);
 	fflush(stdout);
-	printf(" %8.2f",
+	printf(" %8.2f|",
 		do_bench_time(&bench_verify_ct, &bc, iteration) / 1000.0);
 	fflush(stdout);
 

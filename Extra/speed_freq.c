@@ -339,35 +339,35 @@ test_speed_falcon_Ghz(unsigned logn, int iteration)
         long long cc = 0;
 
         cc = do_bench_cycles(&bench_keygen, &bc, &walltime, iteration/10);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf("| %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
 
         cc = (double) do_bench_cycles(&bench_expand_privkey, &bc, &walltime, iteration);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf(" %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
         
         cc = (double) do_bench_cycles(&bench_sign_dyn, &bc, &walltime, iteration);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf(" %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
         
         cc = (double) do_bench_cycles(&bench_sign_dyn_ct, &bc, &walltime, iteration);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf(" %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
 
         cc = (double) do_bench_cycles(&bench_sign_tree, &bc, &walltime, iteration);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf(" %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
 
         cc = (double) do_bench_cycles(&bench_sign_tree_ct, &bc, &walltime, iteration);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf(" %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
 
         cc = (double) do_bench_cycles(&bench_verify, &bc, &walltime, iteration);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf(" %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
 
         cc = (double) do_bench_cycles(&bench_verify_ct, &bc, &walltime, iteration);
-        printf(" %9.2f",  ((double) cc) / walltime);
+        printf(" %9.2f|",  ((double) cc) / walltime);
         fflush(stdout);
 
         printf("\n");
