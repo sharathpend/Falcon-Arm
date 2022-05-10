@@ -34,6 +34,7 @@
 #include <string.h>
 #include <time.h>
 
+
 #if AVX2 == 1
 #include "cpucycles.h"
 
@@ -58,6 +59,7 @@
 #endif 
 
 #define ITERATIONS 10000
+uint64_t times[ITERATIONS];
 
 /*
  * This code uses only the external API.
@@ -105,7 +107,6 @@ static long long
 do_bench_cycles(bench_fun bf, void *ctx, int iteration)
 {
     long long start, stop;
-    uint64_t times[ITERATIONS];
 
     bf(ctx, 10);
     /*
@@ -120,6 +121,30 @@ do_bench_cycles(bench_fun bf, void *ctx, int iteration)
         bf(ctx, 1);
         TIME(stop);
         times[i] = stop - start;
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    return times[iteration >> 1];
+
+}
+
+static long long 
+do_bench_time(bench_fun bf, void *ctx, int iteration)
+{
+    struct timespec start_tt, stop_tt;  
+
+    bf(ctx, 10);
+    /*
+    * Always do a few blank runs to "train" the caches and branch
+    * prediction.
+    */
+
+    for (int i = 0; i < iteration; i++)
+    {
+        // Benchmark cycles
+        clock_gettime(CLOCK_MONOTONIC_RAW, &start_tt);
+        bf(ctx, 1);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &stop_tt);
+        times[i] = (stop_tt.tv_sec - start_tt.tv_sec) * 1000000000 + (stop_tt.tv_nsec - start_tt.tv_nsec);
     }
     qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
     return times[iteration >> 1];
@@ -410,7 +435,7 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
 
 
 static void
-test_speed_falcon(unsigned logn, double threshold)
+test_speed_falcon(unsigned logn, int iteration)
 {
 	bench_context bc;
 	size_t len;
@@ -439,28 +464,28 @@ test_speed_falcon(unsigned logn, double threshold)
 	bc.sigct_len = 0;
 
 	printf(" %8.2f",
-		do_bench(&bench_keygen, &bc, threshold) / 1000000.0);
+		do_bench_time(&bench_keygen, &bc, iteration) / 1000000.0);
 	fflush(stdout);
 	printf(" %8.2f",
-		do_bench(&bench_expand_privkey, &bc, threshold) / 1000.0);
+		do_bench_time(&bench_expand_privkey, &bc, iteration) / 1000.0);
 	fflush(stdout);
 	printf(" %8.2f",
-		do_bench(&bench_sign_dyn, &bc, threshold) / 1000.0);
+		do_bench_time(&bench_sign_dyn, &bc, iteration) / 1000.0);
 	fflush(stdout);
 	printf(" %8.2f",
-		do_bench(&bench_sign_dyn_ct, &bc, threshold) / 1000.0);
+		do_bench_time(&bench_sign_dyn_ct, &bc, iteration) / 1000.0);
 	fflush(stdout);
 	printf(" %8.2f",
-		do_bench(&bench_sign_tree, &bc, threshold) / 1000.0);
+		do_bench_time(&bench_sign_tree, &bc, iteration) / 1000.0);
 	fflush(stdout);
 	printf(" %8.2f",
-		do_bench(&bench_sign_tree_ct, &bc, threshold) / 1000.0);
+		do_bench_time(&bench_sign_tree_ct, &bc, iteration) / 1000.0);
 	fflush(stdout);
 	printf(" %8.2f",
-		do_bench(&bench_verify, &bc, threshold) / 1000.0);
+		do_bench_time(&bench_verify, &bc, iteration) / 1000.0);
 	fflush(stdout);
 	printf(" %8.2f",
-		do_bench(&bench_verify_ct, &bc, threshold) / 1000.0);
+		do_bench_time(&bench_verify_ct, &bc, iteration) / 1000.0);
 	fflush(stdout);
 
 	printf("\n");
