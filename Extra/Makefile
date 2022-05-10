@@ -56,13 +56,15 @@ OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o
 all: test_falcon
 a72: a72_speed a72_bench
 m1: m1_speed m1_bench
+m1_ghz: m1_speed_ghz
+a72_ghz: a72_speed_ghz
 
 clean:
 	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o
-	-rm -f bench_a72.o hal.o speed_a72.o
-	-rm -f bench_m1.o m1cycles.o speed_m1.o
-	-rm -f a72_bench a72_speed
-	-rm -f m1_bench m1_speed
+	-rm -f bench_a72.o hal.o speed_a72.o speed_a72_ghz.o
+	-rm -f bench_m1.o m1cycles.o speed_m1.o speed_m1_ghz.o
+	-rm -f a72_bench a72_speed a72_speed_ghz
+	-rm -f m1_bench m1_speed m1_speed_ghz
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
@@ -75,12 +77,20 @@ a72_bench: hal.o bench_a72.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ hal.o bench_a72.o $(OBJ) $(LIBS)
 	./$@
 
+a72_speed_ghz: hal.o speed_a72_ghz.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ hal.o speed_a72_ghz.o $(OBJ) $(LIBS)
+	./$@
+
 m1_speed: m1cycles.o speed_m1.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ m1cycles.o speed_m1.o $(OBJ)
 	sudo ./$@
 
 m1_bench: m1cycles.o bench_m1.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ m1cycles.o bench_m1.o $(OBJ) $(LIBS)
+	sudo ./$@
+
+m1_speed_ghz: m1cycles.o speed_m1_ghz.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ m1cycles.o speed_m1_ghz.o $(OBJ)
 	sudo ./$@
 
 codec.o: codec.c config.h inner.h fpr.h
@@ -122,6 +132,12 @@ speed_a72.o: speed.c falcon.h
 speed_m1.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ speed.c
 
+speed_a72_ghz.o: speed.c falcon.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=0 -c -o $@ speed_freq.c
+
+speed_m1_ghz.o: speed.c falcon.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ speed_freq.c
+
 bench_a72.o: bench.c $(OBJ)
 	$(CC) $(CFLAGS) -DAPPLE_M1=0 -DBENCH_CYCLES=1 -c -o $@ bench.c
 
@@ -133,3 +149,4 @@ test_falcon.o: test_falcon.c falcon.h config.h inner.h fpr.h
 
 vrfy.o: vrfy.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o vrfy.o vrfy.c
+	
