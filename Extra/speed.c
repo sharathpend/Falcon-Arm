@@ -34,7 +34,13 @@
 #include <string.h>
 #include <time.h>
 
+#if AVX2 == 1
+#include "cpucycles.h"
 
+#define TIME(s) s = cpucycles();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+
+#else 
 #if APPLE_M1 == 1
 #include "m1cycles.h"
 
@@ -47,6 +53,8 @@
 // Result is cycle per call
 #define TIME(s) s = hal_get_time();
 #define CALC(start, stop, ntests) (stop - start) / ntests;
+#endif 
+
 #endif 
 
 #define ITERATIONS 10000

@@ -12,6 +12,12 @@ uint64_t times[ITERATIONS];
 #define FALCON_N 1024
 #define FALCON_LOGN 10
 
+#if AVX2 == 1
+#include "cpucycles.h"
+
+#define TIME(s) s = cpucycles();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+#else 
 #if BENCH_CYCLES == 1
 #if APPLE_M1 == 1
 
@@ -38,6 +44,7 @@ uint64_t times[ITERATIONS];
 #define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
 
 #endif
+#endif 
 
 #define NTESTS 10000
 
