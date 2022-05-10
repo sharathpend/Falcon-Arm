@@ -154,7 +154,7 @@ speed_m1.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ speed.c
 
 speed_avx.o: speed.c falcon.h
-	$(CC) $(CFLAGS) -DAVX=1 -c -o $@ speed.c
+	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ speed.c
 
 speed_a72_ghz.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAPPLE_M1=0 -c -o $@ speed_freq.c
@@ -163,7 +163,7 @@ speed_m1_ghz.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ speed_freq.c
 
 speed_avx_ghz.o: speed.c falcon.h
-	$(CC) $(CFLAGS) -DAVX=1 -c -o $@ speed_freq.c
+	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ speed_freq.c
 
 bench_a72.o: bench.c $(OBJ)
 	$(CC) $(CFLAGS) -DAPPLE_M1=0 -DBENCH_CYCLES=1 -c -o $@ bench.c
@@ -172,7 +172,7 @@ bench_m1.o: bench.c $(OBJ)
 	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ bench.c
 
 bench_avx.o: bench.c $(OBJ)
-	$(CC) $(CFLAGS) -DAVX=1 -c -o $@ bench.c
+	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ bench.c
 
 test_falcon.o: test_falcon.c falcon.h config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o test_falcon.o test_falcon.c
