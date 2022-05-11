@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <stdint.h>
 
 #if AVX2 == 1
 #include "cpucycles.h"
@@ -151,63 +151,6 @@ do_bench_time(bench_fun bf, void *ctx, int iteration)
 
 }
 
-/*
- * Returned value is the time per iteration in nanoseconds. If the
- * benchmark function reports an error, 0.0 is returned.
- */
-static double
-do_bench(bench_fun bf, void *ctx, double threshold)
-{  
-	unsigned long num;
-	int r;
-
-	/*
-	 * Alsways do a few blank runs to "train" the caches and branch
-	 * prediction.
-	 */
-	r = bf(ctx, 5);
-	if (r != 0) {
-		fprintf(stderr, "ERR: %d\n", r);
-		return 0.0;
-	}
-
-	num = 1;
-	for (;;) {
-		clock_t begin, end;
-		double tt;
-
-		begin = clock();
-		r = bf(ctx, num);
-		end = clock();
-		if (r != 0) {
-			fprintf(stderr, "ERR: %d\n", r);
-			return 0.0;
-		}
-		tt = (double)(end - begin) / (double)CLOCKS_PER_SEC;
-		if (tt >= threshold) {
-			return tt * 1000000000.0 / (double)num;
-		}
-
-		/*
-		 * If the function ran for less than 0.1 seconds then
-		 * we simply double the iteration number; otherwise, we
-		 * use the run time to try to get a "correct" number of
-		 * iterations quickly.
-		 */
-		if (tt < 0.1) {
-			num <<= 1;
-		} else {
-			unsigned long num2;
-
-			num2 = (unsigned long)((double)num
-				* (threshold * 1.1) / tt);
-			if (num2 <= num) {
-				num2 = num + 1;
-			}
-			num = num2;
-		}
-	}
-}
 
 typedef struct {
 	unsigned logn;
@@ -372,7 +315,7 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
         bench_context bc;
         size_t len;
 
-        printf("%4u:", 1u << logn);
+        printf("|%4u:", 1u << logn);
         fflush(stdout);
 
         bc.logn = logn;
@@ -421,7 +364,7 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
                 (double) do_bench_cycles(&bench_verify_ct, &bc, iteration)/1000);
         fflush(stdout);
 
-        printf("\n\n");
+        printf("\n");
         fflush(stdout);
 
         xfree(bc.tmp);
@@ -440,7 +383,7 @@ test_speed_falcon(unsigned logn, int iteration)
 	bench_context bc;
 	size_t len;
 
-	printf("%4u:", 1u << logn);
+	printf("|%4u:", 1u << logn);
 	fflush(stdout);
 
 	bc.logn = logn;
@@ -508,7 +451,7 @@ int main(void)
 	double threshold;
     int iteration; 
 
-    iteration = ITERATIONS;
+    iteration = ITERATIONS/2;
     threshold = 2.0;
 
 	printf("time threshold = %.4f s\n", threshold);
@@ -517,8 +460,9 @@ int main(void)
 	printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n");
     
     printf("\nAll numbers are in cycles\n\n");
+    printf("|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|\n");
+    printf("| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
     fflush(stdout);
-    printf("degree  kg(kc)   ek(kc)   sd(kc)  sdc(kc)   st(kc)  stc(kc)   vv(kc)  vvc(kc)\n");
     test_speed_falcon_cycles(9, iteration);
     test_speed_falcon_cycles(10, iteration);
 
@@ -526,7 +470,8 @@ int main(void)
 
     printf("keygen in milliseconds, other values in microseconds\n");
 	printf("\n");
-	printf("degree  kg(ms)   ek(us)   sd(us)  sdc(us)   st(us)  stc(us)   vv(us)  vvc(us)\n");
+	printf("|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|\n");
+    printf("| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
 	fflush(stdout);
 	test_speed_falcon(9, threshold);
 	test_speed_falcon(10, threshold);

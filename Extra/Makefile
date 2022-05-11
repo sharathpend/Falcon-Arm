@@ -172,7 +172,7 @@ bench_m1.o: bench.c $(OBJ)
 	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ bench.c
 
 bench_avx.o: bench.c $(OBJ)
-	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ bench.c
+	$(CC) $(CFLAGS) -DAVX2=1 -DBENCH_CYCLES=1 -c -o $@ bench.c
 
 test_falcon.o: test_falcon.c falcon.h config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o test_falcon.o test_falcon.c
