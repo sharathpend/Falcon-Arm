@@ -51,6 +51,8 @@
 #endif 
 
 #define ITERATIONS 10000
+uint64_t times[ITERATIONS];
+uint64_t cycles[ITERATIONS];
 
 /*
  * This code uses only the external API.
@@ -93,17 +95,16 @@ xfree(void *buf)
  */
 typedef int (*bench_fun)(void *ctx, unsigned long num);
 
-static long long 
+static long long
 do_bench_cycles(bench_fun bf, void *ctx, int iteration)
 {
     long long start, stop;
-    uint64_t times[ITERATIONS];
 
     bf(ctx, 10);
     /*
-    * Always do a few blank runs to "train" the caches and branch
-    * prediction.
-    */
+     * Always do a few blank runs to "train" the caches and branch
+     * prediction.
+     */
 
     for (int i = 0; i < iteration; i++)
     {
@@ -115,65 +116,58 @@ do_bench_cycles(bench_fun bf, void *ctx, int iteration)
     }
     qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
     return times[iteration >> 1];
-
 }
 
-/*
- * Returned value is the time per iteration in nanoseconds. If the
- * benchmark function reports an error, 0.0 is returned.
- */
-static double
-do_bench(bench_fun bf, void *ctx, double threshold)
+static long long
+do_bench_time_cycles(bench_fun bf, void *ctx, long long *walltime, int iteration)
 {
-        unsigned long num;
-        int r;
+    long long start, stop;
+    struct timespec start_tt, stop_tt;
 
-        /*
-         * Always do a few blank runs to "train" the caches and branch
-         * prediction.
-         */
-        r = bf(ctx, 5);
-        if (r != 0) {
-                fprintf(stderr, "ERR: %d\n", r);
-                return 0.0;
-        }
+    bf(ctx, 10);
+    /*
+     * Always do a few blank runs to "train" the caches and branch
+     * prediction.
+     */
 
-        num = 1;
-        for (;;) {
-                clock_t begin, end;
-                double tt;
+    for (int i = 0; i < iteration; i++)
+    {
+        // Benchmark cycles
+        clock_gettime(CLOCK_MONOTONIC_RAW, &start_tt);
+        TIME(start);
+        bf(ctx, 1);
+        TIME(stop);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &stop_tt);
+        cycles[i] = stop - start;
+        times[i] = (stop_tt.tv_sec - start_tt.tv_sec) * 1000000000 + (stop_tt.tv_nsec - start_tt.tv_nsec);
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    qsort(cycles, iteration, sizeof(uint64_t), cmp_uint64_t);
+    *walltime = times[iteration >> 1];
+    return cycles[iteration >> 1];
+}
 
-                begin = clock();
-                r = bf(ctx, num);
-                end = clock();
-                if (r != 0) {
-                        fprintf(stderr, "ERR: %d\n", r);
-                        return 0.0;
-                }
-                tt = (double)(end - begin) / (double)CLOCKS_PER_SEC;
-                if (tt >= threshold) {
-                        return tt * 1000000000.0 / (double)num;
-                }
+static long long
+do_bench_time(bench_fun bf, void *ctx, int iteration)
+{
+    struct timespec start_tt, stop_tt;
 
-                /*
-                 * If the function ran for less than 0.1 seconds then
-                 * we simply double the iteration number; otherwise, we
-                 * use the run time to try to get a "correct" number of
-                 * iterations quickly.
-                 */
-                if (tt < 0.1) {
-                        num <<= 1;
-                } else {
-                        unsigned long num2;
+    bf(ctx, 10);
+    /*
+     * Always do a few blank runs to "train" the caches and branch
+     * prediction.
+     */
 
-                        num2 = (unsigned long)((double)num
-                                * (threshold * 1.1) / tt);
-                        if (num2 <= num) {
-                                num2 = num + 1;
-                        }
-                        num = num2;
-                }
-        }
+    for (int i = 0; i < iteration; i++)
+    {
+        // Benchmark cycles
+        clock_gettime(CLOCK_MONOTONIC_RAW, &start_tt);
+        bf(ctx, 1);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &stop_tt);
+        times[i] = (stop_tt.tv_sec - start_tt.tv_sec) * 1000000000 + (stop_tt.tv_nsec - start_tt.tv_nsec);
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    return times[iteration >> 1];
 }
 
 typedef struct {
@@ -334,13 +328,13 @@ bench_verify_ct(void *ctx, unsigned long num)
 static void
 test_speed_falcon_cycles(unsigned logn, int iteration)
 {
-        printf("All numbers are in cycles\n\n");
-        printf("degree  kg(kc)   ek(kc)   sd(kc)  sdc(kc)   st(kc)  stc(kc)   vv(kc)  vvc(kc)\n");
+        printf("|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|\n");
+        printf("| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
 
         bench_context bc;
 
         size_t len;
-        printf("%4u:", 1u << logn);
+        printf("|%4u:", 1u << logn);
         fflush(stdout);
 
         bc.logn = logn;
@@ -364,28 +358,28 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
         bc.sigct_len = 0;
 
 
-        printf(" %8.2f",
+        printf("| %8.2f|",
                 (double) do_bench_cycles(&bench_keygen, &bc, iteration/10) / 1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_expand_privkey, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_dyn, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_dyn_ct, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_tree, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_sign_tree_ct, &bc, iteration)/1000);
         fflush(stdout);
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_verify, &bc, iteration)/1000);
         fflush(stdout); 
-        printf(" %8.2f",
+        printf(" %8.2f|",
                 (double) do_bench_cycles(&bench_verify_ct, &bc, iteration)/1000);
         fflush(stdout);
 
@@ -402,17 +396,16 @@ test_speed_falcon_cycles(unsigned logn, int iteration)
 
 
 static void
-test_speed_falcon(unsigned logn, double threshold)
+test_speed_falcon_time(unsigned logn, int iteration)
 {
-        printf("keygen in milliseconds, other values in microseconds\n");
-        printf("\n");
-        printf("degree  kg(ms)   ek(us)   sd(us)  sdc(us)   st(us)  stc(us)   vv(us)  vvc(us)\n");
+        printf("|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|\n");
+        printf("| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
 
 
         bench_context bc;
         size_t len;
 
-        printf("%4u:", 1u << logn);
+        printf("|%4u:", 1u << logn);
         fflush(stdout);
 
         bc.logn = logn;
@@ -435,31 +428,110 @@ test_speed_falcon(unsigned logn, double threshold)
         bc.sigct = xmalloc(FALCON_SIG_CT_SIZE(logn));
         bc.sigct_len = 0;
 
-        printf(" %8.2f",
-                do_bench(&bench_keygen, &bc, threshold) / 1000000.0);
+        printf("| %8.2f|",
+		do_bench_time(&bench_keygen, &bc, iteration/10) / 1000000.0);
         fflush(stdout);
-        printf(" %8.2f",
-                do_bench(&bench_expand_privkey, &bc, threshold) / 1000.0);
+        printf(" %8.2f|",
+            do_bench_time(&bench_expand_privkey, &bc, iteration) / 1000.0);
         fflush(stdout);
-        printf(" %8.2f",
-                do_bench(&bench_sign_dyn, &bc, threshold) / 1000.0);
+        printf(" %8.2f|",
+            do_bench_time(&bench_sign_dyn, &bc, iteration) / 1000.0);
         fflush(stdout);
-        printf(" %8.2f",
-                do_bench(&bench_sign_dyn_ct, &bc, threshold) / 1000.0);
+        printf(" %8.2f|",
+            do_bench_time(&bench_sign_dyn_ct, &bc, iteration) / 1000.0);
         fflush(stdout);
-        printf(" %8.2f",
-                do_bench(&bench_sign_tree, &bc, threshold) / 1000.0);
+        printf(" %8.2f|",
+            do_bench_time(&bench_sign_tree, &bc, iteration) / 1000.0);
         fflush(stdout);
-        printf(" %8.2f",
-                do_bench(&bench_sign_tree_ct, &bc, threshold) / 1000.0);
+        printf(" %8.2f|",
+            do_bench_time(&bench_sign_tree_ct, &bc, iteration) / 1000.0);
         fflush(stdout);
-        printf(" %8.2f",
-                do_bench(&bench_verify, &bc, threshold) / 1000.0);
-        fflush(stdout); 
-        printf(" %8.2f",
-                do_bench(&bench_verify_ct, &bc, threshold) / 1000.0);
+        printf(" %8.2f|",
+            do_bench_time(&bench_verify, &bc, iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f|",
+            do_bench_time(&bench_verify_ct, &bc, iteration) / 1000.0);
         fflush(stdout);
 
+
+        printf("\n\n");
+        fflush(stdout);
+
+        xfree(bc.tmp);
+        xfree(bc.pk);
+        xfree(bc.sk);
+        xfree(bc.esk);
+        xfree(bc.sig);
+        xfree(bc.sigct);
+}
+
+static void
+test_speed_falcon_time_cycles(unsigned logn, int iteration)
+{
+        printf("|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|\n");
+        printf("| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
+
+        bench_context bc;
+        size_t len;
+
+        printf("|%4u: |", 1u << logn);
+        fflush(stdout);
+
+        bc.logn = logn;
+        if (shake256_init_prng_from_system(&bc.rng) != 0) {
+                fprintf(stderr, "random seeding failed\n");
+                exit(EXIT_FAILURE);
+        }
+        len = FALCON_TMPSIZE_KEYGEN(logn);
+        len = maxsz(len, FALCON_TMPSIZE_SIGNDYN(logn));
+        len = maxsz(len, FALCON_TMPSIZE_SIGNTREE(logn));
+        len = maxsz(len, FALCON_TMPSIZE_EXPANDPRIV(logn));
+        len = maxsz(len, FALCON_TMPSIZE_VERIFY(logn));
+        bc.tmp = xmalloc(len);
+        bc.tmp_len = len;
+        bc.pk = xmalloc(FALCON_PUBKEY_SIZE(logn));
+        bc.sk = xmalloc(FALCON_PRIVKEY_SIZE(logn));
+        bc.esk = xmalloc(FALCON_EXPANDEDKEY_SIZE(logn));
+        bc.sig = xmalloc(FALCON_SIG_COMPRESSED_MAXSIZE(logn));
+        bc.sig_len = 0;
+        bc.sigct = xmalloc(FALCON_SIG_CT_SIZE(logn));
+        bc.sigct_len = 0;
+
+        long long walltime[8];
+
+        printf(" %8.2f |",
+		    do_bench_time_cycles(&bench_keygen, &bc, &walltime[0], iteration/10) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_expand_privkey, &bc, &walltime[1], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_dyn, &bc, &walltime[2], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_dyn_ct, &bc, &walltime[3], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_tree, &bc, &walltime[4], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_tree_ct, &bc, &walltime[5], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_verify, &bc, &walltime[6], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_verify_ct, &bc, &walltime[7], iteration) / 1000.0);
+        printf("\n\n");
+        fflush(stdout);
+
+        printf("|degree|  kg(us)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|\n");
+        printf("| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
+        printf("|%4u: |", 1u << logn);
+        for (int i = 0; i < 8; i++)
+        {
+            printf(" %8.2f |", ((double) walltime[i]) / 1000.0);
+        }
         printf("\n\n");
         fflush(stdout);
 
@@ -480,18 +552,16 @@ main(void)
 #endif
 #endif
 
-        double threshold;
         int iteration;
 
-        threshold = 2.0;
         iteration = ITERATIONS;
         
-        printf("time threshold = %.4f s\n", threshold);
         printf("kg = keygen, ek = expand private key, sd = sign (without expanded key)\n");
         printf("st = sign (with expanded key), vv = verify\n");
-        printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n");
+        printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n\n");
         
-        test_speed_falcon_cycles(FALCON_LOGN, iteration);
-        test_speed_falcon(FALCON_LOGN, threshold);
+        test_speed_falcon_time_cycles(FALCON_LOGN, iteration);
+        // test_speed_falcon_cycles(FALCON_LOGN, iteration);
+        // test_speed_falcon_time(FALCON_LOGN, iteration);
         return 0;
 }

@@ -299,7 +299,8 @@ bench_verify_ct(void *ctx, unsigned long num)
 static void
 test_speed_falcon_Ghz(unsigned logn, int iteration)
 {
-        printf("degree  kg(Ghz)   ek(Ghz)   sd(Ghz)  sdc(Ghz)   st(Ghz)  stc(Ghz)   vv(Ghz)  vvc(Ghz)\n");
+        printf("|degree|  kg(Ghz)|   ek(Ghz)|   sd(Ghz)|  sdc(Ghz)|   st(Ghz)|  stc(Ghz)|   vv(Ghz)|  vvc(Ghz)|\n");
+        printf("| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
 
         bench_context bc;
 
