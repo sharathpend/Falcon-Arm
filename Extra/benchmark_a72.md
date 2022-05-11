@@ -2,22 +2,22 @@
 
 | FFT | Foward FFT | Inverse FFT
 |:-------------|----------:|-----------:|
-| FFT 0 |       14 |       19
-| FFT 1 |       14 |       48
-| FFT 2 |       38 |       50
-| FFT 3 |      109 |      150
-| FFT 4 |      261 |      294
-| FFT 5 |      588 |      654
-| FFT 6 |     1299 |     1438
-| FFT 7 |     2895 |     3176
-| FFT 8 |     6269 |     6946
-| FFT 9 |    13520 |    15053
-| FFT 10 |    29147 |    32903
+| FFT 0 |       14 |       15
+| FFT 1 |       14 |       46
+| FFT 2 |       37 |       47
+| FFT 3 |      100 |      116
+| FFT 4 |      232 |      259
+| FFT 5 |      516 |      570
+| FFT 6 |     1132 |     1249
+| FFT 7 |     2529 |     2799
+| FFT 8 |     5474 |     6037
+| FFT 9 |    11807 |    13136
+| FFT 10 |    27366 |    28151
 
 | NTT | Foward NTT | Inverse NTT
 |:-------------|----------:|-----------:|
-| NTT 9 |    23024 |    21946
-| NTT 10 |    49338 |    46481
+| NTT 9 |    22582 |    22251
+| NTT 10 |    48097 |    47196
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
@@ -27,160 +27,159 @@
 | poly_add |        3 |       32
 | poly_add |        4 |       56
 | poly_add |        5 |      103
-| poly_add |        6 |      214
-| poly_add |        7 |      407
+| poly_add |        6 |      215
+| poly_add |        7 |      408
 | poly_add |        8 |      792
-| poly_add |        9 |     1558
-| poly_add |       10 |     3109
+| poly_add |        9 |     1559
+| poly_add |       10 |     3108
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_sub |        0 |        9
-| poly_sub |        1 |       14
-| poly_sub |        2 |       21
-| poly_sub |        3 |       33
-| poly_sub |        4 |       56
-| poly_sub |        5 |      104
-| poly_sub |        6 |      217
-| poly_sub |        7 |      409
+| poly_sub |        1 |       13
+| poly_sub |        2 |       20
+| poly_sub |        3 |       32
+| poly_sub |        4 |       55
+| poly_sub |        5 |      103
+| poly_sub |        6 |      216
+| poly_sub |        7 |      408
 | poly_sub |        8 |      791
 | poly_sub |        9 |     1559
-| poly_sub |       10 |     3104
+| poly_sub |       10 |     3108
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_neg |        0 |        9
-| poly_neg |        1 |       26
-| poly_neg |        2 |       17
-| poly_neg |        3 |       25
-| poly_neg |        4 |       41
-| poly_neg |        5 |       78
-| poly_neg |        6 |      172
-| poly_neg |        7 |      321
-| poly_neg |        8 |      620
-| poly_neg |        9 |     1218
-| poly_neg |       10 |     2412
+| poly_neg |        1 |       13
+| poly_neg |        2 |       19
+| poly_neg |        3 |       31
+| poly_neg |        4 |       55
+| poly_neg |        5 |      103
+| poly_neg |        6 |      214
+| poly_neg |        7 |      406
+| poly_neg |        8 |      790
+| poly_neg |        9 |     1558
+| poly_neg |       10 |     3094
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_adj_fft |        0 |        9
 | poly_adj_fft |        1 |        9
-| poly_adj_fft |        2 |       28
-| poly_adj_fft |        3 |       11
-| poly_adj_fft |        4 |       37
-| poly_adj_fft |        5 |       26
-| poly_adj_fft |        6 |       47
-| poly_adj_fft |        7 |       87
-| poly_adj_fft |        8 |      167
-| poly_adj_fft |        9 |      346
-| poly_adj_fft |       10 |      666
+| poly_adj_fft |        2 |       14
+| poly_adj_fft |        3 |       12
+| poly_adj_fft |        4 |       18
+| poly_adj_fft |        5 |       29
+| poly_adj_fft |        6 |       49
+| poly_adj_fft |        7 |       89
+| poly_adj_fft |        8 |      169
+| poly_adj_fft |        9 |      348
+| poly_adj_fft |       10 |      667
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_mul_fft |        0 |        9
-| poly_mul_fft |        1 |       12
-| poly_mul_fft |        2 |       16
-| poly_mul_fft |        3 |       30
-| poly_mul_fft |        4 |       52
-| poly_mul_fft |        5 |       92
-| poly_mul_fft |        6 |      172
-| poly_mul_fft |        7 |      351
-| poly_mul_fft |        8 |      671
-| poly_mul_fft |        9 |     1311
-| poly_mul_fft |       10 |     2766
+| poly_mul_fft |        1 |       11
+| poly_mul_fft |        2 |       20
+| poly_mul_fft |        3 |       34
+| poly_mul_fft |        4 |       55
+| poly_mul_fft |        5 |       97
+| poly_mul_fft |        6 |      181
+| poly_mul_fft |        7 |      349
+| poly_mul_fft |        8 |      703
+| poly_mul_fft |        9 |     1375
+| poly_mul_fft |       10 |     2745
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_invnorm2_fft |        0 |        9
-| poly_invnorm2_fft |        1 |       13
-| poly_invnorm2_fft |        2 |       24
-| poly_invnorm2_fft |        3 |       53
-| poly_invnorm2_fft |        4 |      106
-| poly_invnorm2_fft |        5 |      238
-| poly_invnorm2_fft |        6 |      494
-| poly_invnorm2_fft |        7 |     1013
-| poly_invnorm2_fft |        8 |     2037
-| poly_invnorm2_fft |        9 |     4111
-| poly_invnorm2_fft |       10 |     8213
+| poly_invnorm2_fft |        1 |       14
+| poly_invnorm2_fft |        2 |       27
+| poly_invnorm2_fft |        3 |       54
+| poly_invnorm2_fft |        4 |      104
+| poly_invnorm2_fft |        5 |      237
+| poly_invnorm2_fft |        6 |      493
+| poly_invnorm2_fft |        7 |     1005
+| poly_invnorm2_fft |        8 |     2038
+| poly_invnorm2_fft |        9 |     4086
+| poly_invnorm2_fft |       10 |     8187
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_mul_autoadj_fft |        0 |        9
 | poly_mul_autoadj_fft |        1 |       10
-| poly_mul_autoadj_fft |        2 |       13
-| poly_mul_autoadj_fft |        3 |       21
-| poly_mul_autoadj_fft |        4 |       35
-| poly_mul_autoadj_fft |        5 |       57
-| poly_mul_autoadj_fft |        6 |      101
-| poly_mul_autoadj_fft |        7 |      207
-| poly_mul_autoadj_fft |        8 |      383
-| poly_mul_autoadj_fft |        9 |      735
-| poly_mul_autoadj_fft |       10 |     1439
+| poly_mul_autoadj_fft |        2 |       16
+| poly_mul_autoadj_fft |        3 |       24
+| poly_mul_autoadj_fft |        4 |       38
+| poly_mul_autoadj_fft |        5 |       62
+| poly_mul_autoadj_fft |        6 |      110
+| poly_mul_autoadj_fft |        7 |      206
+| poly_mul_autoadj_fft |        8 |      416
+| poly_mul_autoadj_fft |        9 |      800
+| poly_mul_autoadj_fft |       10 |     1568
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_LDL_fft |        0 |        9
-| poly_LDL_fft |        1 |       38
-| poly_LDL_fft |        2 |       51
-| poly_LDL_fft |        3 |       94
-| poly_LDL_fft |        4 |      179
-| poly_LDL_fft |        5 |      349
-| poly_LDL_fft |        6 |      689
-| poly_LDL_fft |        7 |     1426
-| poly_LDL_fft |        8 |     2845
-| poly_LDL_fft |        9 |     5474
-| poly_LDL_fft |       10 |    12346
+| poly_LDL_fft |        1 |       41
+| poly_LDL_fft |        2 |       64
+| poly_LDL_fft |        3 |      107
+| poly_LDL_fft |        4 |      192
+| poly_LDL_fft |        5 |      364
+| poly_LDL_fft |        6 |      709
+| poly_LDL_fft |        7 |     1397
+| poly_LDL_fft |        8 |     2795
+| poly_LDL_fft |        9 |     5547
+| poly_LDL_fft |       10 |    11083
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_LDLmv_fft |        0 |        9
-| poly_LDLmv_fft |        1 |       40
-| poly_LDLmv_fft |        2 |       56
-| poly_LDLmv_fft |        3 |      100
-| poly_LDLmv_fft |        4 |      200
-| poly_LDLmv_fft |        5 |      387
-| poly_LDLmv_fft |        6 |      732
-| poly_LDLmv_fft |        7 |     1440
-| poly_LDLmv_fft |        8 |     2857
-| poly_LDLmv_fft |        9 |     5748
-| poly_LDLmv_fft |       10 |    11868
+| poly_LDLmv_fft |        1 |       62
+| poly_LDLmv_fft |        2 |       94
+| poly_LDLmv_fft |        3 |      137
+| poly_LDLmv_fft |        4 |      266
+| poly_LDLmv_fft |        5 |      497
+| poly_LDLmv_fft |        6 |      958
+| poly_LDLmv_fft |        7 |     1872
+| poly_LDLmv_fft |        8 |     3707
+| poly_LDLmv_fft |        9 |     5915
+| poly_LDLmv_fft |       10 |    11832
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_split_fft |        0 |        9
 | poly_split_fft |        1 |        9
-| poly_split_fft |        2 |       25
-| poly_split_fft |        3 |       36
-| poly_split_fft |        4 |       58
-| poly_split_fft |        5 |       99
-| poly_split_fft |        6 |      183
-| poly_split_fft |        7 |      465
-| poly_split_fft |        8 |      878
-| poly_split_fft |        9 |     1757
-| poly_split_fft |       10 |     3575
+| poly_split_fft |        2 |       27
+| poly_split_fft |        3 |       45
+| poly_split_fft |        4 |       67
+| poly_split_fft |        5 |      111
+| poly_split_fft |        6 |      199
+| poly_split_fft |        7 |      375
+| poly_split_fft |        8 |      727
+| poly_split_fft |        9 |     1455
+| poly_split_fft |       10 |     2996
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_merge_fft |        0 |        9
 | poly_merge_fft |        1 |        9
-| poly_merge_fft |        2 |       25
-| poly_merge_fft |        3 |       77
-| poly_merge_fft |        4 |       83
-| poly_merge_fft |        5 |      123
-| poly_merge_fft |        6 |      203
-| poly_merge_fft |        7 |      387
-| poly_merge_fft |        8 |      704
-| poly_merge_fft |        9 |     1369
-| poly_merge_fft |       10 |     3275
+| poly_merge_fft |        2 |       26
+| poly_merge_fft |        3 |       58
+| poly_merge_fft |        4 |       78
+| poly_merge_fft |        5 |      117
+| poly_merge_fft |        6 |      194
+| poly_merge_fft |        7 |      373
+| poly_merge_fft |        8 |      682
+| poly_merge_fft |        9 |     1301
+| poly_merge_fft |       10 |     2567
 
 
-| degree | kg(ms) |  ek(us) |  sd(us) | sdc(us) |  st(us) | stc(us) |  vv(us) | vvc(us)
-| ---- | ------ | -- | -- | --- |--- |--- |---| --- |
-|  512: |   19.51 |  275.68 |  865.79 |  911.64 |  514.76 |  560.33 |   72.57 |  117.50
-| 1024: |   59.13 |  580.92 | 1779.01 | 1866.69 | 1036.55 | 1122.94 |  152.94 |  235.49
+|degree|  kg(us)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
+| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+| 512: | 18053.33 |   258.52 |   828.26 |   885.96 |   498.93 |   557.37 |    70.20 |   130.81 |
+|1024: | 52207.41 |   548.33 |  1713.87 |  1827.85 |  1007.91 |  1122.91 |   152.44 |   265.11 |
 
-| degree |  kg(kc)   | ek(kc) |  sd(kc) | sdc(kc) |  st(kc) | stc(kc) |  vv(kc) | vvc(kc)
-| ---- | ------ | -- | -- | --- |--- |--- |---| --- |
-|  512: |  33602.87 |  494.99 | 1553.44 | 1636.31 |  918.57 | 1001.67 |  127.81 |  211.21
-| 1024: |  93555.89 | 1044.08 | 3192.95 | 3351.56 | 1857.49 | 2015.62 |  272.07 |  423.32
-
+|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
+| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+| 512: | 32495.83 |   465.19 |  1490.72 |  1594.55 |   897.93 |  1003.10 |   126.29 |   235.38 |
+|1024: | 93973.14 |   986.85 |  3084.80 |  3289.99 |  1814.10 |  2021.09 |   274.31 |   477.14 |
