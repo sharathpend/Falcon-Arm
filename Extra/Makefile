@@ -44,8 +44,8 @@
 #               (normally not needed on x86, both 32-bit and 64-bit)
 
 CC = clang
-CFLAGS = -Wall -Wextra -Wshadow -Wundef -O3 #-pg -fno-pie
-LD = clang -Wall -Wextra -Wshadow -Wundef -O3 #-pg -fno-pie
+CFLAGS = -mtune=native -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
+LD = clang -mtune=native -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
 LDFLAGS = #-pg -no-pie
 LIBS =
 

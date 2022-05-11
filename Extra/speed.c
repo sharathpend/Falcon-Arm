@@ -60,6 +60,7 @@
 
 #define ITERATIONS 10000
 uint64_t times[ITERATIONS];
+uint64_t cycles[ITERATIONS];
 
 /*
  * This code uses only the external API.
@@ -151,6 +152,35 @@ do_bench_time(bench_fun bf, void *ctx, int iteration)
 
 }
 
+
+static long long
+do_bench_time_cycles(bench_fun bf, void *ctx, long long *walltime, int iteration)
+{
+    long long start, stop;
+    struct timespec start_tt, stop_tt;
+
+    bf(ctx, 10);
+    /*
+     * Always do a few blank runs to "train" the caches and branch
+     * prediction.
+     */
+
+    for (int i = 0; i < iteration; i++)
+    {
+        // Benchmark cycles
+        clock_gettime(CLOCK_MONOTONIC_RAW, &start_tt);
+        TIME(start);
+        bf(ctx, 1);
+        TIME(stop);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &stop_tt);
+        cycles[i] = stop - start;
+        times[i] = (stop_tt.tv_sec - start_tt.tv_sec) * 1000000000 + (stop_tt.tv_nsec - start_tt.tv_nsec);
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    qsort(cycles, iteration, sizeof(uint64_t), cmp_uint64_t);
+    *walltime = times[iteration >> 1];
+    return cycles[iteration >> 1];
+}
 
 typedef struct {
 	unsigned logn;
@@ -442,6 +472,86 @@ test_speed_falcon(unsigned logn, int iteration)
 	xfree(bc.sigct);
 }
 
+
+static void
+test_speed_falcon_time_cycles(unsigned logn, int iteration)
+{
+        printf("|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|\n");
+        printf("| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
+
+        bench_context bc;
+        size_t len;
+
+        printf("|%4u: |", 1u << logn);
+        fflush(stdout);
+
+        bc.logn = logn;
+        if (shake256_init_prng_from_system(&bc.rng) != 0) {
+                fprintf(stderr, "random seeding failed\n");
+                exit(EXIT_FAILURE);
+        }
+        len = FALCON_TMPSIZE_KEYGEN(logn);
+        len = maxsz(len, FALCON_TMPSIZE_SIGNDYN(logn));
+        len = maxsz(len, FALCON_TMPSIZE_SIGNTREE(logn));
+        len = maxsz(len, FALCON_TMPSIZE_EXPANDPRIV(logn));
+        len = maxsz(len, FALCON_TMPSIZE_VERIFY(logn));
+        bc.tmp = xmalloc(len);
+        bc.tmp_len = len;
+        bc.pk = xmalloc(FALCON_PUBKEY_SIZE(logn));
+        bc.sk = xmalloc(FALCON_PRIVKEY_SIZE(logn));
+        bc.esk = xmalloc(FALCON_EXPANDEDKEY_SIZE(logn));
+        bc.sig = xmalloc(FALCON_SIG_COMPRESSED_MAXSIZE(logn));
+        bc.sig_len = 0;
+        bc.sigct = xmalloc(FALCON_SIG_CT_SIZE(logn));
+        bc.sigct_len = 0;
+
+        long long walltime[8];
+
+        printf(" %8.2f |",
+		    do_bench_time_cycles(&bench_keygen, &bc, &walltime[0], iteration/10) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_expand_privkey, &bc, &walltime[1], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_dyn, &bc, &walltime[2], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_dyn_ct, &bc, &walltime[3], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_tree, &bc, &walltime[4], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_sign_tree_ct, &bc, &walltime[5], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_verify, &bc, &walltime[6], iteration) / 1000.0);
+        fflush(stdout);
+        printf(" %8.2f |",
+            do_bench_time_cycles(&bench_verify_ct, &bc, &walltime[7], iteration) / 1000.0);
+        printf("\n\n");
+        fflush(stdout);
+
+        printf("|degree|  kg(us)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|\n");
+        printf("| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
+        printf("|%4u: |", 1u << logn);
+        for (int i = 0; i < 8; i++)
+        {
+            printf(" %8.2f |", ((double) walltime[i]) / 1000.0);
+        }
+        printf("\n\n");
+        fflush(stdout);
+
+        xfree(bc.tmp);
+        xfree(bc.pk);
+        xfree(bc.sk);
+        xfree(bc.esk);
+        xfree(bc.sig);
+        xfree(bc.sigct);
+}
+
+
 int main(void)
 {
 #if APPLE_M1 == 1
@@ -451,7 +561,7 @@ int main(void)
 	double threshold;
     int iteration; 
 
-    iteration = ITERATIONS/2;
+    iteration = ITERATIONS;
     threshold = 2.0;
 
 	printf("time threshold = %.4f s\n", threshold);
@@ -459,22 +569,25 @@ int main(void)
 	printf("st = sign (with expanded key), vv = verify\n");
 	printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n");
     
-    printf("\nAll numbers are in cycles\n\n");
-    printf("|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|\n");
-    printf("| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
-    fflush(stdout);
-    test_speed_falcon_cycles(9, iteration);
-    test_speed_falcon_cycles(10, iteration);
+    test_speed_falcon_time_cycles(9, iteration);
+    test_speed_falcon_time_cycles(10, iteration);
+
+    // printf("\nAll numbers are in cycles\n\n");
+    // printf("|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|\n");
+    // printf("| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
+    // fflush(stdout);
+    // test_speed_falcon_cycles(9, iteration);
+    // test_speed_falcon_cycles(10, iteration);
 
 
 
-    printf("keygen in milliseconds, other values in microseconds\n");
-	printf("\n");
-	printf("|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|\n");
-    printf("| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
-	fflush(stdout);
-	test_speed_falcon(9, threshold);
-	test_speed_falcon(10, threshold);
+    // printf("keygen in milliseconds, other values in microseconds\n");
+	// printf("\n");
+	// printf("|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|\n");
+    // printf("| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |\n");
+	// fflush(stdout);
+	// test_speed_falcon(9, threshold);
+	// test_speed_falcon(10, threshold);
 
 
 	return 0;
