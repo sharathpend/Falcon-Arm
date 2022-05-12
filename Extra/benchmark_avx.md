@@ -1,4 +1,7 @@
-# AVX2 
+# Benchmark
+
+Disable Spectre and Meltdown. I let turbo boost on. 
+Just want to see maximize performance comparison. 
 
 ```
 Architecture:                    x86_64
@@ -17,8 +20,8 @@ Model:                           140
 Model name:                      11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
 Stepping:                        1
 CPU MHz:                         2800.000
-CPU max MHz:                     4700,0000
-CPU min MHz:                     400,0000
+CPU max MHz:                     4700.0000
+CPU min MHz:                     400.0000
 BogoMIPS:                        5606.40
 Virtualization:                  VT-x
 L1d cache:                       192 KiB
@@ -30,167 +33,184 @@ Vulnerability Itlb multihit:     Not affected
 Vulnerability L1tf:              Not affected
 Vulnerability Mds:               Not affected
 Vulnerability Meltdown:          Not affected
-Vulnerability Spec store bypass: Mitigation; Speculative Store Bypass disabled via prctl a
-                                 nd seccomp
-Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user pointer s
-                                 anitization
-Vulnerability Spectre v2:        Mitigation; Enhanced IBRS, IBPB conditional, RSB filling
+Vulnerability Spec store bypass: Vulnerable
+Vulnerability Spectre v1:        Vulnerable: __user pointer sanitization and usercopy barriers only; n
+                                 o swapgs barriers
+Vulnerability Spectre v2:        Vulnerable, IBPB: disabled, STIBP: disabled
 Vulnerability Srbds:             Not affected
 Vulnerability Tsx async abort:   Not affected
-Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca 
-                                 cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht t
-                                 m pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_
-                                 perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpui
-                                 d aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor 
-                                 ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse
-
+Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse
+                                 36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb
+                                  rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopo
+                                 logy nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64
+                                  monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1
+                                  sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdr
+                                 and lahf_lm abm 3dnowprefetch cpuid_fault epb cat_l2 invpcid_single c
+                                 dp_l2 ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow vnmi flexpriority
+                                  ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid
+                                  rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb in
+                                 tel_pt avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsav
+                                 es split_lock_detect dtherm ida arat pln pts hwp hwp_notify hwp_act_w
+                                 indow hwp_epp hwp_pkg_req avx512vbmi umip pku ospke avx512_vbmi2 gfni
+                                  vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid mov
+                                 diri movdir64b fsrm avx512_vp2intersect md_clear flush_l1d arch_capab
+                                 ilities
 ```
 
-## AVX2 disable
 
-### First Run 
+## Falcon
 
+### AVX2 disable
+
+#### 4th run 
 |degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
 | ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:| 13884.02|   176.19|   584.02|   614.50|   359.80|   395.09|    51.23|    83.29|
-| 1024:| 42237.31|   357.13|  1176.50|  1239.99|   705.43|   764.92|   102.59|   166.26|
+| 512: | 13719.24 |   176.19 |   583.35 |   613.02 |   355.99 |   385.64 |    48.86 |    81.75 |
+|1024: | 40633.90 |   355.29 |  1172.75 |  1231.24 |   706.90 |   765.80 |   100.33 |   163.13 |
 
 
-|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
+|degree|  kg(us)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
 | ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|     7.47|    63.16|   226.45|   221.61|   127.72|   136.30|    21.87|    29.54|
-| 1024:|    14.91|   126.36|   412.05|   461.37|   253.96|   272.64|    37.44|    61.72|
+| 512: |  4894.17 |    62.88 |   208.12 |   218.71 |   127.02 |   137.59 |    17.45 |    29.18 |
+|1024: | 14495.57 |   126.76 |   418.38 |   439.25 |   252.20 |   273.21 |    35.81 |    58.21 |
 
 
-### Second Run 
+#### Frequency
 
-|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
-| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:| 15028.97|   189.60|   595.98|   653.06|   369.76|   413.90|    57.67|    94.78|
-| 1024:| 43500.22|   355.47|  1187.07|  1246.55|   710.46|   786.32|   104.46|   168.77|
-
-
-|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
-| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|     6.00|    62.95|   211.67|   221.19|   128.79|   137.02|    18.80|    30.31|
-| 1024:|    20.28|   127.00|   418.09|   452.03|   254.60|   273.36|    37.68|    60.77|
-
-
-### Third Run 
-
-
-|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
-| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:| 13852.58|   176.19|   580.36|   611.33|   353.38|   384.51|    50.77|    82.92|
-| 1024:| 43056.73|   355.59|  1184.61|  1245.73|   710.91|   772.31|   104.00|   169.15|
-
-
-|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
-| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|     4.86|    62.89|   209.68|   222.97|   132.06|   135.30|    20.68|    33.99|
-| 1024:|    15.18|   126.83|   413.84|   434.64|   253.51|   276.66|    37.37|    63.23|
-
-### Frequency
-
-./avx_speed_ghz
-|degree|  kg(Ghz)|   ek(Ghz)|   sd(Ghz)|  sdc(Ghz)|   st(Ghz)|  stc(Ghz)|   vv(Ghz)|  vvc(Ghz)|
-| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|      2.82|      2.50|      2.80|      2.79|      2.80|      2.81|      2.74|      2.80|
-| 1024:|      2.78|      2.81|      2.79|      2.61|      2.78|      2.80|      2.80|      2.79|
-
-
-### FFT 
-
-| FFT | Foward FFT | Inverse FFT
-|:-------------|----------:|-----------:|
-| FFT 0 |       20 |       18
-| FFT 1 |       19 |       18
-| FFT 2 |       25 |       30
-| FFT 3 |       49 |       53
-| FFT 4 |       99 |      106
-| FFT 5 |      201 |      215
-| FFT 6 |      436 |      401
-| FFT 7 |      864 |      906
-| FFT 8 |     1795 |     1951
-| FFT 9 |     3860 |     3674
-| FFT 10 |     7162 |     7608
-
-### NTT
-
-| NTT | Foward NTT | Inverse NTT
-|:-------------|----------:|-----------:|
-| NTT 9 |     8486 |     9057
-| NTT 10 |    17948 |    21985
-
-
-## AVX2 enable
-
-### First Run 
-
-|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
-| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:| 13832.64|   167.25|   423.13|   453.90|   216.64|   246.84|    49.68|    82.94|
-| 1024:| 41752.26|   344.23|   854.18|   915.86|   435.36|   496.47|   101.71|   165.78|
-
-
-|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
-| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|     6.15|    59.57|   151.05|   163.08|    76.95|    88.00|    20.59|    33.89|
-| 1024:|    20.04|   122.89|   341.29|   325.08|   156.48|   182.90|    37.83|    59.18|
-
-### Second Run 
-
-|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
-| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:| 13943.66|   167.15|   427.10|   457.86|   216.44|   246.90|    50.56|    82.66|
-| 1024:| 41079.54|   342.98|   865.91|   925.39|   441.13|   492.58|   102.44|   165.52|
-
-
-|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
-| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|     5.30|    67.06|   153.37|   165.54|    87.79|   102.01|    29.64|    34.49|
-| 1024:|    15.07|   122.86|   307.66|   329.30|   152.35|   176.50|    37.36|    65.05|
-
-### Third Run 
-
-|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
-| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:| 14207.52|   176.28|   426.25|   454.98|   217.51|   252.13|    50.95|    82.66|
-| 1024:| 42764.18|   342.92|   872.93|   935.09|   443.10|   530.86|   103.35|   168.54|
-
-|degree|  kg(ms)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
-| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|     9.03|    61.07|   149.50|   163.89|    80.28|    89.32|    18.59|    31.01|
-| 1024:|    13.60|   123.40|   344.59|   363.66|   174.76|   198.01|    42.31|    67.90|
-
-### Frequency
+`./avx_speed_ghz`
 
 |degree|  kg(Ghz)|   ek(Ghz)|   sd(Ghz)|  sdc(Ghz)|   st(Ghz)|  stc(Ghz)|   vv(Ghz)|  vvc(Ghz)|
 | ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-|  512:|      2.70|      2.80|      2.80|      2.80|      2.80|      2.81|      2.80|      2.80|
-| 1024:|      2.78|      2.81|      2.81|      2.79|      3.00|      2.76|      3.14|      2.81|
+|  512:|      2.80|      2.80|      2.80|      2.80|      2.80|      2.81|      2.80|      2.80|
+| 1024:|      2.82|      2.80|      2.80|      2.80|      2.81|      2.81|      2.80|      2.80|
 
 
-
-### FFT 
+#### FFT 
 
 | FFT | Foward FFT | Inverse FFT
 |:-------------|----------:|-----------:|
-| FFT 0 |       20 |       23
-| FFT 1 |       22 |       22
-| FFT 2 |       30 |       32
-| FFT 3 |       45 |       47
-| FFT 4 |       73 |       76
-| FFT 5 |      134 |      142
-| FFT 6 |      228 |      253
-| FFT 7 |      509 |      519
-| FFT 8 |     1016 |     1065
-| FFT 9 |     2107 |     2216
-| FFT 10 |     4544 |     4741
+| FFT 0 |       63 |       60
+| FFT 1 |       63 |       16
+| FFT 2 |       25 |       29
+| FFT 3 |       50 |       53
+| FFT 4 |       98 |      103
+| FFT 5 |      192 |      206
+| FFT 6 |      405 |      418
+| FFT 7 |      787 |      873
+| FFT 8 |     1640 |     1798
+| FFT 9 |     3486 |     3790
+| FFT 10 |     7341 |     7961
 
-### NTT
+#### NTT
 
 | NTT | Foward NTT | Inverse NTT
 |:-------------|----------:|-----------:|
-| NTT 9 |     8448 |     9123
-| NTT 10 |    17847 |    19193
+| NTT 9 |     8468 |     9117
+| NTT 10 |    17897 |    19150
+
+
+### AVX2 enable
+
+#### 4th Run 
+`taskset -c 0 ./avx_speed`
+
+
+|degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
+| ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+| 512: | 13568.03 |   167.04 |   427.13 |   456.68 |   220.47 |   250.51 |    50.05 |    81.52 |
+|1024: | 40305.86 |   342.61 |   862.04 |   919.19 |   439.32 |   497.52 |   101.83 |   163.25 |
+
+|degree|  kg(us)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
+| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+| 512: |  4840.23 |    59.62 |   152.39 |   162.93 |    78.67 |    89.39 |    17.87 |    29.10 |
+|1024: | 14378.55 |   122.24 |   307.54 |   327.93 |   156.74 |   177.50 |    36.34 |    58.26 |
+
+
+#### Frequency
+
+`taskset -c 0 ./avx_speed_ghz`
+
+|degree|  kg(Ghz)|   ek(Ghz)|   sd(Ghz)|  sdc(Ghz)|   st(Ghz)|  stc(Ghz)|   vv(Ghz)|  vvc(Ghz)|
+| ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+|  512:|      2.90|      2.80|      2.80|      2.80|      2.80|      2.80|      2.83|      2.80|
+| 1024:|      2.80|      2.80|      2.80|      2.80|      2.80|      2.80|      2.83|      2.81|
+
+#### FFT 
+
+| FFT | Foward FFT | Inverse FFT
+|:-------------|----------:|-----------:|
+| FFT 0 |       63 |       61
+| FFT 1 |       63 |       16
+| FFT 2 |       24 |       27
+| FFT 3 |       50 |       52
+| FFT 4 |       73 |       77
+| FFT 5 |      130 |      156
+| FFT 6 |      270 |      273
+| FFT 7 |      481 |      499
+| FFT 8 |      966 |     1024
+| FFT 9 |     2040 |     2138
+| FFT 10 |     4370 |     4572
+
+#### NTT
+
+| NTT | Foward NTT | Inverse NTT
+|:-------------|----------:|-----------:|
+| NTT 9 |     8481 |     9084
+| NTT 10 |    17944 |    19108
+
+
+
+## Dilithium
+
+## AVX Enable
+
+### Dilithium2 
+
+```
+taskset -c 0 ./test_speed2
+Keypair:
+median: 49092 cycles/ticks
+average: 49482 cycles/ticks
+
+Sign:
+median: 113531 cycles/ticks
+average: 144546 cycles/ticks
+
+Verify:
+median: 52746 cycles/ticks
+average: 52870 cycles/ticks
+```
+
+### Dilthium3 
+
+```
+taskset -c 0 ./test_speed3
+Keypair:
+median: 84735 cycles/ticks
+average: 85202 cycles/ticks
+
+Sign:
+median: 186288 cycles/ticks
+average: 232221 cycles/ticks
+
+Verify:
+median: 85317 cycles/ticks
+average: 85735 cycles/ticks
+```
+
+### Dilithium5
+
+```
+taskset -c 0 ./test_speed5
+Keypair:
+median: 132123 cycles/ticks
+average: 134132 cycles/ticks
+
+Sign:
+median: 230714 cycles/ticks
+average: 275100 cycles/ticks
+
+Verify:
+median: 133260 cycles/ticks
+average: 133893 cycles/ticks
+```
