@@ -1349,6 +1349,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
 
             vfmulx4(mu_re, mu_re, m);
             vfmulx4(mu_im, mu_im, m);
+            vstorex4(&l10[i], mu_re);
 
             vfmulx4(d_re, mu_re, g01_re);
             vfmulx4(d_im, mu_im, g01_re);
@@ -1366,8 +1367,6 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
             vstorex4(&d11[i + hn], g11_im);
 
             vfnegx4(mu_im, mu_im);
-
-            vstorex4(&l10[i], mu_re);
             vstorex4(&l10[i + hn], mu_im);
         }
         break;
