@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "api.h"
 #include "config.h"
 
 
@@ -543,6 +544,151 @@ test_speed_falcon_time_cycles(unsigned logn, int iteration)
         xfree(bc.sigct);
 }
 
+long long sum(uint64_t *a, int interation)
+{
+    uint64_t s = 0; 
+    for (int i =0 ; i < interation; i++)
+    {
+        s += a[i];
+    }
+    return s; 
+}
+
+
+int benchmark_59b_message(int iteration)
+{
+
+    unsigned char sk[CRYPTO_SECRETKEYBYTES], pk[CRYPTO_PUBLICKEYBYTES];
+    unsigned char m[59] = {0}, m1[59] = {0};
+    unsigned char sm[CRYPTO_BYTES];
+    unsigned long long mlen = 0, mlen1 = 0, smlen = 0;
+    int ret = 0;
+    long long start, stop;
+    struct timespec start_tt, stop_tt;
+
+    double scc, vcc; 
+        
+
+    uint64_t sign_time = 0, sign_cycle = 0, 
+                verify_time = 0, verify_cycle = 0, 
+                avg_sign_time = 0, avg_sign_cycle = 0, 
+                avg_verify_time = 0, avg_verify_cycle = 0;
+
+    mlen = 59;
+
+    ret |= crypto_sign_keypair(pk, sk);
+    if (ret)
+    {
+        return 1;
+    }
+
+    // Warmup
+    for (int i = 0; i < 10; i++)
+    {
+        ret |= crypto_sign(sm, &smlen, m, mlen, sk);
+    }
+
+    // Benchmark
+    for (int i = 0; i < iteration; i++)
+    {
+        clock_gettime(CLOCK_MONOTONIC_RAW, &start_tt);
+        ret |= crypto_sign(sm, &smlen, m, mlen, sk);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &stop_tt);
+        times[i] = (stop_tt.tv_sec - start_tt.tv_sec) * 1000000000 + (stop_tt.tv_nsec - start_tt.tv_nsec);
+    }
+    for (int i = 0; i < iteration; i++)
+    {
+        TIME(start);
+        ret |= crypto_sign(sm, &smlen, m, mlen, sk);
+        TIME(stop);
+        cycles[i] = stop - start;
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    qsort(cycles, iteration, sizeof(uint64_t), cmp_uint64_t);
+    sign_time = times[iteration >> 1];
+    sign_cycle = cycles[iteration >> 1];
+    avg_sign_cycle = sum(cycles, iteration);
+    avg_sign_time = sum(times, iteration);
+
+
+    // Warmup
+    for (int i = 0; i < 10; i++)
+    {
+        ret |= crypto_sign_open(m1, &mlen1, sm, smlen, pk);
+    }
+
+    // Benchmark
+    for (int i = 0; i < iteration; i++)
+    {
+        clock_gettime(CLOCK_MONOTONIC_RAW, &start_tt);
+        ret |= crypto_sign_open(m1, &mlen1, sm, smlen, pk);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &stop_tt);
+        times[i] = (stop_tt.tv_sec - start_tt.tv_sec) * 1000000000 + (stop_tt.tv_nsec - start_tt.tv_nsec);
+    }
+    printf("mlen, smlen = %llu, %llu\n", mlen, smlen);
+    for (int i = 0; i < iteration; i++)
+    {
+        TIME(start);
+        ret |= crypto_sign_open(m1, &mlen1, sm, smlen, pk);
+        TIME(stop);
+        cycles[i] = stop - start;
+    }
+    qsort(times, iteration, sizeof(uint64_t), cmp_uint64_t);
+    qsort(cycles, iteration, sizeof(uint64_t), cmp_uint64_t);
+    verify_time = times[iteration >> 1];
+    verify_cycle = cycles[iteration >> 1];
+    avg_verify_cycle = sum(cycles, iteration);
+    avg_verify_time = sum(times, iteration);
+
+    printf("| Median   | sign | verify |\n");
+    printf("|    | --:  | ---: |\n");
+
+    scc = sign_cycle / 1000.0;
+    vcc = verify_cycle / 1000.0;
+    printf("| kc | %8.2f | %8.2f |\n", scc, vcc);
+    
+    scc = sign_time / 1000.0;
+    vcc = verify_time / 1000.0;
+    printf("| us | %8.2f | %8.2f |\n", scc, vcc);
+    
+    scc = ((double) sign_cycle)/ sign_time;
+    vcc = ((double) verify_cycle)/ verify_time;
+    printf("| Ghz| %8.2f | %8.2f |\n\n", scc, vcc);
+
+
+    printf("| Average | sign | verify |\n");
+    printf("|    | --:  | ---: |\n");
+
+    scc = ((double) avg_sign_cycle) / 1000.0 / iteration;
+    vcc = ((double) avg_verify_cycle) / 1000.0 / iteration;
+    printf("| kc | %8.2f | %8.2f |\n", scc, vcc);
+    
+    scc = ((double) avg_sign_time) / 1000.0 / iteration;
+    vcc = ((double) avg_verify_time) / 1000.0 /iteration;
+    printf("| us | %8.2f | %8.2f |\n", scc, vcc);
+    
+    scc = ((double) avg_sign_cycle)/ avg_sign_time;
+    vcc = ((double) avg_verify_cycle)/ avg_verify_time;
+    printf("| Ghz| %8.2f | %8.2f |\n\n", scc, vcc);
+
+    if (ret)
+    {
+        return 1;
+    }
+
+    if ( mlen != mlen1 ) {
+        printf("crypto_sign_open returned bad 'mlen': Got <%llu>, expected <%llu>\n", mlen1, mlen);
+        return -1;
+    }
+    
+    if ( memcmp(m, m1, mlen) ) {
+        printf("crypto_sign_open returned bad 'm' value\n");
+        return -1;
+    }
+    
+    return 0;
+}
+
 int
 main(void)
 {
@@ -556,9 +702,11 @@ main(void)
 
         iteration = ITERATIONS;
         
-        printf("kg = keygen, ek = expand private key, sd = sign (without expanded key)\n");
-        printf("st = sign (with expanded key), vv = verify\n");
-        printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n\n");
+        benchmark_59b_message(ITERATIONS);
+
+        // printf("kg = keygen, ek = expand private key, sd = sign (without expanded key)\n");
+        // printf("st = sign (with expanded key), vv = verify\n");
+        // printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n\n");
         
         test_speed_falcon_time_cycles(FALCON_LOGN, iteration);
         // test_speed_falcon_cycles(FALCON_LOGN, iteration);
