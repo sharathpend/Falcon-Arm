@@ -139,8 +139,8 @@ build/a72_speed1024_ghz: $(HEAD1) $(HEAD) $(OBJ) $(OBJ_SPEED_Ghz)
 
 build/a72_speed_59b_512: $(HEAD1) $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DAPPLE_M1=0 -o $@ hal.c $(OBJ) speed_59b_512.c
-	sudo $@
+	$@
 
 build/a72_speed_59b_1024: $(HEAD1) $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) speed_59b_1024.c
-	sudo $@
+	$@
