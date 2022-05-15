@@ -51,11 +51,12 @@ LIBS =
 
 # =====================================================================
 
-OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o
+OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o katrng.o
 
 all: test_falcon
 a72: a72_speed a72_bench
 m1: m1_speed m1_bench
+m1_59b: m1_speed_59b_512 m1_speed_59b_1024
 avx: avx_speed avx_bench
 a72_ghz: a72_speed_ghz
 m1_ghz: m1_speed_ghz
@@ -84,6 +85,14 @@ a72_speed_ghz: hal.o speed_a72_ghz.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ hal.o speed_a72_ghz.o $(OBJ) $(LIBS)
 	./$@
 
+a72_speed_59b_512: hal.o nist_512.o speed_a72_59b_512.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ hal.o nist_512.o speed_a72_59b_512.o $(OBJ) $(LIBS)
+	./$@
+
+a72_speed_59b_1024: hal.o nist_1024.o speed_a72_59b_1024.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ hal.o nist_1024.o speed_a72_59b_1024.o $(OBJ) $(LIBS)
+	./$@
+
 m1_speed: m1cycles.o speed_m1.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ m1cycles.o speed_m1.o $(OBJ)
 	sudo ./$@
@@ -94,6 +103,14 @@ m1_bench: m1cycles.o bench_m1.o $(OBJ)
 
 m1_speed_ghz: m1cycles.o speed_m1_ghz.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ m1cycles.o speed_m1_ghz.o $(OBJ)
+	sudo ./$@
+
+m1_speed_59b_512: m1cycles.o nist_512.o speed_m1_59b_512.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ m1cycles.o nist_512.o speed_m1_59b_512.o $(OBJ) $(LIBS)
+	sudo ./$@
+
+m1_speed_59b_1024: m1cycles.o nist_1024.o speed_m1_59b_1024.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ m1cycles.o nist_1024.o speed_m1_59b_1024.o $(OBJ) $(LIBS)
 	sudo ./$@
 
 avx_speed: cpucycles.o speed_avx.o $(OBJ)
@@ -147,11 +164,32 @@ shake.o: shake.c config.h inner.h fpr.h
 sign.o: sign.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o sign.o sign.c
 
+katrng.o: katrng.c katrng.h
+	$(CC) $(CFLAGS) -c -o $@ katrng.c
+
+nist_512.o: nist_512.c api_512.h
+	$(CC) $(CFLAGS) -c -o $@ nist_512.c
+
+nist_1024.o: nist_1024.c api_1024.h
+	$(CC) $(CFLAGS) -c -o $@ nist_1024.c
+
 speed_a72.o: speed.c falcon.h
-	$(CC) $(CFLAGS) -DAPPLE_M1=0 -c -o $@ speed.c
+	$(CC) $(CFLAGS) -DAPPLE_M1=0 -DAVX2=0 -c -o $@ speed.c
+
+speed_a72_59b_512.o: speed_59b_512.c falcon.h api_512.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=0 -DAVX2=0 -c -o $@ speed_59b_512.c
+
+speed_a72_59b_1024.o: speed_59b_1024.c falcon.h api_1024.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=0 -DAVX2=0 -c -o $@ speed_59b_1024.c
 
 speed_m1.o: speed.c falcon.h
-	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -c -o $@ speed.c
+	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -DAVX2=0 -c -o $@ speed.c
+
+speed_m1_59b_512.o: speed_59b_512.c falcon.h api_512.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -DAVX2=0 -c -o $@ speed_59b_512.c
+
+speed_m1_59b_1024.o: speed_59b_1024.c falcon.h api_1024.h
+	$(CC) $(CFLAGS) -DAPPLE_M1=1 -DBENCH_CYCLES=1 -DAVX2=0 -c -o $@ speed_59b_1024.c
 
 speed_avx.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ speed.c
