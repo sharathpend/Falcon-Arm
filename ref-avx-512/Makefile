@@ -54,9 +54,9 @@ LIBS =
 OBJ = katrng.o codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o nist.o
 
 all: test_falcon
-a72: a72_speed
-m1: m1_speed
-avx: avx_speed
+a72: a72_speed a72_bench
+m1: m1_speed m1_bench
+avx: avx_speed avx_bench
 a72_ghz: a72_speed_ghz
 m1_ghz: m1_speed_ghz
 avx_ghz: avx_speed_ghz
