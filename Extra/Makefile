@@ -55,9 +55,11 @@ OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o
 
 all: test_falcon
 a72: a72_speed a72_bench
+a72_59b: a72_speed_59b_512 a72_speed_59b_1024
 m1: m1_speed m1_bench
 m1_59b: m1_speed_59b_512 m1_speed_59b_1024
 avx: avx_speed avx_bench
+avx_59b: avx2_speed_59b_512 avx2_speed_59b_1024
 a72_ghz: a72_speed_ghz
 m1_ghz: m1_speed_ghz
 avx_ghz: avx_speed_ghz
@@ -67,8 +69,11 @@ clean:
 	-rm -f bench_a72.o hal.o speed_a72.o speed_a72_ghz.o
 	-rm -f bench_m1.o m1cycles.o speed_m1.o speed_m1_ghz.o
 	-rm -f a72_bench a72_speed a72_speed_ghz
+	-rm -f a72_speed_59b_512 a72_speed_59b_1024
 	-rm -f m1_bench m1_speed m1_speed_ghz
+	-rm -f m1_speed_59b_512 m1_speed_59b_1024
 	-rm -f avx_bench avx_speed avx_speed_ghz
+	-rm -f avx2_speed_59b_512 avx2_speed_59b_1024
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
@@ -115,6 +120,16 @@ m1_speed_59b_1024: m1cycles.o nist_1024.o speed_m1_59b_1024.o $(OBJ)
 
 avx_speed: cpucycles.o speed_avx.o $(OBJ)
 	$(LD) $(LDFLAGS) -o $@ cpucycles.o speed_avx.o $(OBJ)
+	echo "You have to enable FALCON_AVX2 in 'config.h' to get correct result"
+	./$@
+
+avx_speed_59b_512: cpucycles.o speed_avx_59b_512.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ cpucycles.o speed_avx_59b_512.o $(OBJ)
+	echo "You have to enable FALCON_AVX2 in 'config.h' to get correct result"
+	./$@
+
+avx_speed_59b_1024: cpucycles.o speed_avx_59b_1024.o $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ cpucycles.o speed_avx_59b_1024.o $(OBJ)
 	echo "You have to enable FALCON_AVX2 in 'config.h' to get correct result"
 	./$@
 
@@ -193,6 +208,12 @@ speed_m1_59b_1024.o: speed_59b_1024.c falcon.h api_1024.h
 
 speed_avx.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ speed.c
+
+speed_avx_59b_512.o: speed_59b_512.c falcon.h api_512.h
+	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ speed_59b_512.c
+
+speed_avx_59b_1024.o: speed_59b_1024.c falcon.h api_1024.h
+	$(CC) $(CFLAGS) -DAVX2=1 -c -o $@ speed_59b_1024.c
 
 speed_a72_ghz.o: speed.c falcon.h
 	$(CC) $(CFLAGS) -DAPPLE_M1=0 -c -o $@ speed_freq.c
