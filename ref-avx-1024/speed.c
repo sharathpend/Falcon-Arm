@@ -719,7 +719,7 @@ int main(void)
 	printf("st = sign (with expanded key), vv = verify\n");
 	printf("sdc, stc, vvc: like sd, st and vv, but with constant-time hash-to-point\n");
     
-    test_speed_falcon_time_cycles(FALCON_LOGN, iteration);
+    test_speed_falcon_time_cycles(9, iteration);
 
 
     // printf("\nAll numbers are in cycles\n\n");
