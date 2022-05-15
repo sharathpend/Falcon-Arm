@@ -200,6 +200,7 @@
 #define FALCON_RAND_WIN32        1
  */
 
-#define FALCON_N 1024
+#define FALCON_LOGN 10
+#define FALCON_N (1 << FALCON_LOGN)
 
 #endif
