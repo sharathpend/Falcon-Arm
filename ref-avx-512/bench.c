@@ -4,13 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include "config.h"
 
 #define ITERATIONS 10000
 uint64_t times[ITERATIONS];
 
 #define FALCON_Q 12289
 #define FALCON_N 1024
-#define FALCON_LOGN 10
 
 #if AVX2 == 1
 #include "cpucycles.h"
