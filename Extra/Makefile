@@ -74,6 +74,7 @@ clean:
 	-rm -f m1_speed_59b_512 m1_speed_59b_1024
 	-rm -f avx_bench avx_speed avx_speed_ghz
 	-rm -f avx2_speed_59b_512 avx2_speed_59b_1024
+	-rm -f *.o
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
