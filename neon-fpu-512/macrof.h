@@ -64,7 +64,7 @@
 // c = a * b[i]
 #define vfmul_lane(c, a, b, i) c = vmulq_laneq_f64(a, b, i);
 
-// c = 1/a 
+// c = 1/a
 #define vfinv(c, a) c = vdivq_f64(vdupq_n_f64(1.0), a);
 
 // c = -a
@@ -75,17 +75,49 @@
     a.val[ia] = vzip1q_f64(t.val[it], b.val[ib]); \
     b.val[ib] = vzip2q_f64(t.val[it], b.val[ib]);
 
+/*
+ * c = a + jb
+ * c[0] = a[0] - b[1]
+ * c[1] = a[1] + b[0]
+ */
+#define vfaddj(c, a, b) c = vcaddq_rot90_f64(a, b);
+
+/*
+ * c = a - jb
+ * c[0] = a[0] + b[1]
+ * c[1] = a[1] - b[0]
+ */
+#define vfsubj(c, a, b) c = vcaddq_rot270_f64(a, b);
+
 // c[0] = c[0] + b[0]*a[0], c[1] = c[1] + b[1]*a[0]
-#define vfcmla(c, a, b) 	c = vcmlaq_f64(c, a, b);
+#define vfcmla(c, a, b) c = vcmlaq_f64(c, a, b);
 
 // c[0] = c[0] - b[1]*a[1], c[1] = c[1] + b[0]*a[1]
-#define vfcmla_90(c, a, b)  c = vcmlaq_rot90_f64(c, a, b);
+#define vfcmla_90(c, a, b) c = vcmlaq_rot90_f64(c, a, b);
 
 // c[0] = c[0] - b[0]*a[0], c[1] = c[1] - b[1]*a[0]
 #define vfcmla_180(c, a, b) c = vcmlaq_rot180_f64(c, a, b);
 
 // c[0] = c[0] + b[1]*a[1], c[1] = c[1] - b[0]*a[1]
 #define vfcmla_270(c, a, b) c = vcmlaq_rot270_f64(c, a, b);
+
+/*
+ * Complex MUL: c = a*b
+ * c[0] = a[0]*b[0] - a[1]*b[1]
+ * c[1] = a[0]*b[1] + a[1]*b[0]
+ */
+#define FPC_MUL(c, a, b)          \
+    c = vmulq_laneq_f64(b, a, 0); \
+    c = vcmlaq_rot90_f64(c, a, b);
+
+/*
+ * Complex MUL: c = a * conjugate(b) = a * (b[0], -b[1])
+ * c[0] =   b[0]*a[0] + b[1]*a[1]
+ * c[1] = + b[0]*a[1] - b[1]*a[0]
+ */
+#define FPC_MULCONJ(c, a, b)      \
+    c = vmulq_laneq_f64(a, b, 0); \
+    c = vcmlaq_rot270_f64(c, b, a);
 
 #if FMA == 1
 // d = c + a *b
@@ -99,7 +131,7 @@
 
 #else
 // d = c + a *b
-#define vfma(d, c, a, b) d = vaddq_f64(c, vmulq_f64(a, b)); // 8 cycles 
+#define vfma(d, c, a, b) d = vaddq_f64(c, vmulq_f64(a, b)); // 8 cycles
 // d = c - a * b
 #define vfms(d, c, a, b) d = vsubq_f64(c, vmulq_f64(a, b));
 // d = c + a * b[i]
@@ -107,6 +139,5 @@
 // d = c - a * b[i]
 #define vfms_lane(d, c, a, b, i) d = vsubq_f64(c, vmulq_laneq_f64(a, b, i));
 #endif
-
 
 #endif
