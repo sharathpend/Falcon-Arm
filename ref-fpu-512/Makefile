@@ -9,7 +9,7 @@
 .POSIX:
 
 CC = clang
-CFLAGS = -W -Wall -O2
+CFLAGS = -w -Wall -O0 -g3
 LD = c99
 LDFLAGS = 
 LIBS = 
@@ -31,6 +31,9 @@ clean:
 
 build/kat512fpu: $(OBJ1) $(OBJ2)
 	$(LD) $(LDFLAGS) -o build/kat512fpu $(OBJ1) $(OBJ2) $(LIBS)
+
+test_fft: $(OBJ1) test_fft.c fft_consts.c
+	$(LD) $(LDFLAGS) -o test_fft test_fft.c $(OBJ1) build/katrng.o $(LIBS)
 
 build/codec.o: codec.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/codec.o codec.c
