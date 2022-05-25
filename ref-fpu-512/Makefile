@@ -9,9 +9,9 @@
 .POSIX:
 
 CC = clang
-CFLAGS = -w -Wall -O0 -g3
+CFLAGS = -w -Wall -O3 -g3
 LD = c99
-LDFLAGS = 
+LDFLAGS = -O3
 LIBS = 
 
 OBJ1 = build/codec.o build/common.o build/fft.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/shake.o build/sign.o build/vrfy.o
