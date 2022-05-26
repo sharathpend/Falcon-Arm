@@ -1,5 +1,6 @@
 # REF A72
 
+## Old FFT 
 | FFT | Foward FFT | Inverse FFT
 |:-------------|----------:|-----------:|
 | FFT 0 |       14 |       15
@@ -13,6 +14,25 @@
 | FFT 8 |     5474 |     6037
 | FFT 9 |    11807 |    13136
 | FFT 10 |    27366 |    28151
+
+## New FFT
+
+With `-O1 -mtune=native`. `-O2, -O3` option create longer assembly, slower code.
+
+| FFT | Foward FFT | Inverse FFT
+|:-------------|----------:|-----------:|
+| FFT 0 |        9 |        9
+| FFT 1 |        9 |        9
+| FFT 2 |       16 |       19
+| FFT 3 |       59 |       66
+| FFT 4 |      162 |      178
+| FFT 5 |      400 |      441
+| FFT 6 |      953 |     1044
+| FFT 7 |     2274 |     2506
+| FFT 8 |     5170 |     5692
+| FFT 9 |    11677 |    12854
+| FFT 10 |    25824 |    28533
+
 
 | NTT | Foward NTT | Inverse NTT
 |:-------------|----------:|-----------:|
