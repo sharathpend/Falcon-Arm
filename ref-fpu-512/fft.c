@@ -251,7 +251,7 @@ Zf(FFT)(fpr *f, unsigned logn)
                 // }
                 t_re = y_re; t_im = y_im; 
 				FPC_MUL(y_re, y_im, y_re, y_im, s_re, s_im);
-                // printf("FPC_MUL(%.1f, %.1f, %.1f, %.1f, %.2f, %.2f);\n\n", y_re.v, y_im.v,
+                // printf("FPC_MUL(%.1f, %.1f, %.1f, %.1f, %.2f, %.2f);\n", y_re.v, y_im.v,
                 //        t_re.v, t_im.v, s_re.v, s_im.v);
 
 
@@ -260,7 +260,8 @@ Zf(FFT)(fpr *f, unsigned logn)
 				FPC_SUB(f[j + ht], f[j + ht + hn],
 					x_re, x_im, y_re, y_im);
 
-                
+                // printf("[%d, %d] = %.2f, %2f\n", j, j + hn, f[j], f[j + hn]);
+                // printf("[%d, %d] = %.2f, %2f\n\n", j + ht, j + ht + hn, f[j + ht], f[j + ht + hn]);
 			}
 		}
         // printf("---%4d\n", ht);

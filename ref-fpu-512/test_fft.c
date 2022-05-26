@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include "fft_consts.c"
 
-double drand ( double low, double high )
+double drand(double low, double high)
 {
-    return ( (double)rand() * ( high - low ) ) / (double)RAND_MAX + low;
+    return ((double)rand() * (high - low)) / (double)RAND_MAX + low;
 }
 
 void combine(fpr *out, fpr *in, unsigned logn)
@@ -61,7 +61,7 @@ int cmp_double(fpr *f, fpr *g, unsigned logn)
 
     for (int i = 0; i < n; i++)
     {
-        if (fabs(f[i].v - g[i].v) > 0.5)
+        if (fabs(f[i].v - g[i].v) > 0.000001)
         {
             printf("[%d]: %.2f != %.2f \n", i, f[i].v, g[i].v);
             printf("ERROR\n");
@@ -206,7 +206,7 @@ void inv_FFT(fpr *f, unsigned logn)
                 b_re = f[j + len];
                 b_im = f[j + len + 1];
 
-                /* 
+                /*
                  * Notice we swap the (a - b) to (b - a) in FPC_SUB
                  */
                 FPC_ADD(f[j], f[j + 1], a_re, a_im, b_re, b_im);
@@ -231,59 +231,260 @@ void inv_FFT(fpr *f, unsigned logn)
         FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
         FPC_MUL_CONJ(f[j + hn], f[j + hn + 1], t_re, t_im, zeta_re, zeta_im);
 
-        f[j].v = f[j].v * fpr_p2_tab[logn].v;
-        f[j + 1].v = f[j + 1].v * fpr_p2_tab[logn].v;
+        f[j].v *= fpr_p2_tab[logn].v;
+        f[j + 1].v *= fpr_p2_tab[logn].v;
     }
 }
 
-int test_fft_ifft(unsigned logn)
+void split_fwd_FFT(fpr *f, unsigned logn)
 {
-    fpr f[1024], g[1024], tmp[1024];
-    for (int i = 0; i < 1024; i++)
+    const unsigned n = 1 << logn;
+    const unsigned hn = n >> 1;
+    const unsigned ht = n >> 2;
+    unsigned len, start, j, k;
+    fpr zeta_re, zeta_im, t_re, t_im, a_re, a_im, b_re, b_im;
+
+    /*
+     * We read the twiddle table in forward order
+     */
+    int level = 1;
+    const fpr *fpr_tab = NULL;
+    const fpr *table[] = {
+        fpr_tab_log2,
+        fpr_tab_log3,
+        fpr_tab_log4,
+        fpr_tab_log5,
+        fpr_tab_log6,
+        fpr_tab_log7,
+        fpr_tab_log8,
+        fpr_tab_log9,
+        fpr_tab_log10};
+
+    fpr_tab = table[0];
+    zeta_re = fpr_tab[0];
+    zeta_im = fpr_tab[1];
+
+    for (j = 0; j < ht; j += 1)
     {
-        f[i].v = drand(-12289.0, 12289);
+        a_re = f[j];
+        a_im = f[j + hn];
+        b_re = f[j + ht];
+        b_im = f[j + ht + hn];
+
+        FPC_MUL(t_re, t_im, b_re, b_im, zeta_re, zeta_im);
+        FPC_SUB(f[j + ht], f[j + ht + hn], a_re, a_im, t_re, t_im);
+        FPC_ADD(f[j], f[j + hn], a_re, a_im, t_re, t_im);
     }
-    combine(g, f, logn);
-    // print_double(f, logn, "f");
-    // print_double(g, logn, "g");
 
-    // printf("=====FFT\n");
-    Zf(FFT)(f, logn);
+    for (len = ht / 2; len > 0; len >>= 1)
+    {
+        fpr_tab = table[level++];
+        k = 0;
+        for (start = 0; start < hn; start = j + len)
+        {
+            zeta_re = fpr_tab[k];
+            zeta_im = fpr_tab[k + 1];
+            k += 2;
+            for (j = start; j < start + len; j += 1)
+            {
+                a_re = f[j];
+                a_im = f[j + hn];
+                b_re = f[j + len];
+                b_im = f[j + len + hn];
 
-    // printf("=====iFFT\n");
-    Zf(iFFT)(f, logn);
-    // printf("=====END\n");
+                FPC_MUL(t_re, t_im, b_re, b_im, zeta_re, zeta_im);
+                FPC_SUB(f[j + len], f[j + len + hn], a_re, a_im, t_re, t_im);
+                FPC_ADD(f[j], f[j + hn], a_re, a_im, t_re, t_im);
+            }
 
-    // printf("-----fwd_FFT\n");
-    fwd_FFT(g, logn);
-    // printf("-----inv_FFT\n");
-    inv_FFT(g, logn);
-    // printf("-----END\n");
+            start = j + len;
 
-    split(tmp, g, logn);
+            for (j = start; j < start + len; j += 1)
+            {
+                a_re = f[j];
+                a_im = f[j + hn];
+                b_re = f[j + len];
+                b_im = f[j + len + hn];
 
-    // print_double(f, logn, "f");
-    // print_double(tmp, logn, "g");
-
-    return cmp_double(f, tmp, logn);
+                FPC_MUL(t_re, t_im, b_re, b_im, zeta_re, zeta_im);
+                FPC_SUBJ(f[j + len], f[j + len + hn], a_re, a_im, t_re, t_im);
+                FPC_ADDJ(f[j], f[j + hn], a_re, a_im, t_re, t_im);
+            }
+        }
+    }
 }
 
-int main()
+void split_inv_FFT(fpr *f, unsigned logn)
 {
-    fpr f[1024], g[1024], tmp[1024];
-    for (int i = 0; i < 1024; i++)
+    const unsigned n = 1 << logn;
+    const unsigned hn = n >> 1;
+    const unsigned ht = n >> 2;
+    unsigned len, start, j, k;
+    fpr zeta_re, zeta_im, t_re, t_im, a_re, a_im, b_re, b_im;
+
+    /*
+     * This time we read the table in reverse order,
+     * so the pointer point to the end of the table
+     */
+    int level = logn - 2;
+    const fpr *fpr_tab_inv = NULL;
+    const fpr *table[] = {
+        fpr_tab_log2,
+        fpr_tab_log3,
+        fpr_tab_log4,
+        fpr_tab_log5,
+        fpr_tab_log6,
+        fpr_tab_log7,
+        fpr_tab_log8,
+        fpr_tab_log9,
+        fpr_tab_log10,
+    };
+
+    for (len = 1; len < ht; len <<= 1)
     {
-        f[i].v = (double_t)i;
+        fpr_tab_inv = table[level--];
+        k = 0;
+
+        for (start = 0; start < hn; start = j + len)
+        {
+            // Conjugate of zeta is embeded in MUL
+            zeta_re = fpr_tab_inv[k];
+            zeta_im = fpr_tab_inv[k + 1];
+            k += 2;
+
+            for (j = start; j < start + len; j += 1)
+            {
+                a_re = f[j];
+                a_im = f[j + hn];
+                b_re = f[j + len];
+                b_im = f[j + len + hn];
+
+                FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+                FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+                FPC_MUL_CONJ(f[j + len], f[j + len + hn], t_re, t_im, zeta_re, zeta_im);
+            }
+
+            start = j + len;
+
+            for (j = start; j < start + len; j += 1)
+            {
+                a_re = f[j];
+                a_im = f[j + hn];
+                b_re = f[j + len];
+                b_im = f[j + len + hn];
+
+                /*
+                 * Notice we swap the (a - b) to (b - a) in FPC_SUB
+                 */
+                FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+                FPC_SUB(t_re, t_im, b_re, b_im, a_re, a_im);
+                FPC_MUL_CONJ_J_m(f[j + len], f[j + len + hn], t_re, t_im, zeta_re, zeta_im);
+            }
+        }
     }
 
-    for (int i = 2; i < 11; i++)
+    fpr_tab_inv = table[0];
+    zeta_re.v = fpr_tab_inv[0].v * fpr_p2_tab[logn].v;
+    zeta_im.v = fpr_tab_inv[1].v * fpr_p2_tab[logn].v;
+
+    for (j = 0; j < ht; j += 1)
     {
-        if (test_fft_ifft(i))
+        a_re = f[j];
+        a_im = f[j + hn];
+        b_re = f[j + ht];
+        b_im = f[j + ht + hn];
+
+        FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+        FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        FPC_MUL_CONJ(f[j + ht], f[j + ht + hn], t_re, t_im, zeta_re, zeta_im);
+
+        f[j].v *= fpr_p2_tab[logn].v;
+        f[j + hn].v *= fpr_p2_tab[logn].v;
+    }
+}
+
+int test_fft_ifft(unsigned logn, unsigned tests)
+{
+    fpr f[1024], g[1024], tmp[1024];
+    for (int j = 0; j < tests; j++)
+    {
+        for (int i = 0; i < 1024; i++)
+        {
+            f[i].v = drand(-12289.0, 12289);
+        }
+        combine(g, f, logn);
+
+        Zf(FFT)(f, logn);
+        Zf(iFFT)(f, logn);
+
+        fwd_FFT(g, logn);
+        inv_FFT(g, logn);
+        split(tmp, g, logn);
+
+        // print_double(f, logn, "f");
+        // print_double(tmp, logn, "g");
+
+        if (cmp_double(f, tmp, logn))
         {
             return 1;
         }
-        printf("\nFINISH LOGN = %d\n", i);
     }
+    return 0;
+}
+
+int test_split_fft_ifft(unsigned logn, unsigned tests)
+{
+    fpr f[1024], g[1024];
+    for (int j = 0; j < tests; j++)
+    {
+        for (int i = 0; i < 1024; i++)
+        {
+            f[i].v = drand(-12289.0, 12289);
+            // f[i].v = (double_t) i;
+            g[i].v = f[i].v;
+        }
+        Zf(FFT)(f, logn);
+        Zf(iFFT)(f, logn);
+
+        split_fwd_FFT(g, logn);
+        split_inv_FFT(g, logn);
+
+        // print_double(f, logn, "f");
+        // print_double(g, logn, "g");
+
+        if (cmp_double(f, g, logn))
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+#define TESTS 10000
+
+int main(void)
+{
+    printf("\ntest_fft_ifft: ");
+    for (int logn = 2; logn < 11; logn++)
+    {
+        if (test_fft_ifft(logn, TESTS))
+        {
+            printf("Error at LOGN = %d\n", logn);
+            return 1;
+        }
+    }
+    printf("OK\n");
+
+    printf("\ntest_split_fft_ifft: ");
+    for (int logn = 2; logn < 11; logn++)
+    {
+        if (test_split_fft_ifft(logn, TESTS))
+        {
+            printf("Error at LOGN = %d\n", logn);
+            return 1;
+        }
+    }
+    printf("OK\n");
 
     return 0;
 }
