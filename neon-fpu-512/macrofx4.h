@@ -85,6 +85,12 @@
     c.val[2] = vmulq_laneq_f64(a.val[2], b, i); \
     c.val[3] = vmulq_laneq_f64(a.val[3], b, i);
 
+#define vfmulx4_i(c, a, b)                   \
+    c.val[0] = vmulq_f64(a.val[0], b); \
+    c.val[1] = vmulq_f64(a.val[1], b); \
+    c.val[2] = vmulq_f64(a.val[2], b); \
+    c.val[3] = vmulq_f64(a.val[3], b);
+
 #define vfdivx4(c, a, b)                      \
     c.val[0] = vdivq_f64(a.val[0], b.val[0]); \
     c.val[1] = vdivq_f64(a.val[0], b.val[1]); \
@@ -127,6 +133,19 @@
     d.val[1] = vfmsq_laneq_f64(c.val[1], a.val[1], b, i); \
     d.val[2] = vfmsq_laneq_f64(c.val[2], a.val[2], b, i); \
     d.val[3] = vfmsq_laneq_f64(c.val[3], a.val[3], b, i);
+
+#define vfmax4_i(d, c, a, b)                     \
+    d.val[0] = vfmaq_f64(c.val[0], a.val[0], b); \
+    d.val[1] = vfmaq_f64(c.val[1], a.val[1], b); \
+    d.val[2] = vfmaq_f64(c.val[2], a.val[2], b); \
+    d.val[3] = vfmaq_f64(c.val[3], a.val[3], b);
+    
+#define vfmsx4_i(d, c, a, b)                     \
+    d.val[0] = vfmsq_f64(c.val[0], a.val[0], b); \
+    d.val[1] = vfmsq_f64(c.val[1], a.val[1], b); \
+    d.val[2] = vfmsq_f64(c.val[2], a.val[2], b); \
+    d.val[3] = vfmsq_f64(c.val[3], a.val[3], b);
+
 #else
 #define vfmax4(d, c, a, b)                                         \
     d.val[0] = vaddq_f64(c.val[0], vmulq_f64(a.val[0], b.val[0])); \
