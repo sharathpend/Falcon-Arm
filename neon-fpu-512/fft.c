@@ -22,21 +22,6 @@
 #include "inner.h"
 #include "macrof.h"
 #include "macrofx4.h"
-#include <stdio.h>
-
-static
-void print_double(fpr *f, unsigned logn, const char *string)
-{
-    const unsigned n = 1 << logn;
-    const unsigned hn = n >> 1;
-
-    printf("%s:\n", string);
-    for (int i = 0; i < n; i += 2)
-    {
-        printf("%.1f, %.1f, ", f[i], f[i + 1]);
-    }
-    printf("\n");
-}
 
 static void ZfN(FFT_log2)(fpr *f)
 {
@@ -355,7 +340,6 @@ void ZfN(FFT_log5)(fpr *f, const unsigned logn)
 
     const unsigned int falcon_n = 1 << logn;
     const unsigned int hn = falcon_n >> 1;
-    const unsigned int ht = falcon_n >> 2;
 
     int level = logn - 5;
     const fpr *table[] = {
@@ -678,7 +662,6 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
 {
     const unsigned int falcon_n = 1 << logn;
     const unsigned int hn = falcon_n >> 1;
-    const unsigned int ht = falcon_n >> 2; 
 
     // Total SIMD register: 26 = 16 + 8 + 2
     float64x2x4_t t_re, t_im;                 // 8
@@ -1056,11 +1039,10 @@ static
 void ZfN(iFFT_log5)(fpr *f, const unsigned logn, const unsigned last)
 {
     // Total SIMD register: 26 = 24 + 2
-    float64x2x4_t x_re, x_im, y_re, y_im, t_re, t_im, v_re, v_im; // 32
-    float64x2x2_t s_re_im;                                        // 2
+    float64x2x4_t x_re, x_im, y_re, y_im, t_re, t_im; // 24
+    float64x2x2_t s_re_im;                            // 2
     const unsigned n = 1 << logn;
     const unsigned hn = n >> 1;
-    const unsigned ht = n >> 2;
 
     int level = logn - 2;
     const fpr *table[] = {
@@ -1388,7 +1370,6 @@ void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned
 {
     const unsigned int falcon_n = 1 << logn;
     const unsigned int hn = falcon_n >> 1;
-    const unsigned int ht = falcon_n >> 2; 
 
     // Total SIMD register: 26 = 16 + 8 + 2
     float64x2x4_t t_re, t_im;                 // 8
