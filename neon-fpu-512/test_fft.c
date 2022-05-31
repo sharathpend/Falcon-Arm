@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include "fft_consts.c"
 
+// Compile flags:
+// gcc -o test_fft fft.c test_fft.c fft_consts.c fpr.c -O0 -g3; ./test_fft
+
+#define PRINT 9999
+
 double drand(double low, double high)
 {
     return ((double)rand() * (high - low)) / (double)RAND_MAX + low;
@@ -236,7 +241,6 @@ void inv_FFT(fpr *f, unsigned logn)
     }
 }
 
-#define PRINT 10
 
 void split_fwd_FFT(fpr *f, unsigned logn)
 {
@@ -445,7 +449,7 @@ void split_inv_FFT(fpr *f, unsigned logn)
     {
         fpr_tab_inv = table[level--];
         k = 0;
-
+        if (logn == PRINT) printf("level = %d\n", level + 1);
         for (start = 0; start < hn; start = j + len)
         {
             // Conjugate of zeta is embeded in MUL
@@ -460,8 +464,16 @@ void split_inv_FFT(fpr *f, unsigned logn)
                 b_re = f[j + len];
                 b_im = f[j + len + hn];
 
-                FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+                if (logn == PRINT)
+                {
+                    printf("(%4d, %4d) - (%4d, %4d)\n", j, j + hn, j + len, j + len + hn);
+                    printf("(%4d, %4d) + (%4d, %4d)\n", j, j + hn, j + len, j + len + hn);
+                    printf("(%4d, %4d) = @ * (%4d, %4d)\n",  j + len, j + len + hn, k - 2, k - 1);
+                }
+
                 FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+                FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+                if (logn == PRINT) printf("t_re = %.2f, t_im = %.2f\n", t_re, t_im);
                 FPC_MUL_CONJ(f[j + len], f[j + len + hn], t_re, t_im, zeta_re, zeta_im);
             }
 
@@ -474,20 +486,30 @@ void split_inv_FFT(fpr *f, unsigned logn)
                 b_re = f[j + len];
                 b_im = f[j + len + hn];
 
+                if (logn == PRINT)
+                {
+                    printf("(%4d, %4d) - (%4d, %4d)\n", j, j + hn, j + len, j + len + hn);
+                    printf("(%4d, %4d) + (%4d, %4d)\n", j, j + hn, j + len, j + len + hn);
+                    printf("(%4d, %4d) = j@ * (%4d, %4d)\n",  j + len, j + len + hn, k - 2, k - 1);
+                }
+
                 /*
                  * Notice we swap the (a - b) to (b - a) in FPC_SUB
                  */
-                FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
                 FPC_SUB(t_re, t_im, b_re, b_im, a_re, a_im);
+                FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+                if (logn == PRINT) printf("t_re = %.2f, t_im = %.2f\n", t_re, t_im);
                 FPC_MUL_CONJ_J_m(f[j + len], f[j + len + hn], t_re, t_im, zeta_re, zeta_im);
             }
         }
+        if (logn == PRINT) print_double(f, logn, "nth");
     }
+
 
     fpr_tab_inv = table[0];
     zeta_re = fpr_tab_inv[0] * fpr_p2_tab[logn];
     zeta_im = fpr_tab_inv[1] * fpr_p2_tab[logn];
-
+    if (logn == PRINT) printf("level = %d\n", level);
     for (j = 0; j < ht; j += 1)
     {
         a_re = f[j];
@@ -495,13 +517,22 @@ void split_inv_FFT(fpr *f, unsigned logn)
         b_re = f[j + ht];
         b_im = f[j + ht + hn];
 
-        FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+        if (logn == PRINT)
+        {
+            printf("(%4d, %4d) - (%4d, %4d)\n", j, j + hn, j + len, j + len + hn);
+            printf("(%4d, %4d) + (%4d, %4d)\n", j, j + hn, j + len, j + len + hn);
+            printf("(%4d, %4d) = @ * (%4d, %4d)\n",  j + len, j + len + hn, k - 2, k - 1);
+        }
+
         FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        FPC_ADD(f[j], f[j + hn], a_re, a_im, b_re, b_im);
+        if (logn == PRINT) printf("t_re = %.2f, t_im = %.2f\n", t_re, t_im);
         FPC_MUL_CONJ(f[j + ht], f[j + ht + hn], t_re, t_im, zeta_re, zeta_im);
 
         f[j] *= fpr_p2_tab[logn];
         f[j + hn] *= fpr_p2_tab[logn];
     }
+    if (logn == PRINT) print_double(f, logn, "1st");
 }
 
 
@@ -611,36 +642,6 @@ int test_fft_ifft(unsigned logn, unsigned tests)
     return 0;
 }
 
-int test_split_fft_ifft(unsigned logn, unsigned tests)
-{
-    fpr f[1024], g[1024];
-    for (int j = 0; j < tests; j++)
-    {
-        for (int i = 0; i < 1024; i++)
-        {
-            f[i] = drand(-12289.0, 12289);
-            // f[i] = (double_t) i;
-            g[i] = f[i];
-        }
-        split_fwd_FFT(g, logn);
-        // split_inv_FFT(g, logn);
-
-        ZfN(FFT)(f, logn);
-        // ZfN(iFFT)(f, logn);
-
-        if (logn == PRINT)
-        {
-        // print_double(f, logn, "f");
-        // print_double(g, logn, "g");
-        }
-
-        if (cmp_double(f, g, logn))
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
 
 int test_variant_fft(unsigned logn, unsigned tests)
 {
@@ -666,6 +667,35 @@ int test_variant_fft(unsigned logn, unsigned tests)
     }
     return 0;
 }
+
+int test_split_fft_ifft(unsigned logn, unsigned tests)
+{
+    fpr f[1024], g[1024];
+    for (int j = 0; j < tests; j++)
+    {
+        for (int i = 0; i < 1024; i++)
+        {
+            f[i] = drand(-12289.0, 12289);
+            g[i] = f[i];
+        }
+        split_fwd_FFT(g, logn);
+        split_inv_FFT(g, logn);
+
+        ZfN(FFT)(f, logn);
+        ZfN(iFFT)(f, logn);
+
+
+        // print_double(f, logn, "f");
+        // print_double(g, logn, "g");
+
+        if (cmp_double(f, g, logn))
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 
 #define TESTS 10000
 
