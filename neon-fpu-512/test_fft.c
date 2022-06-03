@@ -6,7 +6,7 @@
 // Compile flags:
 // gcc -o test_fft fft.c test_fft.c fft_consts.c fpr.c -O0 -g3; ./test_fft
 
-#define PRINT 9999
+#define PRINT 4
 
 double drand(double low, double high)
 {
@@ -613,6 +613,92 @@ void split_inv_FFT_v0(fpr *f, unsigned logn)
     }
 }
 
+
+void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
+{
+    const unsigned n = 1 << logn; 
+    const unsigned hn = n >> 1; 
+    const unsigned ht = n >> 2; 
+
+    const fpr *fpr_split = NULL;
+    const fpr *table[] = {
+        fpr_tab_log2,
+        fpr_tab_log3,
+        fpr_tab_log4,
+        fpr_tab_log5,
+        fpr_tab_log6,
+        fpr_tab_log7,
+        fpr_tab_log8,
+        fpr_tab_log9,
+        fpr_tab_log10,
+    };
+
+    fpr_split = table[logn - 2];
+    unsigned k = 0;
+
+
+    f0[0] = f[0];
+    f1[0] = f[hn];
+
+    fpr a_re, a_im, b_re, b_im, t_re, t_im, v_re, v_im, s_re, s_im;
+    for (unsigned j = 0; j < ht; j+=1)
+    {
+        unsigned j2 = j << 1; 
+        a_re = f[j2];
+        b_re = f[j2 + 1];
+        a_im = f[j2 + hn];
+        b_im = f[j2 + 1 + hn];
+
+        FPC_ADD(v_re, v_im, a_re, a_im, b_re, b_im);
+        f0[j] = v_re * 0.5; 
+        f0[j + ht] = v_im * 0.5; 
+
+        s_re = fpr_split[k++] * 0.5;
+        s_im = fpr_split[k++] * 0.5;
+
+        if (logn == PRINT)
+        {
+            printf("f0: (%4d, %4d) = (%4d, %4d) + (%4d, %4d)\n", j, j + ht, j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            printf("@ = (%4d, %4d) - (%4d, %4d)\n", j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            printf("f1: (%4d, %4d) = @ * (%4d, %4d)\n",  j, j + ht, j2 + n, j2 + n + 1);
+        }
+
+        FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        FPC_MUL_CONJ(f1[j], f1[j + ht], t_re, t_im, s_re, s_im);
+        
+        // ===========
+        j += 1; 
+        j2 = j << 1; 
+
+        if (j >= ht) 
+        {
+            printf("break");
+            break;
+        }
+
+        a_re = f[j2];
+        b_re = f[j2 + 1];
+        a_im = f[j2 + hn];
+        b_im = f[j2 + 1 + hn];
+
+        FPC_ADD(v_re, v_im, a_re, a_im, b_re, b_im);
+        f0[j] = v_re * 0.5; 
+        f0[j + ht] = v_im * 0.5; 
+
+        if (logn == PRINT)
+        {
+            printf("f0: (%4d, %4d) = (%4d, %4d) + (%4d, %4d)\n", j, j + ht, j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            printf("@ = (%4d, %4d) - (%4d, %4d)\n", j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            printf("f1: (%4d, %4d) = @ * (%4d, %4d)\n",  j, j + ht, j2 + n, j2 + n + 1);
+        }
+
+        FPC_SUB(t_re, t_im, b_re, b_im, a_re, a_im);
+        FPC_MUL_CONJ_J_m(f1[j], f1[j + ht], t_re, t_im, s_re, s_im);
+
+        printf("====%d, %d\n", j, j2);
+    }
+}
+
 int test_fft_ifft(unsigned logn, unsigned tests)
 {
     fpr f[1024], g[1024], tmp[1024];
@@ -696,43 +782,76 @@ int test_split_fft_ifft(unsigned logn, unsigned tests)
     return 0;
 }
 
+int test_split_function(unsigned logn, unsigned tests)
+{
+    fpr f[1024] = {0}, f0[1024] = {0}, f1[1024] = {0};
+    fpr g0[1024] = {0}, g1[1024] = {0};
+    for (int j = 0; j < tests; j++)
+    {
+        for (int i = 0; i < 1024; i++)
+        {
+            f[i] = drand(-12289.0, 12289);
+        }
+        ZfN(poly_split_fft)(f0, f1, f, logn);
+
+        my_split_fft(g0, g1, f, logn);
+
+        if (cmp_double(g0, f0, logn) || cmp_double(g1, f1, logn))
+        {
+            return 1; 
+        }
+    }
+
+    return 0; 
+}
 
 #define TESTS 10000
 
 int main(void)
 {
-    printf("\ntest_fft_ifft: ");
-    for (int logn = 2; logn < 11; logn++)
+    // printf("\ntest_fft_ifft: ");
+    // for (int logn = 2; logn < 11; logn++)
+    // {
+    //     if (test_fft_ifft(logn, TESTS))
+    //     {
+    //         printf("Error at LOGN = %d\n", logn);
+    //         return 1;
+    //     }
+    // }
+    // printf("OK\n");
+
+    // printf("\ntest_variant_fft: ");
+    // for (int logn = 2; logn < 11; logn++)
+    // {
+    //     if (test_variant_fft(logn, 1))
+    //     {
+    //         printf("Error at LOGN = %d\n", logn);
+    //         return 1;
+    //     }
+    // }
+    // printf("OK\n");
+
+    // printf("\ntest_split_fft_ifft: \n");
+    // for (int logn = 2; logn < 11; logn++)
+    // {
+    //     if (test_split_fft_ifft(logn, TESTS))
+    //     {
+    //         printf("Error at LOGN = %d\n", logn);
+    //         return 1;
+    //     }
+    // }
+    // printf("OK\n");
+
+    printf("\ntest_split_function: \n");
+    for (int logn = 2; logn < 6; logn++)
     {
-        if (test_fft_ifft(logn, TESTS))
+        if (test_split_function(logn, 1))
         {
             printf("Error at LOGN = %d\n", logn);
             return 1;
         }
     }
     printf("OK\n");
-
-    printf("\ntest_variant_fft: ");
-    for (int logn = 2; logn < 11; logn++)
-    {
-        if (test_variant_fft(logn, 1))
-        {
-            printf("Error at LOGN = %d\n", logn);
-            return 1;
-        }
-    }
-    printf("OK\n");
-
-    printf("\ntest_split_fft_ifft: \n");
-    for (int logn = 2; logn < 11; logn++)
-    {
-        if (test_split_fft_ifft(logn, TESTS))
-        {
-            printf("Error at LOGN = %d\n", logn);
-            return 1;
-        }
-    }
-    printf("OK\n");
-
+    
     return 0;
 }
