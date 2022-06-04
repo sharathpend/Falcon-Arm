@@ -2,7 +2,7 @@
  * 64-bit Floating point NEON macro x1
  *
  * =============================================================================
- * Copyright (c) 2021 by Cryptographic Engineering Research Group (CERG)
+ * Copyright (c) 2022 by Cryptographic Engineering Research Group (CERG)
  * ECE Department, George Mason University
  * Fairfax, VA, U.S.A.
  * Author: Duc Tri Nguyen
@@ -64,7 +64,7 @@
 // c = a * b[i]
 #define vfmul_lane(c, a, b, i) c = vmulq_laneq_f64(a, b, i);
 
-// c = 1/a 
+// c = 1/a
 #define vfinv(c, a) c = vdivq_f64(vdupq_n_f64(1.0), a);
 
 // c = -a
@@ -72,14 +72,28 @@
 
 #define transpose(a, b, t, ia, ib, it)            \
     t.val[it] = a.val[ia];                        \
-    a.val[ia] = vzip1q_f64(t.val[it], b.val[ib]); \
+    a.val[ia] = vzip1q_f64(a.val[ia], b.val[ib]); \
     b.val[ib] = vzip2q_f64(t.val[it], b.val[ib]);
 
+/*
+ * c = a + jb
+ * c[0] = a[0] - b[1]
+ * c[1] = a[1] + b[0]
+ */
+#define vfcaddj(c, a, b) c = vcaddq_rot90_f64(a, b);
+
+/*
+ * c = a - jb
+ * c[0] = a[0] + b[1]
+ * c[1] = a[1] - b[0]
+ */
+#define vfcsubj(c, a, b) c = vcaddq_rot270_f64(a, b);
+
 // c[0] = c[0] + b[0]*a[0], c[1] = c[1] + b[1]*a[0]
-#define vfcmla(c, a, b) 	c = vcmlaq_f64(c, a, b);
+#define vfcmla(c, a, b) c = vcmlaq_f64(c, a, b);
 
 // c[0] = c[0] - b[1]*a[1], c[1] = c[1] + b[0]*a[1]
-#define vfcmla_90(c, a, b)  c = vcmlaq_rot90_f64(c, a, b);
+#define vfcmla_90(c, a, b) c = vcmlaq_rot90_f64(c, a, b);
 
 // c[0] = c[0] - b[0]*a[0], c[1] = c[1] - b[1]*a[0]
 #define vfcmla_180(c, a, b) c = vcmlaq_rot180_f64(c, a, b);
@@ -87,7 +101,24 @@
 // c[0] = c[0] + b[1]*a[1], c[1] = c[1] - b[0]*a[1]
 #define vfcmla_270(c, a, b) c = vcmlaq_rot270_f64(c, a, b);
 
-#if FMA == 1
+/*
+ * Complex MUL: c = a*b
+ * c[0] = a[0]*b[0] - a[1]*b[1]
+ * c[1] = a[0]*b[1] + a[1]*b[0]
+ */
+#define FPC_CMUL(c, a, b)         \
+    c = vmulq_laneq_f64(b, a, 0); \
+    c = vcmlaq_rot90_f64(c, a, b);
+
+/*
+ * Complex MUL: c = a * conjugate(b) = a * (b[0], -b[1])
+ * c[0] =   b[0]*a[0] + b[1]*a[1]
+ * c[1] = + b[0]*a[1] - b[1]*a[0]
+ */
+#define FPC_CMUL_CONJ(c, a, b)    \
+    c = vmulq_laneq_f64(a, b, 0); \
+    c = vcmlaq_rot270_f64(c, b, a);
+
 // d = c + a *b
 #define vfma(d, c, a, b) d = vfmaq_f64(c, a, b); // 7 cycles
 // d = c - a * b
@@ -96,17 +127,5 @@
 #define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
 // d = c - a * b[i]
 #define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
-
-#else
-// d = c + a *b
-#define vfma(d, c, a, b) d = vaddq_f64(c, vmulq_f64(a, b)); // 8 cycles 
-// d = c - a * b
-#define vfms(d, c, a, b) d = vsubq_f64(c, vmulq_f64(a, b));
-// d = c + a * b[i]
-#define vfma_lane(d, c, a, b, i) d = vaddq_f64(c, vmulq_laneq_f64(a, b, i));
-// d = c - a * b[i]
-#define vfms_lane(d, c, a, b, i) d = vsubq_f64(c, vmulq_laneq_f64(a, b, i));
-#endif
-
 
 #endif

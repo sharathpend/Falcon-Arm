@@ -44,14 +44,14 @@
 #               (normally not needed on x86, both 32-bit and 64-bit)
 
 CC = clang
-CFLAGS = -mtune=native -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
-LD = clang -mtune=native -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
+CFLAGS = -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
+LD = clang -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
 LDFLAGS = #-pg -no-pie
 LIBS =
 
 # =====================================================================
 
-OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o katrng.o
+OBJ = codec.o common.o falcon.o fft.o my_fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o katrng.o
 
 all: test_falcon
 a72: a72_speed a72_bench
@@ -161,6 +161,9 @@ common.o: common.c config.h inner.h fpr.h
 
 falcon.o: falcon.c falcon.h config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o falcon.o falcon.c
+
+my_fft.o: my_fft.c config.h inner.h fpr.h
+	$(CC) -O1 -mtune=native -c -o $@ my_fft.c
 
 fft.o: fft.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o fft.o fft.c

@@ -9,9 +9,9 @@
 .POSIX:
 
 CC = clang
-CFLAGS = -W -Wall -O2
+CFLAGS = -w -Wall -O3
 LD = c99
-LDFLAGS = 
+LDFLAGS = -O3
 LIBS = 
 
 OBJ1 = build/codec.o build/common.o build/fft.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/shake.o build/sign.o build/vrfy.o
@@ -31,6 +31,9 @@ clean:
 
 build/kat512fpu: $(OBJ1) $(OBJ2)
 	$(LD) $(LDFLAGS) -o build/kat512fpu $(OBJ1) $(OBJ2) $(LIBS)
+
+test_fft: $(OBJ1) build/test_fft.o
+	$(LD) $(LDFLAGS) -o $@ build/test_fft.o $(OBJ1) build/katrng.o $(LIBS)
 
 build/codec.o: codec.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/codec.o codec.c
@@ -61,6 +64,9 @@ build/sign.o: sign.c $(HEAD1)
 
 build/vrfy.o: vrfy.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/vrfy.o vrfy.c
+
+build/test_fft.o: test_fft.c fft_consts.c
+	$(CC) $(CFLAGS) -c -o $@ test_fft.c
 
 build/PQCgenKAT_sign.o: PQCgenKAT_sign.c $(HEAD2)
 	$(CC) $(CFLAGS) -I . -DALGNAME=falcon512fpu -c -o build/PQCgenKAT_sign.o PQCgenKAT_sign.c

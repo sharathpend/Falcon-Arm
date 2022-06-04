@@ -30,6 +30,7 @@
  */
 
 #include "inner.h"
+#include <stdio.h>
 
 /*
  * Rules for complex number macros:
@@ -216,6 +217,9 @@ Zf(FFT)(fpr *f, unsigned logn)
 	n = (size_t)1 << logn;
 	hn = n >> 1;
 	t = hn;
+    // if (logn == 9){
+        // printf("**** logn =  %4d:\n", logn);
+    // }
 	for (u = 1, m = 2; u < logn; u ++, m <<= 1) {
 		size_t ht, hm, i1, j1;
 
@@ -230,19 +234,37 @@ Zf(FFT)(fpr *f, unsigned logn)
 			s_re = fpr_gm_tab[((m + i1) << 1) + 0];
 			s_im = fpr_gm_tab[((m + i1) << 1) + 1];
 			for (j = j1; j < j2; j ++) {
-				fpr x_re, x_im, y_re, y_im;
+				fpr x_re, x_im, y_re, y_im, t_re, t_im;
 
 				x_re = f[j];
 				x_im = f[j + hn];
 				y_re = f[j + ht];
 				y_im = f[j + ht + hn];
+
+                // if (logn == 9)
+                // {
+                    // printf("(%4d, %4d) * (%4d, %4d)\n", j + ht, j + ht + hn, 
+                    //                         ((m + i1) << 1) + 0, ((m + i1) << 1) + 1);
+
+                    // printf("@(%4d, %4d) + (%4d, %4d)\n", j, j + hn, j + ht, j + ht + hn);
+                    // printf("@(%4d, %4d) - (%4d, %4d)\n", j, j + hn, j + ht, j + ht + hn);
+                // }
+                t_re = y_re; t_im = y_im; 
 				FPC_MUL(y_re, y_im, y_re, y_im, s_re, s_im);
+                // printf("FPC_MUL(%.1f, %.1f, %.1f, %.1f, %.2f, %.2f);\n", y_re.v, y_im.v,
+                //        t_re.v, t_im.v, s_re.v, s_im.v);
+
+
 				FPC_ADD(f[j], f[j + hn],
 					x_re, x_im, y_re, y_im);
 				FPC_SUB(f[j + ht], f[j + ht + hn],
 					x_re, x_im, y_re, y_im);
+
+                // printf("[%d, %d] = %.2f, %2f\n", j, j + hn, f[j], f[j + hn]);
+                // printf("[%d, %d] = %.2f, %2f\n\n", j + ht, j + ht + hn, f[j + ht], f[j + ht + hn]);
 			}
 		}
+        // printf("---%4d\n", ht);
 		t = ht;
 	}
 }
@@ -299,6 +321,7 @@ Zf(iFFT)(fpr *f, unsigned logn)
 	t = 1;
 	m = n;
 	hn = n >> 1;
+    // printf("**** logn =  %4d:\n", logn);
 	for (u = logn; u > 1; u --) {
 		size_t hm, dt, i1, j1;
 
@@ -319,13 +342,23 @@ Zf(iFFT)(fpr *f, unsigned logn)
 				x_im = f[j + hn];
 				y_re = f[j + t];
 				y_im = f[j + t + hn];
+
+                // printf("@(%4d, %4d) + (%4d, %4d)\n", j, j + hn, j + t, j + t + hn);
+                // printf("@(%4d, %4d) - (%4d, %4d)\n", j, j + hn, j + t, j + t + hn);
+
+                // printf("(%4d, %4d) * (%4d, %4d)\n", j + t, j + t + hn, 
+                //                             ((hm + i1) << 1) + 0, ((hm + i1) << 1) + 1);
+
 				FPC_ADD(f[j], f[j + hn],
 					x_re, x_im, y_re, y_im);
 				FPC_SUB(x_re, x_im, x_re, x_im, y_re, y_im);
 				FPC_MUL(f[j + t], f[j + t + hn],
 					x_re, x_im, s_re, s_im);
+                // printf("FPC_MUL(%.1f, %.1f, %.1f, %.1f, %.2f, %.2f);\n\n", f[j + t].v,  f[j + t + hn].v,
+                //        x_re.v, x_im.v, s_re.v, s_im.v);
 			}
 		}
+        // printf("---%4d\n", t);
 		t = dt;
 		m = hm;
 	}

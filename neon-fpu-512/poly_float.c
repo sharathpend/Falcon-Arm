@@ -206,8 +206,9 @@ static inline void ZfN(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a
     vload(neon_a, &a[0]);
     vload(neon_b, &b[0]);
 
-    vfmul_lane(neon_c, neon_b, neon_a, 0);
-    vfcmla_90(neon_c, neon_a, neon_b);
+    // vfmul_lane(neon_c, neon_b, neon_a, 0);
+    // vfcmla_90(neon_c, neon_a, neon_b);
+    FPC_CMUL(neon_c, neon_a, neon_b);
 
     vstore(&c[0], neon_c);
 #else
@@ -243,11 +244,7 @@ static inline void ZfN(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a
     b_re = neon_b.val[0];
     b_im = neon_b.val[1];
 
-    vfmul(c_re, a_re, b_re);
-    vfmul(c_im, a_re, b_im);
-
-    vfms(c_re, c_re, a_im, b_im);
-    vfma(c_im, c_im, a_im, b_re);
+    FPC_MUL(c_re, c_im, a_re, a_im, b_re, b_im);
 
     neon_c.val[0] = c_re;
     neon_c.val[1] = c_im;
@@ -274,15 +271,7 @@ static inline void ZfN(poly_mul_fft_log3)(fpr *restrict c, const fpr *restrict a
     b_im.val[0] = neon_b.val[2];
     b_im.val[1] = neon_b.val[3];
 
-    vfmul(c_re.val[0], a_re.val[0], b_re.val[0]);
-    vfmul(c_re.val[1], a_re.val[1], b_re.val[1]);
-    vfmul(c_im.val[0], a_re.val[0], b_im.val[0]);
-    vfmul(c_im.val[1], a_re.val[1], b_im.val[1]);
-
-    vfms(c_re.val[0], c_re.val[0], a_im.val[0], b_im.val[0]);
-    vfms(c_re.val[1], c_re.val[1], a_im.val[1], b_im.val[1]);
-    vfma(c_im.val[0], c_im.val[0], a_im.val[0], b_re.val[0]);
-    vfma(c_im.val[1], c_im.val[1], a_im.val[1], b_re.val[1]);
+    FPC_MULx2(c_re, c_im, a_re, a_im, b_re, b_im);
 
     neon_c.val[0] = c_re.val[0];
     neon_c.val[1] = c_re.val[1];
@@ -325,11 +314,7 @@ void ZfN(poly_mul_fft)(fpr *c, const fpr *a, const fpr *restrict b, unsigned log
             vloadx4(b_re, &b[i]);
             vloadx4(b_im, &b[i + hn]);
 
-            vfmulx4(c_re, a_re, b_re);
-            vfmulx4(c_im, a_re, b_im);
-
-            vfmsx4(c_re, c_re, a_im, b_im);
-            vfmax4(c_im, c_im, a_im, b_re);
+            FPC_MULx4(c_re, c_im, a_re, a_im, b_re, b_im);
 
             vstorex4(&c[i], c_re);
             vstorex4(&c[i + hn], c_im);
@@ -377,8 +362,8 @@ static inline void ZfN(poly_mul_fft_add_log2)(fpr *restrict c, const fpr *restri
                                               const fpr *restrict a, const fpr *restrict b)
 {
     // n = 4
-    float64x2x2_t neon_a, neon_b, neon_c, neon_d;
-    float64x2_t a_re, a_im, b_re, b_im, c_re, c_im, d_re, d_im;
+    float64x2x2_t neon_a, neon_b, neon_d;
+    float64x2_t a_re, a_im, b_re, b_im, d_re, d_im;
 
     // 0: re, re
     // 1: im, im
@@ -393,24 +378,20 @@ static inline void ZfN(poly_mul_fft_add_log2)(fpr *restrict c, const fpr *restri
     d_re = neon_d.val[0];
     d_im = neon_d.val[1];
 
-    vfma(c_re, d_re, a_re, b_re);
-    vfma(c_im, d_im, a_re, b_im);
+    FPC_MLA(d_re, d_im, a_re, a_im, b_re, b_im);
 
-    vfms(c_re, c_re, a_im, b_im);
-    vfma(c_im, c_im, a_im, b_re);
+    neon_d.val[0] = d_re;
+    neon_d.val[1] = d_im;
 
-    neon_c.val[0] = c_re;
-    neon_c.val[1] = c_im;
-
-    vstorex2(&c[0], neon_c);
+    vstorex2(&c[0], neon_d);
 }
 
 static inline void ZfN(poly_mul_fft_add_log3)(fpr *restrict c, const fpr *restrict d,
                                               const fpr *restrict a, const fpr *restrict b)
 {
     // n = 8
-    float64x2x4_t neon_a, neon_b, neon_c, neon_d;
-    float64x2x2_t a_re, a_im, b_re, b_im, c_re, c_im, d_re, d_im;
+    float64x2x4_t neon_a, neon_b, neon_d;
+    float64x2x2_t a_re, a_im, b_re, b_im, d_re, d_im;
 
     vloadx4(neon_a, &a[0]);
     vloadx4(neon_b, &b[0]);
@@ -431,22 +412,14 @@ static inline void ZfN(poly_mul_fft_add_log3)(fpr *restrict c, const fpr *restri
     d_im.val[0] = neon_d.val[2];
     d_im.val[1] = neon_d.val[3];
 
-    vfma(c_re.val[0], d_re.val[0], a_re.val[0], b_re.val[0]);
-    vfma(c_re.val[1], d_re.val[1], a_re.val[1], b_re.val[1]);
-    vfma(c_im.val[0], d_im.val[0], a_re.val[0], b_im.val[0]);
-    vfma(c_im.val[1], d_im.val[1], a_re.val[1], b_im.val[1]);
+    FPC_MLAx2(d_re, d_im, a_re, a_im, b_re, b_im);
 
-    vfms(c_re.val[0], c_re.val[0], a_im.val[0], b_im.val[0]);
-    vfms(c_re.val[1], c_re.val[1], a_im.val[1], b_im.val[1]);
-    vfma(c_im.val[0], c_im.val[0], a_im.val[0], b_re.val[0]);
-    vfma(c_im.val[1], c_im.val[1], a_im.val[1], b_re.val[1]);
+    neon_d.val[0] = d_re.val[0];
+    neon_d.val[1] = d_re.val[1];
+    neon_d.val[2] = d_im.val[0];
+    neon_d.val[3] = d_im.val[1];
 
-    neon_c.val[0] = c_re.val[0];
-    neon_c.val[1] = c_re.val[1];
-    neon_c.val[2] = c_im.val[0];
-    neon_c.val[3] = c_im.val[1];
-
-    vstorex4(&c[0], neon_c);
+    vstorex4(&c[0], neon_d);
 }
 
 /* see inner.h */
@@ -458,7 +431,6 @@ void ZfN(poly_mul_add_fft)(fpr *c, const fpr *restrict d,
 {
     // Total 32 registers
     float64x2x4_t a_re, b_re, a_im, b_im, d_re, d_im; // 32
-    float64x2x4_t c_re, c_im;                         // 8
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
     switch (logn)
@@ -485,14 +457,10 @@ void ZfN(poly_mul_add_fft)(fpr *c, const fpr *restrict d,
             vloadx4(d_re, &d[i]);
             vloadx4(d_im, &d[i + hn]);
 
-            vfmax4(c_re, d_re, a_re, b_re);
-            vfmax4(c_im, d_im, a_re, b_im);
+            FPC_MLAx4(d_re, d_im, a_re, a_im, b_re, b_im);
 
-            vfmsx4(c_re, c_re, a_im, b_im);
-            vfmax4(c_im, c_im, a_im, b_re);
-
-            vstorex4(&c[i], c_re);
-            vstorex4(&c[i + hn], c_im);
+            vstorex4(&c[i], d_re);
+            vstorex4(&c[i + hn], d_im);
         }
         break;
     }
@@ -512,11 +480,7 @@ void ZfN(poly_muladj_fft)(fpr *d, fpr *a, const fpr *restrict b, unsigned logn)
         vloadx4(b_re, &b[i]);
         vloadx4(b_im, &b[i + hn]);
 
-        vfmulx4(d_re, a_re, b_re);
-        vfmulx4(d_im, a_im, b_re);
-
-        vfmax4(d_re, d_re, a_im, b_im);
-        vfmsx4(d_im, d_im, a_re, b_im);
+        FPC_MUL_CONJx4(d_re, d_im, a_re, a_im, b_re, b_im);
 
         vstorex4(&d[i], d_re);
         vstorex4(&d[i + hn], d_im);
@@ -540,11 +504,7 @@ void ZfN(poly_muladj_add_fft)(fpr *c, fpr *d,
         vloadx4(d_re, &d[i]);
         vloadx4(d_im, &d[i + hn]);
 
-        vfmax4(d_re, d_re, a_re, b_re);
-        vfmax4(d_im, d_im, a_im, b_re);
-
-        vfmax4(d_re, d_re, a_im, b_im);
-        vfmsx4(d_im, d_im, a_re, b_im);
+        FPC_MLA_CONJx4(d_re, d_im, a_re, a_im, b_re, b_im);
 
         vstorex4(&c[i], d_re);
         vstorex4(&c[i + hn], d_im);
@@ -573,8 +533,14 @@ void ZfN(poly_mulselfadj_fft)(fpr *c, const fpr *restrict a, unsigned logn)
         vloadx4(a_re, &a[i]);
         vloadx4(a_im, &a[i + hn]);
 
-        vfmulx4(c_re, a_re, a_re);
-        vfmax4(c_re, c_re, a_im, a_im);
+        vfmul(c_re.val[0], a_re.val[0], a_re.val[0]);
+        vfma (c_re.val[0], c_re.val[0], a_im.val[0], a_im.val[0]);
+        vfmul(c_re.val[1], a_re.val[1], a_re.val[1]);
+        vfma (c_re.val[1], c_re.val[1], a_im.val[1], a_im.val[1]);
+        vfmul(c_re.val[2], a_re.val[2], a_re.val[2]);
+        vfma (c_re.val[2], c_re.val[2], a_im.val[2], a_im.val[2]);
+        vfmul(c_re.val[3], a_re.val[3], a_re.val[3]);
+        vfma (c_re.val[3], c_re.val[3], a_im.val[3], a_im.val[3]);
 
         vstorex4(&c[i], c_re);
         vstorex4(&c[i + hn], c_im);
@@ -591,7 +557,7 @@ void ZfN(poly_mulselfadj_add_fft)(fpr *c, const fpr *restrict d, const fpr *rest
      * Since each coefficient is multiplied with its own conjugate,
      * the result contains only real values.
      */
-    float64x2x4_t a_re, a_im, c_re, d_re; // 16
+    float64x2x4_t a_re, a_im, d_re; // 16
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
 
@@ -601,10 +567,16 @@ void ZfN(poly_mulselfadj_add_fft)(fpr *c, const fpr *restrict d, const fpr *rest
         vloadx4(a_im, &a[i + hn]);
         vloadx4(d_re, &d[i]);
 
-        vfmax4(c_re, d_re, a_re, a_re);
-        vfmax4(c_re, c_re, a_im, a_im);
+        vfma(d_re.val[0], d_re.val[0], a_re.val[0], a_re.val[0]);
+        vfma(d_re.val[0], d_re.val[0], a_im.val[0], a_im.val[0]);
+        vfma(d_re.val[1], d_re.val[1], a_re.val[1], a_re.val[1]);
+        vfma(d_re.val[1], d_re.val[1], a_im.val[1], a_im.val[1]);
+        vfma(d_re.val[2], d_re.val[2], a_re.val[2], a_re.val[2]);
+        vfma(d_re.val[2], d_re.val[2], a_im.val[2], a_im.val[2]);
+        vfma(d_re.val[3], d_re.val[3], a_re.val[3], a_re.val[3]);
+        vfma(d_re.val[3], d_re.val[3], a_im.val[3], a_im.val[3]);
 
-        vstorex4(&c[i], c_re);
+        vstorex4(&c[i], d_re);
     }
 }
 
@@ -615,14 +587,16 @@ void ZfN(poly_mulselfadj_add_fft)(fpr *c, const fpr *restrict d, const fpr *rest
 void ZfN(poly_mulconst)(fpr *c, const fpr *a, const fpr x, unsigned logn)
 {
     // assert(logn >= 3);
-    // Total 9 registers
-    float64x2x4_t neon_a, neon_c;
+    // Total SIMD registers: 9
     const int falcon_n = 1 << logn;
+    float64x2x4_t neon_a, neon_c; // 8
+    float64x2_t neon_x;           // 1
+    neon_x = vdupq_n_f64(x);
     for (int i = 0; i < falcon_n; i += 8)
     {
         vloadx4(neon_a, &a[i]);
 
-        vfmulnx4(neon_c, neon_a, x);
+        vfmulx4_i(neon_c, neon_a, neon_x);
 
         vstorex4(&c[i], neon_c);
     }
@@ -646,9 +620,9 @@ void ZfN(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restri
         vloadx4(b_im, &b[i + hn]);
 
         vfmulx4(m, b_re, b_re);
-        vfmulx4(c_re, a_re, b_re);
-
         vfmax4(m, m, b_im, b_im);
+
+        vfmulx4(c_re, a_re, b_re);
         vfmax4(c_re, c_re, a_im, b_im);
 
         vfinvx4(m, m);
@@ -669,8 +643,9 @@ void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *r
 {
     const int falcon_n = 1 << logn;
     const int hn = falcon_n >> 1;
-    float64x2x4_t a_re, a_im, b_re, b_im, c_re, c_im, d_re;
-    float64x2x2_t x_re_im, y_re_im, z_re_im;
+    float64x2x4_t a_re, a_im, b_re, b_im, c_re;
+    float64x2x2_t x, y;
+    float64x2_t z; 
 
     switch (logn)
     {
@@ -692,19 +667,16 @@ void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *r
 
     case 2:
         // n = 4; hn = 2; i = 0, 1
-        vloadx2(x_re_im, &a[0]);
-        vloadx2(y_re_im, &b[0]);
+        vloadx2(x, &a[0]);
+        vloadx2(y, &b[0]);
 
-        vfmul(z_re_im.val[0], x_re_im.val[0], x_re_im.val[0]);
-        vfmul(z_re_im.val[1], y_re_im.val[0], y_re_im.val[0]);
+        vfmul(z, x.val[0], x.val[0]);
+        vfma (z, z, x.val[1], x.val[1]);
+        vfma (z, z, y.val[0], y.val[0]);
+        vfma (z, z, y.val[1], y.val[1]);
+        vfinv(z, z);
 
-        vfma(z_re_im.val[0], z_re_im.val[0], x_re_im.val[1], x_re_im.val[1]);
-        vfma(z_re_im.val[1], z_re_im.val[1], y_re_im.val[1], y_re_im.val[1]);
-        vfadd(z_re_im.val[0], z_re_im.val[0], z_re_im.val[1]);
-
-        vfinv(z_re_im.val[0], z_re_im.val[0]);
-
-        vstore(&d[0], z_re_im.val[0]);
+        vstore(&d[0], z);
         break;
 
     case 3:
@@ -712,16 +684,19 @@ void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *r
         vloadx4(a_re, &a[0]);
         vloadx4(b_re, &b[0]);
 
-        vfmulx4(c_re, a_re, a_re);
-        vfmax4(c_re, c_re, b_re, b_re);
+        vfmul(x.val[0], a_re.val[0], a_re.val[0]);
+        vfma (x.val[0], x.val[0], b_re.val[0], b_re.val[0]);
+        vfma (x.val[0], x.val[0], a_re.val[2], a_re.val[2]);
+        vfma (x.val[0], x.val[0], b_re.val[2], b_re.val[2]);
+        vfinv(x.val[0], x.val[0]);
 
-        vfadd(z_re_im.val[0], c_re.val[0], c_re.val[2]);
-        vfadd(z_re_im.val[1], c_re.val[1], c_re.val[3]);
+        vfmul(x.val[1], a_re.val[1], a_re.val[1]);
+        vfma (x.val[1], x.val[1], b_re.val[1], b_re.val[1]);
+        vfma (x.val[1], x.val[1], a_re.val[3], a_re.val[3]);
+        vfma (x.val[1], x.val[1], b_re.val[3], b_re.val[3]);
+        vfinv(x.val[1], x.val[1]);
 
-        vfinv(z_re_im.val[0], z_re_im.val[0]);
-        vfinv(z_re_im.val[1], z_re_im.val[1]);
-
-        vstorex2(&d[0], z_re_im);
+        vstorex2(&d[0], x);
         break;
 
     default:
@@ -733,16 +708,31 @@ void ZfN(poly_invnorm2_fft)(fpr *restrict d, const fpr *restrict a, const fpr *r
             vloadx4(b_re, &b[i]);
             vloadx4(b_im, &b[i + hn]);
 
-            vfmulx4(c_re, a_re, a_re);
-            vfmulx4(c_im, b_re, b_re);
+            vfmul(c_re.val[0], a_re.val[0], a_re.val[0]);
+            vfma (c_re.val[0], c_re.val[0], a_im.val[0], a_im.val[0]);
+            vfma (c_re.val[0], c_re.val[0], b_re.val[0], b_re.val[0]);
+            vfma (c_re.val[0], c_re.val[0], b_im.val[0], b_im.val[0]);
+            vfinv(c_re.val[0], c_re.val[0]);
 
-            vfmax4(c_re, c_re, a_im, a_im);
-            vfmax4(c_im, c_im, b_im, b_im);
+            vfmul(c_re.val[1], a_re.val[1], a_re.val[1]);
+            vfma (c_re.val[1], c_re.val[1], a_im.val[1], a_im.val[1]);
+            vfma (c_re.val[1], c_re.val[1], b_re.val[1], b_re.val[1]);
+            vfma (c_re.val[1], c_re.val[1], b_im.val[1], b_im.val[1]);
+            vfinv(c_re.val[1], c_re.val[1]);
 
-            vfaddx4(d_re, c_re, c_im);
-            vfinvx4(d_re, d_re);
+            vfmul(c_re.val[2], a_re.val[2], a_re.val[2]);
+            vfma (c_re.val[2], c_re.val[2], a_im.val[2], a_im.val[2]);
+            vfma (c_re.val[2], c_re.val[2], b_re.val[2], b_re.val[2]);
+            vfma (c_re.val[2], c_re.val[2], b_im.val[2], b_im.val[2]);
+            vfinv(c_re.val[2], c_re.val[2]);
 
-            vstorex4(&d[i], d_re);
+            vfmul(c_re.val[3], a_re.val[3], a_re.val[3]);
+            vfma (c_re.val[3], c_re.val[3], a_im.val[3], a_im.val[3]);
+            vfma (c_re.val[3], c_re.val[3], b_re.val[3], b_re.val[3]);
+            vfma (c_re.val[3], c_re.val[3], b_im.val[3], b_im.val[3]);
+            vfinv(c_re.val[3], c_re.val[3]);
+
+            vstorex4(&d[i], c_re);
         }
         break;
     }
@@ -758,33 +748,64 @@ void ZfN(poly_add_muladj_fft)(fpr *restrict d,
     const int hn = falcon_n >> 1;
     float64x2x4_t F_re, F_im, G_re, G_im;
     float64x2x4_t f_re, f_im, g_re, g_im;
-    float64x2x4_t a_re, a_im, b_re, b_im;
+    float64x2x4_t a_re, a_im;
 
     for (int i = 0; i < hn; i += 8)
     {
         vloadx4(F_re, &F[i]);
-        vloadx4(F_im, &F[i + hn]);
-        vloadx4(G_re, &G[i]);
-        vloadx4(G_im, &G[i + hn]);
         vloadx4(f_re, &f[i]);
-        vloadx4(f_im, &f[i + hn]);
+
+        vloadx4(G_re, &G[i]);
         vloadx4(g_re, &g[i]);
+
+        vloadx4(F_im, &F[i + hn]);
+        vloadx4(f_im, &f[i + hn]);
+        
+        vloadx4(G_im, &G[i + hn]);
         vloadx4(g_im, &g[i + hn]);
+   
+        a_re.val[0] = vmulq_f64(F_re.val[0], f_re.val[0]);
+        a_re.val[0] = vfmaq_f64(a_re.val[0], G_re.val[0], g_re.val[0]);
+        a_re.val[0] = vfmaq_f64(a_re.val[0], F_im.val[0], f_im.val[0]);
+        a_re.val[0] = vfmaq_f64(a_re.val[0], G_im.val[0], g_im.val[0]);
 
-        vfmulx4(a_re, F_re, f_re);
-        vfmulx4(a_im, F_im, f_re);
-        vfmulx4(b_re, G_re, g_re);
-        vfmulx4(b_im, G_im, g_re);
-
-        vfmax4(a_re, a_re, F_im, f_im);
-        vfmax4(b_re, b_re, G_im, g_im);
-        vfmsx4(a_im, a_im, F_re, f_im);
-        vfmsx4(b_im, b_im, G_re, g_im);
-
-        vfaddx4(a_re, a_re, b_re);
-        vfaddx4(a_im, a_im, b_im);
+        a_re.val[1] = vmulq_f64(F_re.val[1], f_re.val[1]);
+        a_re.val[1] = vfmaq_f64(a_re.val[1], F_im.val[1], f_im.val[1]);
+        a_re.val[1] = vfmaq_f64(a_re.val[1], G_re.val[1], g_re.val[1]);
+        a_re.val[1] = vfmaq_f64(a_re.val[1], G_im.val[1], g_im.val[1]);
+        
+        a_re.val[2] = vmulq_f64(F_re.val[2], f_re.val[2]);
+        a_re.val[2] = vfmaq_f64(a_re.val[2], G_re.val[2], g_re.val[2]);
+        a_re.val[2] = vfmaq_f64(a_re.val[2], F_im.val[2], f_im.val[2]);
+        a_re.val[2] = vfmaq_f64(a_re.val[2], G_im.val[2], g_im.val[2]);
+        
+        a_re.val[3] = vmulq_f64(F_re.val[3], f_re.val[3]);
+        a_re.val[3] = vfmaq_f64(a_re.val[3], G_re.val[3], g_re.val[3]);
+        a_re.val[3] = vfmaq_f64(a_re.val[3], F_im.val[3], f_im.val[3]);
+        a_re.val[3] = vfmaq_f64(a_re.val[3], G_im.val[3], g_im.val[3]);
 
         vstorex4(&d[i], a_re);
+
+        a_im.val[0] = vmulq_f64(F_im.val[0], f_re.val[0]);
+        a_im.val[0] = vfmaq_f64(a_im.val[0], G_im.val[0], g_re.val[0]);
+        a_im.val[0] = vfmsq_f64(a_im.val[0], F_re.val[0], f_im.val[0]);
+        a_im.val[0] = vfmsq_f64(a_im.val[0], G_re.val[0], g_im.val[0]);
+
+        a_im.val[1] = vmulq_f64(F_im.val[1], f_re.val[1]);
+        a_im.val[1] = vfmaq_f64(a_im.val[1], G_im.val[1], g_re.val[1]);
+        a_im.val[1] = vfmsq_f64(a_im.val[1], F_re.val[1], f_im.val[1]);
+        a_im.val[1] = vfmsq_f64(a_im.val[1], G_re.val[1], g_im.val[1]);
+
+        a_im.val[2] = vmulq_f64(F_im.val[2], f_re.val[2]);
+        a_im.val[2] = vfmaq_f64(a_im.val[2], G_im.val[2], g_re.val[2]);
+        a_im.val[2] = vfmsq_f64(a_im.val[2], F_re.val[2], f_im.val[2]);
+        a_im.val[2] = vfmsq_f64(a_im.val[2], G_re.val[2], g_im.val[2]);
+
+        a_im.val[3] = vmulq_f64(F_im.val[3], f_re.val[3]);
+        a_im.val[3] = vfmaq_f64(a_im.val[3], G_im.val[3], g_re.val[3]);
+        a_im.val[3] = vfmsq_f64(a_im.val[3], F_re.val[3], f_im.val[3]);
+        a_im.val[3] = vfmsq_f64(a_im.val[3], G_re.val[3], g_im.val[3]);
+
         vstorex4(&d[i + hn], a_im);
     }
 }
@@ -900,8 +921,9 @@ static inline void ZfN(poly_LDL_fft_log1)(const fpr *restrict g00, fpr *restrict
 #if COMPLEX == 1
     // re: g01_re * g00_re + g01_im * g00_im
     // im: g01_im * g00_re - g01_re * g00_im
-    vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
-    vfcmla_270(mu_re.val[0], g00_re.val[0], g01_re.val[0]);
+    // vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
+    // vfcmla_270(mu_re.val[0], g00_re.val[0], g01_re.val[0]);
+    FPC_CMUL_CONJ(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
 #else
     // g01_re * g00_re | g01_im * g01_im
     vfmul(g01_re.val[2], g01_re.val[0], g00_re.val[0]);
@@ -920,8 +942,9 @@ static inline void ZfN(poly_LDL_fft_log1)(const fpr *restrict g00, fpr *restrict
     vswap(mu_re.val[1], mu_re.val[0]);
     // im: mu_im * g01_re - mu_re * g01_im
     // re: mu_im * g01_im + mu_re * g01_re
-    vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
-    vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
+    // vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
+    // vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
+    FPC_CMUL(g01_re.val[1], g01_re.val[0], mu_re.val[1]);
 
     vswap(g01_re.val[0], g01_re.val[1]);
 #else
@@ -964,29 +987,26 @@ static inline void ZfN(poly_LDL_fft_log2)(const fpr *restrict g00, fpr *restrict
     g01_im.val[0] = tmp.val[1];
 
     vfmul(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
-    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
-
     vfma(mu_re.val[0], mu_re.val[0], g01_im.val[0], g00_im.val[0]);
+    
+    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
     vfms(mu_im.val[0], mu_im.val[0], g01_re.val[0], g00_im.val[0]);
 
     vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
     vfmul(mu_im.val[0], mu_im.val[0], m.val[0]);
 
-    vfmul(d_re.val[0], mu_re.val[0], g01_re.val[0]);
-    vfmul(d_im.val[0], mu_im.val[0], g01_re.val[0]);
-
-    vfma(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
-    vfms(d_im.val[0], d_im.val[0], mu_re.val[0], g01_im.val[0]);
-
     vloadx2(tmp, &g11[0]);
     g11_re.val[0] = tmp.val[0];
     g11_im.val[0] = tmp.val[1];
 
-    vfsub(g11_re.val[0], g11_re.val[0], d_re.val[0]);
-    vfsub(g11_im.val[0], g11_im.val[0], d_im.val[0]);
+    vfms(d_re.val[0], g11_re.val[0], mu_re.val[0], g01_re.val[0]);
+    vfms(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
 
-    tmp.val[0] = g11_re.val[0];
-    tmp.val[1] = g11_im.val[0];
+    vfms(d_im.val[0], g11_im.val[0], mu_im.val[0], g01_re.val[0]);
+    vfma(d_im.val[0], d_im.val[0], mu_re.val[0], g01_im.val[0]);
+
+    tmp.val[0] = d_re.val[0];
+    tmp.val[1] = d_im.val[0];
     vstorex2(&g11[0], tmp);
 
     vfneg(mu_im.val[0], mu_im.val[0]);
@@ -998,17 +1018,18 @@ static inline void ZfN(poly_LDL_fft_log2)(const fpr *restrict g00, fpr *restrict
 static inline void ZfN(poly_LDL_fft_log3)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict g11)
 {
     float64x2x4_t g00_re, g00_im, g01_re, g01_im, g11_re;
-    float64x2x4_t mu_re, mu_im, m, d_re, d_im;
+    float64x2x4_t mu_re, mu_im, m, d_re;
     //  n = 8; hn = 4
     vloadx4(g00_re, &g00[0]);
     g00_im.val[0] = g00_re.val[2];
     g00_im.val[1] = g00_re.val[3];
 
     vfmul(m.val[0], g00_re.val[0], g00_re.val[0]);
-    vfmul(m.val[1], g00_re.val[1], g00_re.val[1]);
     vfma(m.val[0], m.val[0], g00_im.val[0], g00_im.val[0]);
-    vfma(m.val[1], m.val[1], g00_im.val[1], g00_im.val[1]);
     vfinv(m.val[0], m.val[0]);
+
+    vfmul(m.val[1], g00_re.val[1], g00_re.val[1]);
+    vfma(m.val[1], m.val[1], g00_im.val[1], g00_im.val[1]);
     vfinv(m.val[1], m.val[1]);
 
     vloadx4(g01_re, &g01[0]);
@@ -1016,13 +1037,15 @@ static inline void ZfN(poly_LDL_fft_log3)(const fpr *restrict g00, fpr *restrict
     g01_im.val[1] = g01_re.val[3];
 
     vfmul(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
-    vfmul(mu_re.val[1], g01_re.val[1], g00_re.val[1]);
-    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
-    vfmul(mu_im.val[1], g01_im.val[1], g00_re.val[1]);
-
     vfma(mu_re.val[0], mu_re.val[0], g01_im.val[0], g00_im.val[0]);
+    
+    vfmul(mu_re.val[1], g01_re.val[1], g00_re.val[1]);
     vfma(mu_re.val[1], mu_re.val[1], g01_im.val[1], g00_im.val[1]);
+    
+    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
     vfms(mu_im.val[0], mu_im.val[0], g01_re.val[0], g00_im.val[0]);
+
+    vfmul(mu_im.val[1], g01_im.val[1], g00_re.val[1]);
     vfms(mu_im.val[1], mu_im.val[1], g01_re.val[1], g00_im.val[1]);
 
     vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
@@ -1030,24 +1053,21 @@ static inline void ZfN(poly_LDL_fft_log3)(const fpr *restrict g00, fpr *restrict
     vfmul(mu_im.val[0], mu_im.val[0], m.val[0]);
     vfmul(mu_im.val[1], mu_im.val[1], m.val[1]);
 
-    vfmul(d_re.val[0], mu_re.val[0], g01_re.val[0]);
-    vfmul(d_re.val[1], mu_re.val[1], g01_re.val[1]);
-    vfmul(d_im.val[0], mu_im.val[0], g01_re.val[0]);
-    vfmul(d_im.val[1], mu_im.val[1], g01_re.val[1]);
-
-    vfma(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
-    vfma(d_re.val[1], d_re.val[1], mu_im.val[1], g01_im.val[1]);
-    vfms(d_im.val[0], d_im.val[0], mu_re.val[0], g01_im.val[0]);
-    vfms(d_im.val[1], d_im.val[1], mu_re.val[1], g01_im.val[1]);
-
     vloadx4(g11_re, &g11[0]);
 
-    vfsub(g11_re.val[0], g11_re.val[0], d_re.val[0]);
-    vfsub(g11_re.val[1], g11_re.val[1], d_re.val[1]);
-    vfsub(g11_re.val[2], g11_re.val[2], d_im.val[0]);
-    vfsub(g11_re.val[3], g11_re.val[3], d_im.val[1]);
+    vfms(d_re.val[0], g11_re.val[0], mu_re.val[0], g01_re.val[0]);
+    vfms(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
+    
+    vfms(d_re.val[1], g11_re.val[1], mu_re.val[1], g01_re.val[1]);
+    vfms(d_re.val[1], d_re.val[1], mu_im.val[1], g01_im.val[1]);
 
-    vstorex4(&g11[0], g11_re);
+    vfms(d_re.val[2], g11_re.val[2], mu_im.val[0], g01_re.val[0]);
+    vfma(d_re.val[2], d_re.val[2], mu_re.val[0], g01_im.val[0]);
+    
+    vfms(d_re.val[3], g11_re.val[3], mu_im.val[1], g01_re.val[1]);
+    vfma(d_re.val[3], d_re.val[3], mu_re.val[1], g01_im.val[1]);
+
+    vstorex4(&g11[0], d_re);
 
     vfneg(mu_re.val[2], mu_im.val[0]);
     vfneg(mu_re.val[3], mu_im.val[1]);
@@ -1087,41 +1107,90 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
             vloadx4(g00_re, &g00[i]);
             vloadx4(g00_im, &g00[i + hn]);
 
-            vfmulx4(m, g00_re, g00_re);
-            vfmax4(m, m, g00_im, g00_im);
-            vfinvx4(m, m);
+            // vfmulx4(m, g00_re, g00_re);
+            // vfmax4(m, m, g00_im, g00_im);
+            // vfinvx4(m, m);
+
+            m.val[0] = vmulq_f64(g00_re.val[0], g00_re.val[0]);
+            m.val[0] = vfmaq_f64(m.val[0], g00_im.val[0], g00_im.val[0]);
+            m.val[0] = vdivq_f64(vdupq_n_f64(1.0), m.val[0]);
+
+            m.val[1] = vmulq_f64(g00_re.val[1], g00_re.val[1]);
+            m.val[1] = vdivq_f64(vdupq_n_f64(1.0), m.val[1]);
+            m.val[1] = vfmaq_f64(m.val[1], g00_im.val[1], g00_im.val[1]);
+            
+            m.val[2] = vmulq_f64(g00_re.val[2], g00_re.val[2]);
+            m.val[2] = vfmaq_f64(m.val[2], g00_im.val[2], g00_im.val[2]);
+            m.val[2] = vdivq_f64(vdupq_n_f64(1.0), m.val[2]);
+            
+            m.val[3] = vmulq_f64(g00_re.val[3], g00_re.val[3]);
+            m.val[3] = vfmaq_f64(m.val[3], g00_im.val[3], g00_im.val[3]);
+            m.val[3] = vdivq_f64(vdupq_n_f64(1.0), m.val[3]);
 
             vloadx4(g01_re, &g01[i]);
             vloadx4(g01_im, &g01[i + hn]);
 
-            vfmulx4(mu_re, g01_re, g00_re);
-            vfmulx4(mu_im, g01_im, g00_re);
+            // vfmulx4(mu_re, g01_re, g00_re);
+            // vfmax4(mu_re, mu_re, g01_im, g00_im);
 
-            vfmax4(mu_re, mu_re, g01_im, g00_im);
-            vfmsx4(mu_im, mu_im, g01_re, g00_im);
+            mu_re.val[0] = vmulq_f64(g01_re.val[0], g00_re.val[0]);
+            mu_re.val[0] = vfmaq_f64(mu_re.val[0], g01_im.val[0], g00_im.val[0]);
+
+            mu_re.val[1] = vmulq_f64(g01_re.val[1], g00_re.val[1]);
+            mu_re.val[1] = vfmaq_f64(mu_re.val[1], g01_im.val[1], g00_im.val[1]);
+            
+            mu_re.val[2] = vmulq_f64(g01_re.val[2], g00_re.val[2]);
+            mu_re.val[2] = vfmaq_f64(mu_re.val[2], g01_im.val[2], g00_im.val[2]);
+            
+            mu_re.val[3] = vmulq_f64(g01_re.val[3], g00_re.val[3]);
+            mu_re.val[3] = vfmaq_f64(mu_re.val[3], g01_im.val[3], g00_im.val[3]);
+
+            // vfmulx4(mu_im, g01_im, g00_re);
+            // vfmsx4(mu_im, mu_im, g01_re, g00_im);
+
+            mu_im.val[0] = vmulq_f64(g01_im.val[0], g00_re.val[0]);
+            mu_im.val[0] = vfmsq_f64(mu_im.val[0], g01_re.val[0], g00_im.val[0]);
+
+            mu_im.val[1] = vmulq_f64(g01_im.val[1], g00_re.val[1]);
+            mu_im.val[1] = vfmsq_f64(mu_im.val[1], g01_re.val[1], g00_im.val[1]);
+
+            mu_im.val[2] = vmulq_f64(g01_im.val[2], g00_re.val[2]);
+            mu_im.val[2] = vfmsq_f64(mu_im.val[2], g01_re.val[2], g00_im.val[2]);
+
+            mu_im.val[3] = vmulq_f64(g01_im.val[3], g00_re.val[3]);
+            mu_im.val[3] = vfmsq_f64(mu_im.val[3], g01_re.val[3], g00_im.val[3]);
 
             vfmulx4(mu_re, mu_re, m);
             vfmulx4(mu_im, mu_im, m);
             vstorex4(&g01[i], mu_re);
 
-            vfmulx4(d_re, mu_re, g01_re);
-            vfmulx4(d_im, mu_im, g01_re);
-
-            vfmax4(d_re, d_re, mu_im, g01_im);
-            vfmsx4(d_im, d_im, mu_re, g01_im);
-
-            vfnegx4(mu_im, mu_im);
-            vstorex4(&g01[i + hn], mu_im);
-
             vloadx4(g11_re, &g11[i]);
             vloadx4(g11_im, &g11[i + hn]);
 
-            vfsubx4(g11_re, g11_re, d_re);
-            vfsubx4(g11_im, g11_im, d_im);
+            d_re.val[0] = vfmsq_f64(g11_re.val[0], mu_re.val[0], g01_re.val[0]);
+            d_re.val[0] = vfmsq_f64(d_re.val[0], mu_im.val[0], g01_im.val[0]);
+            d_re.val[1] = vfmsq_f64(g11_re.val[1], mu_re.val[1], g01_re.val[1]);
+            d_re.val[1] = vfmsq_f64(d_re.val[1], mu_im.val[1], g01_im.val[1]);
 
-            vstorex4(&g11[i], g11_re);
-            vstorex4(&g11[i + hn], g11_im);
+            d_re.val[2] = vfmsq_f64(g11_re.val[2], mu_re.val[2], g01_re.val[2]);
+            d_re.val[2] = vfmsq_f64(d_re.val[2], mu_im.val[2], g01_im.val[2]);
+            d_re.val[3] = vfmsq_f64(g11_re.val[3], mu_re.val[3], g01_re.val[3]);
+            d_re.val[3] = vfmsq_f64(d_re.val[3], mu_im.val[3], g01_im.val[3]);
+            vstorex4(&g11[i], d_re);
 
+            d_im.val[0] = vfmsq_f64(g11_im.val[0], mu_im.val[0], g01_re.val[0]);
+            d_im.val[0] = vfmaq_f64(d_im.val[0], mu_re.val[0], g01_im.val[0]);
+            d_im.val[1] = vfmsq_f64(g11_im.val[1], mu_im.val[1], g01_re.val[1]);
+            d_im.val[1] = vfmaq_f64(d_im.val[1], mu_re.val[1], g01_im.val[1]);
+
+            d_im.val[2] = vfmsq_f64(g11_im.val[2], mu_im.val[2], g01_re.val[2]);
+            d_im.val[2] = vfmaq_f64(d_im.val[2], mu_re.val[2], g01_im.val[2]);
+            d_im.val[3] = vfmsq_f64(g11_im.val[3], mu_im.val[3], g01_re.val[3]);
+            d_im.val[3] = vfmaq_f64(d_im.val[3], mu_re.val[3], g01_im.val[3]);
+            vstorex4(&g11[i + hn], d_im);
+
+            vfnegx4(mu_im, mu_im);
+            vstorex4(&g01[i + hn], mu_im);
         }
         break;
     }
@@ -1148,8 +1217,9 @@ static inline void ZfN(poly_LDLmv_fft_log1)(fpr *restrict d11, fpr *restrict l10
 #if COMPLEX == 1
     // re: g01_re * g00_re + g01_im * g00_im
     // im: g01_im * g00_re - g01_re * g00_im
-    vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
-    vfcmla_270(mu_re.val[0], g00_re.val[0], g01_re.val[0]);
+    // vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
+    // vfcmla_270(mu_re.val[0], g00_re.val[0], g01_re.val[0]);
+    FPC_CMUL_CONJ(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
 #else
     // g01_re * g00_re | g01_im * g01_im
     vfmul(g01_re.val[2], g01_re.val[0], g00_re.val[0]);
@@ -1168,8 +1238,9 @@ static inline void ZfN(poly_LDLmv_fft_log1)(fpr *restrict d11, fpr *restrict l10
     vswap(mu_re.val[1], mu_re.val[0]);
     // im: mu_im * g01_re - mu_re * g01_im
     // re: mu_im * g01_im + mu_re * g01_re
-    vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
-    vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
+    // vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
+    // vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
+    FPC_CMUL(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
 
     vswap(g01_re.val[0], g01_re.val[1]);
 #else
@@ -1195,7 +1266,7 @@ static inline void ZfN(poly_LDLmv_fft_log1)(fpr *restrict d11, fpr *restrict l10
 static inline void ZfN(poly_LDLmv_fft_log2)(fpr *restrict d11, fpr *restrict l10,
                                             const fpr *restrict g00, const fpr *restrict g01, const fpr *restrict g11)
 {
-    float64x2x4_t g00_re, g00_im, g01_re, g01_im, g11_re, g11_im;
+        float64x2x4_t g00_re, g00_im, g01_re, g01_im, g11_re, g11_im;
     float64x2x4_t mu_re, mu_im, m, d_re, d_im;
     float64x2x2_t tmp;
 
@@ -1213,29 +1284,26 @@ static inline void ZfN(poly_LDLmv_fft_log2)(fpr *restrict d11, fpr *restrict l10
     g01_im.val[0] = tmp.val[1];
 
     vfmul(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
-    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
-
     vfma(mu_re.val[0], mu_re.val[0], g01_im.val[0], g00_im.val[0]);
+    
+    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
     vfms(mu_im.val[0], mu_im.val[0], g01_re.val[0], g00_im.val[0]);
 
     vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
     vfmul(mu_im.val[0], mu_im.val[0], m.val[0]);
 
-    vfmul(d_re.val[0], mu_re.val[0], g01_re.val[0]);
-    vfmul(d_im.val[0], mu_im.val[0], g01_re.val[0]);
-
-    vfma(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
-    vfms(d_im.val[0], d_im.val[0], mu_re.val[0], g01_im.val[0]);
-
     vloadx2(tmp, &g11[0]);
     g11_re.val[0] = tmp.val[0];
     g11_im.val[0] = tmp.val[1];
 
-    vfsub(g11_re.val[0], g11_re.val[0], d_re.val[0]);
-    vfsub(g11_im.val[0], g11_im.val[0], d_im.val[0]);
+    vfms(d_re.val[0], g11_re.val[0], mu_re.val[0], g01_re.val[0]);
+    vfms(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
 
-    tmp.val[0] = g11_re.val[0];
-    tmp.val[1] = g11_im.val[0];
+    vfms(d_im.val[0], g11_im.val[0], mu_im.val[0], g01_re.val[0]);
+    vfma(d_im.val[0], d_im.val[0], mu_re.val[0], g01_im.val[0]);
+
+    tmp.val[0] = d_re.val[0];
+    tmp.val[1] = d_im.val[0];
     vstorex2(&d11[0], tmp);
 
     vfneg(mu_im.val[0], mu_im.val[0]);
@@ -1248,17 +1316,18 @@ static inline void ZfN(poly_LDLmv_fft_log3)(fpr *restrict d11, fpr *restrict l10
                                             const fpr *restrict g00, const fpr *restrict g01, const fpr *restrict g11)
 {
     float64x2x4_t g00_re, g00_im, g01_re, g01_im, g11_re;
-    float64x2x4_t mu_re, mu_im, m, d_re, d_im;
+    float64x2x4_t mu_re, mu_im, m, d_re;
     //  n = 8; hn = 4
     vloadx4(g00_re, &g00[0]);
     g00_im.val[0] = g00_re.val[2];
     g00_im.val[1] = g00_re.val[3];
 
     vfmul(m.val[0], g00_re.val[0], g00_re.val[0]);
-    vfmul(m.val[1], g00_re.val[1], g00_re.val[1]);
     vfma(m.val[0], m.val[0], g00_im.val[0], g00_im.val[0]);
-    vfma(m.val[1], m.val[1], g00_im.val[1], g00_im.val[1]);
     vfinv(m.val[0], m.val[0]);
+
+    vfmul(m.val[1], g00_re.val[1], g00_re.val[1]);
+    vfma(m.val[1], m.val[1], g00_im.val[1], g00_im.val[1]);
     vfinv(m.val[1], m.val[1]);
 
     vloadx4(g01_re, &g01[0]);
@@ -1266,13 +1335,15 @@ static inline void ZfN(poly_LDLmv_fft_log3)(fpr *restrict d11, fpr *restrict l10
     g01_im.val[1] = g01_re.val[3];
 
     vfmul(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
-    vfmul(mu_re.val[1], g01_re.val[1], g00_re.val[1]);
-    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
-    vfmul(mu_im.val[1], g01_im.val[1], g00_re.val[1]);
-
     vfma(mu_re.val[0], mu_re.val[0], g01_im.val[0], g00_im.val[0]);
+    
+    vfmul(mu_re.val[1], g01_re.val[1], g00_re.val[1]);
     vfma(mu_re.val[1], mu_re.val[1], g01_im.val[1], g00_im.val[1]);
+    
+    vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
     vfms(mu_im.val[0], mu_im.val[0], g01_re.val[0], g00_im.val[0]);
+
+    vfmul(mu_im.val[1], g01_im.val[1], g00_re.val[1]);
     vfms(mu_im.val[1], mu_im.val[1], g01_re.val[1], g00_im.val[1]);
 
     vfmul(mu_re.val[0], mu_re.val[0], m.val[0]);
@@ -1280,24 +1351,21 @@ static inline void ZfN(poly_LDLmv_fft_log3)(fpr *restrict d11, fpr *restrict l10
     vfmul(mu_im.val[0], mu_im.val[0], m.val[0]);
     vfmul(mu_im.val[1], mu_im.val[1], m.val[1]);
 
-    vfmul(d_re.val[0], mu_re.val[0], g01_re.val[0]);
-    vfmul(d_re.val[1], mu_re.val[1], g01_re.val[1]);
-    vfmul(d_im.val[0], mu_im.val[0], g01_re.val[0]);
-    vfmul(d_im.val[1], mu_im.val[1], g01_re.val[1]);
-
-    vfma(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
-    vfma(d_re.val[1], d_re.val[1], mu_im.val[1], g01_im.val[1]);
-    vfms(d_im.val[0], d_im.val[0], mu_re.val[0], g01_im.val[0]);
-    vfms(d_im.val[1], d_im.val[1], mu_re.val[1], g01_im.val[1]);
-
     vloadx4(g11_re, &g11[0]);
 
-    vfsub(g11_re.val[0], g11_re.val[0], d_re.val[0]);
-    vfsub(g11_re.val[1], g11_re.val[1], d_re.val[1]);
-    vfsub(g11_re.val[2], g11_re.val[2], d_im.val[0]);
-    vfsub(g11_re.val[3], g11_re.val[3], d_im.val[1]);
+    vfms(d_re.val[0], g11_re.val[0], mu_re.val[0], g01_re.val[0]);
+    vfms(d_re.val[0], d_re.val[0], mu_im.val[0], g01_im.val[0]);
+    
+    vfms(d_re.val[1], g11_re.val[1], mu_re.val[1], g01_re.val[1]);
+    vfms(d_re.val[1], d_re.val[1], mu_im.val[1], g01_im.val[1]);
 
-    vstorex4(&d11[0], g11_re);
+    vfms(d_re.val[2], g11_re.val[2], mu_im.val[0], g01_re.val[0]);
+    vfma(d_re.val[2], d_re.val[2], mu_re.val[0], g01_im.val[0]);
+    
+    vfms(d_re.val[3], g11_re.val[3], mu_im.val[1], g01_re.val[1]);
+    vfma(d_re.val[3], d_re.val[3], mu_re.val[1], g01_im.val[1]);
+
+    vstorex4(&d11[0], d_re);
 
     vfneg(mu_re.val[2], mu_im.val[0]);
     vfneg(mu_re.val[3], mu_im.val[1]);
@@ -1334,40 +1402,90 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
             vloadx4(g00_re, &g00[i]);
             vloadx4(g00_im, &g00[i + hn]);
 
-            vfmulx4(m, g00_re, g00_re);
-            vfmax4(m, m, g00_im, g00_im);
-            vfinvx4(m, m);
+            // vfmulx4(m, g00_re, g00_re);
+            // vfmax4(m, m, g00_im, g00_im);
+            // vfinvx4(m, m);
+
+            m.val[0] = vmulq_f64(g00_re.val[0], g00_re.val[0]);
+            m.val[0] = vfmaq_f64(m.val[0], g00_im.val[0], g00_im.val[0]);
+            m.val[0] = vdivq_f64(vdupq_n_f64(1.0), m.val[0]);
+
+            m.val[1] = vmulq_f64(g00_re.val[1], g00_re.val[1]);
+            m.val[1] = vdivq_f64(vdupq_n_f64(1.0), m.val[1]);
+            m.val[1] = vfmaq_f64(m.val[1], g00_im.val[1], g00_im.val[1]);
+            
+            m.val[2] = vmulq_f64(g00_re.val[2], g00_re.val[2]);
+            m.val[2] = vfmaq_f64(m.val[2], g00_im.val[2], g00_im.val[2]);
+            m.val[2] = vdivq_f64(vdupq_n_f64(1.0), m.val[2]);
+            
+            m.val[3] = vmulq_f64(g00_re.val[3], g00_re.val[3]);
+            m.val[3] = vfmaq_f64(m.val[3], g00_im.val[3], g00_im.val[3]);
+            m.val[3] = vdivq_f64(vdupq_n_f64(1.0), m.val[3]);
 
             vloadx4(g01_re, &g01[i]);
             vloadx4(g01_im, &g01[i + hn]);
 
-            vfmulx4(mu_re, g01_re, g00_re);
-            vfmulx4(mu_im, g01_im, g00_re);
+            // vfmulx4(mu_re, g01_re, g00_re);
+            // vfmax4(mu_re, mu_re, g01_im, g00_im);
 
-            vfmax4(mu_re, mu_re, g01_im, g00_im);
-            vfmsx4(mu_im, mu_im, g01_re, g00_im);
+            mu_re.val[0] = vmulq_f64(g01_re.val[0], g00_re.val[0]);
+            mu_re.val[0] = vfmaq_f64(mu_re.val[0], g01_im.val[0], g00_im.val[0]);
+
+            mu_re.val[1] = vmulq_f64(g01_re.val[1], g00_re.val[1]);
+            mu_re.val[1] = vfmaq_f64(mu_re.val[1], g01_im.val[1], g00_im.val[1]);
+            
+            mu_re.val[2] = vmulq_f64(g01_re.val[2], g00_re.val[2]);
+            mu_re.val[2] = vfmaq_f64(mu_re.val[2], g01_im.val[2], g00_im.val[2]);
+            
+            mu_re.val[3] = vmulq_f64(g01_re.val[3], g00_re.val[3]);
+            mu_re.val[3] = vfmaq_f64(mu_re.val[3], g01_im.val[3], g00_im.val[3]);
+
+            // vfmulx4(mu_im, g01_im, g00_re);
+            // vfmsx4(mu_im, mu_im, g01_re, g00_im);
+
+            mu_im.val[0] = vmulq_f64(g01_im.val[0], g00_re.val[0]);
+            mu_im.val[0] = vfmsq_f64(mu_im.val[0], g01_re.val[0], g00_im.val[0]);
+
+            mu_im.val[1] = vmulq_f64(g01_im.val[1], g00_re.val[1]);
+            mu_im.val[1] = vfmsq_f64(mu_im.val[1], g01_re.val[1], g00_im.val[1]);
+
+            mu_im.val[2] = vmulq_f64(g01_im.val[2], g00_re.val[2]);
+            mu_im.val[2] = vfmsq_f64(mu_im.val[2], g01_re.val[2], g00_im.val[2]);
+
+            mu_im.val[3] = vmulq_f64(g01_im.val[3], g00_re.val[3]);
+            mu_im.val[3] = vfmsq_f64(mu_im.val[3], g01_re.val[3], g00_im.val[3]);
 
             vfmulx4(mu_re, mu_re, m);
             vfmulx4(mu_im, mu_im, m);
             vstorex4(&l10[i], mu_re);
 
-            vfmulx4(d_re, mu_re, g01_re);
-            vfmulx4(d_im, mu_im, g01_re);
-
-            vfmax4(d_re, d_re, mu_im, g01_im);
-            vfmsx4(d_im, d_im, mu_re, g01_im);
-
-            vfnegx4(mu_im, mu_im);
-            vstorex4(&l10[i + hn], mu_im);
-
             vloadx4(g11_re, &g11[i]);
             vloadx4(g11_im, &g11[i + hn]);
 
-            vfsubx4(g11_re, g11_re, d_re);
-            vfsubx4(g11_im, g11_im, d_im);
+            d_re.val[0] = vfmsq_f64(g11_re.val[0], mu_re.val[0], g01_re.val[0]);
+            d_re.val[0] = vfmsq_f64(d_re.val[0], mu_im.val[0], g01_im.val[0]);
+            d_re.val[1] = vfmsq_f64(g11_re.val[1], mu_re.val[1], g01_re.val[1]);
+            d_re.val[1] = vfmsq_f64(d_re.val[1], mu_im.val[1], g01_im.val[1]);
 
-            vstorex4(&d11[i], g11_re);
-            vstorex4(&d11[i + hn], g11_im);
+            d_re.val[2] = vfmsq_f64(g11_re.val[2], mu_re.val[2], g01_re.val[2]);
+            d_re.val[2] = vfmsq_f64(d_re.val[2], mu_im.val[2], g01_im.val[2]);
+            d_re.val[3] = vfmsq_f64(g11_re.val[3], mu_re.val[3], g01_re.val[3]);
+            d_re.val[3] = vfmsq_f64(d_re.val[3], mu_im.val[3], g01_im.val[3]);
+            vstorex4(&d11[i], d_re);
+
+            d_im.val[0] = vfmsq_f64(g11_im.val[0], mu_im.val[0], g01_re.val[0]);
+            d_im.val[0] = vfmaq_f64(d_im.val[0], mu_re.val[0], g01_im.val[0]);
+            d_im.val[1] = vfmsq_f64(g11_im.val[1], mu_im.val[1], g01_re.val[1]);
+            d_im.val[1] = vfmaq_f64(d_im.val[1], mu_re.val[1], g01_im.val[1]);
+
+            d_im.val[2] = vfmsq_f64(g11_im.val[2], mu_im.val[2], g01_re.val[2]);
+            d_im.val[2] = vfmaq_f64(d_im.val[2], mu_re.val[2], g01_im.val[2]);
+            d_im.val[3] = vfmsq_f64(g11_im.val[3], mu_im.val[3], g01_re.val[3]);
+            d_im.val[3] = vfmaq_f64(d_im.val[3], mu_re.val[3], g01_im.val[3]);
+            vstorex4(&d11[i + hn], d_im);
+
+            vfnegx4(mu_im, mu_im);
+            vstorex4(&l10[i + hn], mu_im);
         }
         break;
     }
