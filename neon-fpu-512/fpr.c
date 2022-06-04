@@ -191,6 +191,8 @@ const fpr fpr_tab_log9[] = {
     0.018406729905804820927366313, 0.999830581795823422015722275, // 764
 };
 
+// Can use #if #else here to compress binary size
+
 const fpr fpr_tab_log10[] = {
     0.999995293809576171511580126, 0.003067956762965976270145365, // 1024
     0.704934080375904908852523758, 0.709272826438865651316533772, // 1028
@@ -331,5 +333,5 @@ const fpr *fpr_table[] = {
     fpr_tab_log7,
     fpr_tab_log8,
     fpr_tab_log9,
-    fpr_tab_log10
+    fpr_tab_log10,
 };
