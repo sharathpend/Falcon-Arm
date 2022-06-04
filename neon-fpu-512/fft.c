@@ -74,14 +74,15 @@ static void ZfN(FFT_log2)(fpr *f)
 static void ZfN(FFT_log3)(fpr *f)
 {
     float64x2x4_t tmp;
-    float64x2_t v_re, v_im, x_re, x_im, y_re, y_im, t_x, t_y, s_re_im;
+    float64x2_t v_re, v_im, x_re, x_im, y_re, y_im, t_x, t_y;
+    float64x2x2_t s_re_im, x, y;
 
     // 0: 0, 1
     // 1: 2, 3
     // 2: 4, 5
     // 3: 6, 7
     vloadx4(tmp, &f[0]);
-    s_re_im = vld1q_dup_f64(&fpr_tab_log2[0]);
+    s_re_im.val[0] = vld1q_dup_f64(&fpr_tab_log2[0]);
 
     /*
     Level 1
@@ -94,8 +95,8 @@ static void ZfN(FFT_log3)(fpr *f)
     (   1,    5) = (   1,    5) + @
     */
 
-    vfmul(v_re, tmp.val[1], s_re_im);
-    vfmul(v_im, tmp.val[3], s_re_im);
+    vfmul(v_re, tmp.val[1], s_re_im.val[0]);
+    vfmul(v_im, tmp.val[3], s_re_im.val[0]);
 
     vfsub(t_x, v_re, v_im);
     vfadd(t_y, v_re, v_im);
@@ -106,94 +107,38 @@ static void ZfN(FFT_log3)(fpr *f)
     vfadd(tmp.val[0], tmp.val[0], t_x);
     vfadd(tmp.val[2], tmp.val[2], t_y);
 
-#if APPLE_M1 == 1
     /*
-     * 0, 4
-     * 1, 5
-     * 2, 6
-     * 3, 7
+     * 0, 2
+     * 1, 3
+     * 4, 6
+     * 5, 7
      */
-    x_re = vtrn1q_f64(tmp.val[0], tmp.val[2]);
-    y_re = vtrn2q_f64(tmp.val[0], tmp.val[2]);
-    x_im = vtrn1q_f64(tmp.val[1], tmp.val[3]);
-    y_im = vtrn2q_f64(tmp.val[1], tmp.val[3]);
-
-    /*
-    (   1,    5) * (   0,    1)
-    (   3,    7) * (   0,    1)
-
-    (   1,    5) = (   0,    4) - @
-    (   0,    4) = (   0,    4) + @
-
-    (   3,    7) = (   2,    6) - j@
-    (   2,    6) = (   2,    6) + j@
-    */
-
-    vload(s_re_im, &fpr_tab_log3[0]);
-
-    FPC_CMUL(v_re, y_re, s_re_im);
-    FPC_CMUL(v_im, y_im, s_re_im);
-
-    vfsub(y_re, x_re, v_re);
-    vfadd(x_re, x_re, v_re);
-
-    vfcsubj(y_im, x_im, v_im);
-    vfcaddj(x_im, x_im, v_im);
-
-    tmp.val[0] = x_re;
-    tmp.val[1] = y_re;
-    tmp.val[2] = x_im;
-    tmp.val[3] = y_im;
-
-    vstore4(&f[0], tmp);
-
-#else
-    float64x2x2_t tmp2_0, tmp2_1;
-
-    // TODO: edit this
-    /*
-    x_re: 0, 2
-    y_re: 1, 3
-    x_im: 4, 6
-    y_im: 5, 7
-    */
     x_re = vtrn1q_f64(tmp.val[0], tmp.val[1]);
     y_re = vtrn2q_f64(tmp.val[0], tmp.val[1]);
     x_im = vtrn1q_f64(tmp.val[2], tmp.val[3]);
     y_im = vtrn2q_f64(tmp.val[2], tmp.val[3]);
 
     /*
-    ----
-    level 2
-    x_re:   0 =   0 + (  1*  8 -   5*  9)
-    x_re:   2 =   2 + (  3* 10 -   7* 11)
-    y_re:   1 =   0 - (  1*  8 -   5*  9)
-    y_re:   3 =   2 - (  3* 10 -   7* 11)
+    (   1,    5) * (   0,    1)
+    (   3,    7) * (   2,    3)
 
-    x_im:   4 =   4 + (  1*  9 +   5*  8)
-    x_im:   6 =   6 + (  3* 11 +   7* 10)
-    y_im:   5 =   4 - (  1*  9 +   5*  8)
-    y_im:   7 =   6 - (  3* 11 +   7* 10)
+    (   0,    4) = (   0,    4) + @
+    (   2,    6) = (   2,    6) + @
+
+    (   1,    5) = (   0,    4) - @
+    (   3,    7) = (   2,    6) - @
     */
-    // 8, 10
-    // 9, 11
-    vload2(s_re_im, &fpr_gm_tab[8]);
 
-    vfmul(v_re, y_re, s_re_im.val[0]);
-    vfms(v_re, v_re, y_im, s_re_im.val[1]);
+    vload2(s_re_im, &fpr_tab_log3[0]);
 
-    vfmul(v_im, y_re, s_re_im.val[1]);
-    vfma(v_im, v_im, y_im, s_re_im.val[0]);
+    FWD_TOP(v_re, v_im, y_re, y_im, s_re_im.val[0], s_re_im.val[1]);
 
-    vfadd(tmp2_0.val[0], x_re, v_re);
-    vfsub(tmp2_0.val[1], x_re, v_re);
+    FPC_ADD(x.val[0], y.val[0], x_re, x_im, v_re, v_im);
+    FPC_SUB(x.val[1], y.val[1], x_re, x_im, v_re, v_im);
 
-    vfadd(tmp2_1.val[0], x_im, v_im);
-    vfsub(tmp2_1.val[1], x_im, v_im);
+    vstore2(&f[0], x);
+    vstore2(&f[4], y);
 
-    vstore2(&f[0], tmp2_0);
-    vstore2(&f[4], tmp2_1);
-#endif
 }
 
 static void ZfN(FFT_log4)(fpr *f)
