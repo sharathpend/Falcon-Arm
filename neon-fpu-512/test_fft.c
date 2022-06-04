@@ -6,7 +6,7 @@
 // Compile flags:
 // gcc -o test_fft fft.c test_fft.c fft_consts.c fpr.c -O0 -g3; ./test_fft
 
-#define PRINT 5
+#define PRINT 55555
 
 double drand(double low, double high)
 {
@@ -663,6 +663,8 @@ void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
         }
 
         FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        // printf("a_re, a_im, b_re, b_im = %.2f, %.2f, %.2f, %.2f\n", a_re, a_im, b_re, b_im);
+        // printf("t_re, t_im = %.2f, %.2f, %.2f, %.2f, %d\n", t_re, t_im, s_re, s_im, ht);
         FPC_MUL_CONJ(f1[j], f1[j + ht], t_re, t_im, s_re, s_im);
         
         // ===========
@@ -700,6 +702,60 @@ void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
         if (logn == PRINT) printf("====%d, %d\n", j, j2);
     }
 }
+
+
+void
+Zf(poly_split_fft)(
+	fpr *restrict f0, fpr *restrict f1,
+	const fpr *restrict f, unsigned logn)
+{
+	/*
+	 * The FFT representation we use is in bit-reversed order
+	 * (element i contains f(w^(rev(i))), where rev() is the
+	 * bit-reversal function over the ring degree. This changes
+	 * indexes with regards to the Falcon specification.
+	 */
+	size_t n, hn, qn, u;
+
+	n = (size_t)1 << logn;
+	hn = n >> 1;
+	qn = hn >> 1;
+
+	/*
+	 * We process complex values by pairs. For logn = 1, there is only
+	 * one complex value (the other one is the implicit conjugate),
+	 * so we add the two lines below because the loop will be
+	 * skipped.
+	 */
+	f0[0] = f[0];
+	f1[0] = f[hn];
+
+	for (u = 0; u < qn; u ++) {
+		fpr a_re, a_im, b_re, b_im;
+		fpr t_re, t_im, s_re, s_im, v_re, v_im;
+
+        s_re = fpr_gm_tab[((u + hn) << 1) + 0];
+        s_im = fpr_neg(fpr_gm_tab[((u + hn) << 1) + 1]);
+
+		a_re = f[(u << 1) + 0];
+		a_im = f[(u << 1) + 0 + hn];
+		b_re = f[(u << 1) + 1];
+		b_im = f[(u << 1) + 1 + hn];
+
+		FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
+		f0[u] = fpr_half(t_re);
+		f0[u + qn] = fpr_half(t_im);
+
+		FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+        // printf("a_re, a_im, b_re, b_im = %.2f, %.2f, %.2f, %.2f\n", a_re, a_im, b_re, b_im);
+        // printf("t_re, t_im = %.2f, %.2f, %.2f, %.2f\n", t_re, t_im, s_re, s_im);
+		FPC_MUL(v_re, v_im, t_re, t_im, s_re, s_im);
+
+		f1[u] = v_re *0.5;
+		f1[u + qn] = v_im *0.5;
+	}
+}
+
 
 void my_merge_fft(fpr *f, const fpr *f0, const fpr *f1, const unsigned logn)
 {
@@ -856,17 +912,55 @@ int test_split_fft_ifft(unsigned logn, unsigned tests)
     return 0;
 }
 
+
+void
+Zf(poly_merge_fft)(
+	fpr *restrict f,
+	const fpr *restrict f0, const fpr *restrict f1, unsigned logn)
+{
+	size_t n, hn, qn, u;
+
+	n = (size_t)1 << logn;
+	hn = n >> 1;
+	qn = hn >> 1;
+
+	/*
+	 * An extra copy to handle the special case logn = 1.
+	 */
+	f[0] = f0[0];
+	f[hn] = f1[0];
+
+	for (u = 0; u < qn; u ++) {
+		fpr a_re, a_im, b_re, b_im;
+		fpr t_re, t_im;
+
+		a_re = f0[u];
+		a_im = f0[u + qn];
+		FPC_MUL(b_re, b_im, f1[u], f1[u + qn],
+			fpr_gm_tab[((u + hn) << 1) + 0],
+			fpr_gm_tab[((u + hn) << 1) + 1]);
+		FPC_ADD(t_re, t_im, a_re, a_im, b_re, b_im);
+		f[(u << 1) + 0] = t_re;
+		f[(u << 1) + 0 + hn] = t_im;
+		FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
+		f[(u << 1) + 1] = t_re;
+		f[(u << 1) + 1 + hn] = t_im;
+	}
+}
+
 int test_split_merge_function(unsigned logn, unsigned tests)
 {
     fpr f[1024] = {0}, f0[1024] = {0}, f1[1024] = {0};
     fpr g[1024] = {0}, g0[1024] = {0}, g1[1024] = {0};
+    const unsigned n = 1 << logn;
     for (int j = 0; j < tests; j++)
     {
-        for (int i = 0; i < 1024; i++)
+        for (int i = 0; i < n; i++)
         {
             f[i] = drand(-12289.0, 12289);
         }
-        ZfN(poly_split_fft)(f0, f1, f, logn);
+        // ZfN(poly_split_fft)(f0, f1, f, logn);
+        Zf(poly_split_fft)(f0, f1, f, logn);
 
         my_split_fft(g0, g1, f, logn);
 
@@ -885,7 +979,8 @@ int test_split_merge_function(unsigned logn, unsigned tests)
             return 1;
         }
 
-        ZfN(poly_merge_fft)(f, f0, f1, logn);
+        // ZfN(poly_merge_fft)(f, f0, f1, logn);
+        Zf(poly_merge_fft)(f, f0, f1, logn);
         my_merge_fft(g, g0, g1, logn);
 
         if (cmp_double(f, g, logn))
@@ -940,7 +1035,7 @@ int main(void)
     printf("\ntest_split_function: \n");
     for (int logn = 2; logn < 11; logn++)
     {
-        if (test_split_merge_function(logn, 1))
+        if (test_split_merge_function(logn, TESTS))
         {
             printf("Error at LOGN = %d\n", logn);
             return 1;
