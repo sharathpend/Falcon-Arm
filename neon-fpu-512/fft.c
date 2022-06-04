@@ -342,21 +342,10 @@ void ZfN(FFT_log5)(fpr *f, const unsigned logn)
     const unsigned int hn = falcon_n >> 1;
 
     int level = logn - 5;
-    const fpr *table[] = {
-        fpr_tab_log2,
-        fpr_tab_log3,
-        fpr_tab_log4,
-        fpr_tab_log5,
-        fpr_tab_log6,
-        fpr_tab_log7,
-        fpr_tab_log8,
-        fpr_tab_log9,
-        fpr_tab_log10};
-
-    const fpr *fpr_tab2 = table[level++],
-        *fpr_tab3 = table[level++],
-        *fpr_tab4 = table[level++],
-        *fpr_tab5 = table[level];
+    const fpr *fpr_tab2 = fpr_table[level++],
+        *fpr_tab3 = fpr_table[level++],
+        *fpr_tab4 = fpr_table[level++],
+        *fpr_tab5 = fpr_table[level];
     int k2 = 0, k3 = 0, k4 = 0, k5 = 0;
 
     for (unsigned j = 0; j < hn; j += 16)
@@ -670,24 +659,14 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
     float64x2_t s1_re_im, s2_re_im;           // 2
 
     const fpr *fpr_tab1 = NULL, *fpr_tab2 = NULL;
-    const fpr *table[] = {
-        fpr_tab_log2,
-        fpr_tab_log3,
-        fpr_tab_log4,
-        fpr_tab_log5,
-        fpr_tab_log6,
-        fpr_tab_log7,
-        fpr_tab_log8,
-        fpr_tab_log9,
-        fpr_tab_log10};
     unsigned l, len, start, j, k1, k2;
     unsigned bar = logn - level;
 
     for (l = level - 1; l > 4; l -= 2)
     {
         len = 1 << (l - 2);
-        fpr_tab1 = table[bar++];
-        fpr_tab2 = table[bar++];
+        fpr_tab1 = fpr_table[bar++];
+        fpr_tab2 = fpr_table[bar++];
         k1 = 0; k2 = 0;
 
         for (start = 0; start < hn; start += 1 << l)
@@ -1045,21 +1024,10 @@ void ZfN(iFFT_log5)(fpr *f, const unsigned logn, const unsigned last)
     const unsigned hn = n >> 1;
 
     int level = logn - 2;
-    const fpr *table[] = {
-        fpr_tab_log2,
-        fpr_tab_log3,
-        fpr_tab_log4,
-        fpr_tab_log5,
-        fpr_tab_log6,
-        fpr_tab_log7,
-        fpr_tab_log8,
-        fpr_tab_log9,
-        fpr_tab_log10};
-    
-    const fpr *fpr_tab5 = table[level--], 
-            *fpr_tab4 = table[level--], 
-            *fpr_tab3 = table[level--], 
-            *fpr_tab2 = table[level];
+    const fpr *fpr_tab5 = fpr_table[level--], 
+            *fpr_tab4 = fpr_table[level--], 
+            *fpr_tab3 = fpr_table[level--], 
+            *fpr_tab2 = fpr_table[level];
     int k2 = 0, k3 = 0, k4 = 0, k5 = 0;
 
     for (unsigned j = 0; j < hn; j += 16)
@@ -1378,16 +1346,6 @@ void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned
     float64x2_t s1_re_im, s2_re_im;           // 2
 
     const fpr *fpr_inv_tab1 = NULL, *fpr_inv_tab2 = NULL;
-    const fpr *table[] = {
-        fpr_tab_log2,
-        fpr_tab_log3,
-        fpr_tab_log4,
-        fpr_tab_log5,
-        fpr_tab_log6,
-        fpr_tab_log7,
-        fpr_tab_log8,
-        fpr_tab_log9,
-        fpr_tab_log10};
     unsigned l, len, start, j, k1, k2;
     unsigned bar = logn - 4 - 2;
 
@@ -1395,8 +1353,8 @@ void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned
     {
         len = 1 << l;
         last -= 1;
-        fpr_inv_tab1 = table[bar--];
-        fpr_inv_tab2 = table[bar--];
+        fpr_inv_tab1 = fpr_table[bar--];
+        fpr_inv_tab2 = fpr_table[bar--];
         k1 = 0; k2 = 0;
 
         for (start = 0; start < hn; start += 1 << (l + 2))
