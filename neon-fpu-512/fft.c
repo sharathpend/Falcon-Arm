@@ -606,6 +606,7 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
     const fpr *fpr_tab1 = NULL, *fpr_tab2 = NULL;
     unsigned l, len, start, j, k1, k2;
     unsigned bar = logn - level;
+    unsigned J;
 
     for (l = level - 1; l > 4; l -= 2)
     {
@@ -613,7 +614,7 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
         fpr_tab1 = fpr_table[bar++];
         fpr_tab2 = fpr_table[bar++];
         k1 = 0; k2 = 0;
-
+        
         for (start = 0; start < hn; start += 1 << l)
         {
             vload(s1_re_im, &fpr_tab1[k1]);
@@ -621,9 +622,7 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
             k1 += 2 * ((start & 127) == 64);
             k2 += 2; 
 
-            // printf("%d - %d : %d =>+ 1 | ", logn, level, (falcon_n + start) >> (l - 1));
-            // printf("%d=>+ 3 | %d\n", (falcon_n + start) >> (l - 2), start);
-            // printf("k1, k2 = %d, %d\n", k1, k2);
+            J = (start >> l) & 1;
 
             for (j = start; j < start + len; j += 4)
             {
@@ -1293,6 +1292,7 @@ void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned
     const fpr *fpr_inv_tab1 = NULL, *fpr_inv_tab2 = NULL;
     unsigned l, len, start, j, k1, k2;
     unsigned bar = logn - 4 - 2;
+    unsigned Jm; 
 
     for (l = 4; l < logn - level - 1; l += 2)
     {
@@ -1312,7 +1312,7 @@ void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned
             {
                 vfmuln(s2_re_im, s2_re_im, fpr_p2_tab[logn]);
             }
-
+            Jm = (start >> (l+ 2)) & 1;
             for (j = start; j < start + len; j += 4)
             {
                 /* 
@@ -1401,7 +1401,7 @@ void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned
                  * (  51,  115) = @ * (   0,    1)
                  */
 
-                if ((start >> (l+ 2)) & 1)
+                if (Jm)
                 {
                     INV_TOPJm(t_re.val[0], t_im.val[0], x1_re.val[0], x1_im.val[0], x2_re.val[0], x2_im.val[0]);
                     INV_TOPJm(t_re.val[1], t_im.val[1], x1_re.val[1], x1_im.val[1], x2_re.val[1], x2_im.val[1]);
