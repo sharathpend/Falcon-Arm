@@ -111,19 +111,7 @@ void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1, const unsigne
      */
     const unsigned n = 1 << logn;
     const unsigned ht = n >> 2;
-
-    const fpr *table[] = {
-        fpr_tab_log2,
-        fpr_tab_log3,
-        fpr_tab_log4,
-        fpr_tab_log5,
-        fpr_tab_log6,
-        fpr_tab_log7,
-        fpr_tab_log8,
-        fpr_tab_log9,
-        fpr_tab_log10};
-
-    const fpr *fpr_merge = table[logn - 2];
+    const fpr *fpr_merge = fpr_table[logn - 2];
 
     // Total SIMD register 22 = 14 + 8
     float64x2x2_t g1_re, g1_im, g0_re, g0_im, s_re_im, t_re, t_im; // 14
@@ -232,19 +220,7 @@ void ZfN(poly_splitFFT_log4)(fpr *f0, fpr *f1, const fpr *f, const unsigned logn
     const unsigned n = 1 << logn; 
     const unsigned hn = n >> 1; 
     const unsigned ht = n >> 2; 
-
-    const fpr *table[] = {
-        fpr_tab_log2,
-        fpr_tab_log3,
-        fpr_tab_log4,
-        fpr_tab_log5,
-        fpr_tab_log6,
-        fpr_tab_log7,
-        fpr_tab_log8,
-        fpr_tab_log9,
-        fpr_tab_log10,
-    };
-    const fpr *fpr_split = table[logn - 2];
+    const fpr *fpr_split = fpr_table[logn - 2];
 
     // Total SIMD register 23 = 8 + 14 + 1
 
