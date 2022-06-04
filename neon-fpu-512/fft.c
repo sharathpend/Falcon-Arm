@@ -651,7 +651,7 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
                 
                 // This is cryptic, I know, but it's efficient
                 // True when start is the form start = 64*(2n + 1)
-                if ((start >> l) & 1)
+                if (J)
                 {
                     FWD_BOTJ(x1_re.val[0], x1_im.val[0], y1_re.val[0], y1_im.val[0], t_re.val[0], t_im.val[0]);
                     FWD_BOTJ(x1_re.val[1], x1_im.val[1], y1_re.val[1], y1_im.val[1], t_re.val[1], t_im.val[1]);
