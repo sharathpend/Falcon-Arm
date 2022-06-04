@@ -238,9 +238,6 @@ fpr_expm_p63(fpr x, fpr ccs)
     return (uint64_t) ret;
 }
 
-#define fpr_gm_tab   Zf(fpr_gm_tab)
-extern const fpr fpr_gm_tab[];
-
 #define fpr_p2_tab   Zf(fpr_p2_tab)
 extern const fpr fpr_p2_tab[];
 
@@ -253,6 +250,7 @@ extern const fpr fpr_p2_tab[];
 #define fpr_tab_log8   Zf(fpr_tab_log8)
 #define fpr_tab_log9   Zf(fpr_tab_log9)
 #define fpr_tab_log10  Zf(fpr_tab_log10)
+#define fpr_table      Zf(fpr_table)
 
 extern const fpr fpr_tab_log2[];
 extern const fpr fpr_tab_log3[];
@@ -263,6 +261,7 @@ extern const fpr fpr_tab_log7[];
 extern const fpr fpr_tab_log8[];
 extern const fpr fpr_tab_log9[];
 extern const fpr fpr_tab_log10[];
+extern const fpr *fpr_table[];
 
 /* ====================================================================== */
 
