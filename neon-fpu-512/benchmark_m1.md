@@ -92,16 +92,16 @@
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_invnorm2_fft |        0 |       77
-| poly_invnorm2_fft |        1 |       77
-| poly_invnorm2_fft |        2 |       79
-| poly_invnorm2_fft |        3 |       80
-| poly_invnorm2_fft |        4 |       84
-| poly_invnorm2_fft |        5 |       93
-| poly_invnorm2_fft |        6 |      120
-| poly_invnorm2_fft |        7 |      174
-| poly_invnorm2_fft |        8 |      292
-| poly_invnorm2_fft |        9 |      455
-| poly_invnorm2_fft |       10 |      733
+| poly_invnorm2_fft |        1 |       78
+| poly_invnorm2_fft |        2 |       83
+| poly_invnorm2_fft |        3 |       82
+| poly_invnorm2_fft |        4 |       87
+| poly_invnorm2_fft |        5 |       95
+| poly_invnorm2_fft |        6 |      114
+| poly_invnorm2_fft |        7 |      157
+| poly_invnorm2_fft |        8 |      260
+| poly_invnorm2_fft |        9 |      378
+| poly_invnorm2_fft |       10 |      587
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
@@ -120,30 +120,30 @@
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
 | poly_LDL_fft |        0 |       76
-| poly_LDL_fft |        1 |       92
-| poly_LDL_fft |        2 |       91
-| poly_LDL_fft |        3 |       95
-| poly_LDL_fft |        4 |      100
-| poly_LDL_fft |        5 |      128
-| poly_LDL_fft |        6 |      187
-| poly_LDL_fft |        7 |      277
-| poly_LDL_fft |        8 |      536
-| poly_LDL_fft |        9 |      889
-| poly_LDL_fft |       10 |     1574
+| poly_LDL_fft |        1 |       93
+| poly_LDL_fft |        2 |       87
+| poly_LDL_fft |        3 |       92
+| poly_LDL_fft |        4 |       96
+| poly_LDL_fft |        5 |      119
+| poly_LDL_fft |        6 |      167
+| poly_LDL_fft |        7 |      240
+| poly_LDL_fft |        8 |      475
+| poly_LDL_fft |        9 |      739
+| poly_LDL_fft |       10 |     1305
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
-| poly_LDLmv_fft |        0 |       79
+| poly_LDLmv_fft |        0 |       77
 | poly_LDLmv_fft |        1 |       92
-| poly_LDLmv_fft |        2 |       91
-| poly_LDLmv_fft |        3 |       95
-| poly_LDLmv_fft |        4 |       99
-| poly_LDLmv_fft |        5 |      131
-| poly_LDLmv_fft |        6 |      189
-| poly_LDLmv_fft |        7 |      274
-| poly_LDLmv_fft |        8 |      505
-| poly_LDLmv_fft |        9 |      856
-| poly_LDLmv_fft |       10 |     1546
+| poly_LDLmv_fft |        2 |       88
+| poly_LDLmv_fft |        3 |       93
+| poly_LDLmv_fft |        4 |       95
+| poly_LDLmv_fft |        5 |      120
+| poly_LDLmv_fft |        6 |      174
+| poly_LDLmv_fft |        7 |      244
+| poly_LDLmv_fft |        8 |      449
+| poly_LDLmv_fft |        9 |      741
+| poly_LDLmv_fft |       10 |     1311
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
