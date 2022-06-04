@@ -6,7 +6,7 @@
 // Compile flags:
 // gcc -o test_fft fft.c test_fft.c fft_consts.c fpr.c -O0 -g3; ./test_fft
 
-#define PRINT 4
+#define PRINT 5
 
 double drand(double low, double high)
 {
@@ -620,7 +620,6 @@ void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
     const unsigned hn = n >> 1; 
     const unsigned ht = n >> 2; 
 
-    const fpr *fpr_split = NULL;
     const fpr *table[] = {
         fpr_tab_log2,
         fpr_tab_log3,
@@ -633,7 +632,7 @@ void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
         fpr_tab_log10,
     };
 
-    fpr_split = table[logn - 2];
+    const fpr *fpr_split = table[logn - 2];
     unsigned k = 0;
 
 
@@ -658,9 +657,9 @@ void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
 
         if (logn == PRINT)
         {
-            printf("f0: (%4d, %4d) = (%4d, %4d) + (%4d, %4d)\n", j, j + ht, j2, j2 + hn, j2 + 1, j2 + 1 + hn);
-            printf("@ = (%4d, %4d) - (%4d, %4d)\n", j2, j2 + hn, j2 + 1, j2 + 1 + hn);
-            printf("f1: (%4d, %4d) = @ * (%4d, %4d)\n",  j, j + ht, j2 + n, j2 + n + 1);
+            // printf("f0: (%4d, %4d) = (%4d, %4d) + (%4d, %4d)\n", j, j + ht, j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            // printf("@ = (%4d, %4d) - (%4d, %4d)\n", j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            // printf("f1: (%4d, %4d) = @ * (%4d, %4d)\n",  j, j + ht, j2 + n, j2 + n + 1);
         }
 
         FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);
@@ -672,7 +671,7 @@ void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
 
         if (j >= ht) 
         {
-            printf("break");
+            // printf("break %d\n", logn);
             break;
         }
 
@@ -687,15 +686,90 @@ void my_split_fft(fpr *f0, fpr *f1, fpr *f, const unsigned logn)
 
         if (logn == PRINT)
         {
-            printf("f0: (%4d, %4d) = (%4d, %4d) + (%4d, %4d)\n", j, j + ht, j2, j2 + hn, j2 + 1, j2 + 1 + hn);
-            printf("@ = (%4d, %4d) - (%4d, %4d)\n", j2, j2 + hn, j2 + 1, j2 + 1 + hn);
-            printf("f1: (%4d, %4d) = @ * (%4d, %4d)\n",  j, j + ht, j2 + n, j2 + n + 1);
+            // printf("f0: (%4d, %4d) = (%4d, %4d) + (%4d, %4d)\n", j, j + ht, j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            // printf("@ = (%4d, %4d) - (%4d, %4d)\n", j2, j2 + hn, j2 + 1, j2 + 1 + hn);
+            // printf("f1: (%4d, %4d) = j@ * (%4d, %4d)\n",  j, j + ht, j2 + n, j2 + n + 1);
         }
 
+        /*
+        * Notice we swap the (a - b) to (b - a) in FPC_SUB
+        */
         FPC_SUB(t_re, t_im, b_re, b_im, a_re, a_im);
         FPC_MUL_CONJ_J_m(f1[j], f1[j + ht], t_re, t_im, s_re, s_im);
 
-        printf("====%d, %d\n", j, j2);
+        if (logn == PRINT) printf("====%d, %d\n", j, j2);
+    }
+}
+
+void my_merge_fft(fpr *f, const fpr *f0, const fpr *f1, const unsigned logn)
+{
+    const unsigned n = 1 << logn; 
+    const unsigned hn = n >> 1; 
+    const unsigned ht = n >> 2; 
+
+    const fpr *table[] = {
+        fpr_tab_log2,
+        fpr_tab_log3,
+        fpr_tab_log4,
+        fpr_tab_log5,
+        fpr_tab_log6,
+        fpr_tab_log7,
+        fpr_tab_log8,
+        fpr_tab_log9,
+        fpr_tab_log10,
+    };
+
+    const fpr *fpr_merge = table[logn - 2];
+    unsigned k = 0, j2;
+
+    fpr a_re, a_im, b_re, b_im, t_re, t_im, v_re, v_im, s_re, s_im;
+
+    for (unsigned j = 0; j < ht; j+= 1)
+    {
+        j2 = j << 1;
+
+        a_re = f0[j];
+        a_im = f0[j + ht];
+        
+        b_re = f1[j];
+        b_im = f1[j + ht];
+
+        s_re = fpr_merge[k++];
+        s_im = fpr_merge[k++];
+
+        if (logn == PRINT)
+        {
+            printf("f1(%4d, %4d) * (%4d, %4d)\n", j, j + ht, k - 2, k - 1);
+            printf("f(%4d, %4d) = f0(%4d, %4d) + @\n", j2, j2 + hn, j, j + ht);
+            printf("f(%4d, %4d) = f0(%4d, %4d) - @\n", j2 + 1, j2 + 1+ hn, j, j + ht);
+        }
+
+        FPC_MUL(t_re, t_im, b_re, b_im, s_re, s_im);
+        FPC_ADD(f[j2], f[j2 + hn], a_re, a_im, t_re, t_im);
+        FPC_SUB(f[j2 + 1], f[j2 + 1 + hn], a_re, a_im, t_re, t_im);
+
+        j += 1; 
+        j2 = j << 1; 
+
+        if (j >= ht) break; 
+
+        a_re = f0[j];
+        a_im = f0[j + ht];
+        
+        b_re = f1[j];
+        b_im = f1[j + ht];
+
+        if (logn == PRINT)
+        {
+            printf("===\n");
+            printf("f1(%4d, %4d) * (%4d, %4d)\n", j, j + ht, k - 2, k - 1);
+            printf("f(%4d, %4d) = f0(%4d, %4d) + j@\n", j2, j2 + hn, j, j + ht);
+            printf("f(%4d, %4d) = f0(%4d, %4d) - j@\n", j2 + 1, j2 + 1+ hn, j, j + ht);
+        }
+
+        FPC_MUL(t_re, t_im, b_re, b_im, s_re, s_im);
+        FPC_ADDJ(f[j2], f[j2 + hn], a_re, a_im, t_re, t_im);
+        FPC_SUBJ(f[j2 + 1], f[j2 + 1 + hn], a_re, a_im, t_re, t_im);
     }
 }
 
@@ -782,10 +856,10 @@ int test_split_fft_ifft(unsigned logn, unsigned tests)
     return 0;
 }
 
-int test_split_function(unsigned logn, unsigned tests)
+int test_split_merge_function(unsigned logn, unsigned tests)
 {
     fpr f[1024] = {0}, f0[1024] = {0}, f1[1024] = {0};
-    fpr g0[1024] = {0}, g1[1024] = {0};
+    fpr g[1024] = {0}, g0[1024] = {0}, g1[1024] = {0};
     for (int j = 0; j < tests; j++)
     {
         for (int i = 0; i < 1024; i++)
@@ -796,9 +870,30 @@ int test_split_function(unsigned logn, unsigned tests)
 
         my_split_fft(g0, g1, f, logn);
 
-        if (cmp_double(g0, f0, logn) || cmp_double(g1, f1, logn))
+        if (cmp_double(g0, f0, logn))
         {
+            print_double(f0, logn - 1, "f0");
+            print_double(g0, logn - 1, "g0");
+            printf("f0\n");
             return 1; 
+        }
+        if (cmp_double(g1, f1, logn))
+        {
+            print_double(f1, logn - 1, "f1");
+            print_double(g1, logn - 1, "g1");
+            printf("f1\n");
+            return 1;
+        }
+
+        ZfN(poly_merge_fft)(f, f0, f1, logn);
+        my_merge_fft(g, g0, g1, logn);
+
+        if (cmp_double(f, g, logn))
+        {
+            print_double(f, logn, "f");
+            print_double(g, logn, "g");
+            printf("f != g\n");
+            return 1;
         }
     }
 
@@ -843,9 +938,9 @@ int main(void)
     // printf("OK\n");
 
     printf("\ntest_split_function: \n");
-    for (int logn = 2; logn < 6; logn++)
+    for (int logn = 2; logn < 11; logn++)
     {
-        if (test_split_function(logn, 1))
+        if (test_split_merge_function(logn, 1))
         {
             printf("Error at LOGN = %d\n", logn);
             return 1;
