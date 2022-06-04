@@ -2,17 +2,17 @@
 
 | FFT | Foward FFT | Inverse FFT
 |:-------------|----------:|-----------:|
-| FFT 0 |       21 |        9
-| FFT 1 |       21 |        9
-| FFT 2 |       25 |       20
-| FFT 3 |       54 |       49
-| FFT 4 |       92 |       88
-| FFT 5 |      221 |      217
-| FFT 6 |      540 |      543
-| FFT 7 |     1155 |     1216
-| FFT 8 |     2770 |     2913
-| FFT 9 |     5951 |     6135
-| FFT 10 |    14060 |    14705
+| FFT 0 |        9 |       12
+| FFT 1 |        9 |       12
+| FFT 2 |       17 |       20
+| FFT 3 |       47 |       48
+| FFT 4 |       91 |       93
+| FFT 5 |      213 |      217
+| FFT 6 |      522 |      526
+| FFT 7 |     1154 |     1185
+| FFT 8 |     2849 |     2912
+| FFT 9 |     5892 |     6158
+| FFT 10 |    14187 |    14678
 
 | NTT | Foward NTT | Inverse NTT
 |:-------------|----------:|-----------:|
@@ -93,15 +93,15 @@
 |:-------------|----------:|-----------:|
 | poly_invnorm2_fft |        0 |       10
 | poly_invnorm2_fft |        1 |        9
-| poly_invnorm2_fft |        2 |       16
-| poly_invnorm2_fft |        3 |       29
-| poly_invnorm2_fft |        4 |      135
-| poly_invnorm2_fft |        5 |      264
-| poly_invnorm2_fft |        6 |      522
-| poly_invnorm2_fft |        7 |     1038
-| poly_invnorm2_fft |        8 |     2070
-| poly_invnorm2_fft |        9 |     4134
-| poly_invnorm2_fft |       10 |     8262
+| poly_invnorm2_fft |        2 |       19
+| poly_invnorm2_fft |        3 |       28
+| poly_invnorm2_fft |        4 |      132
+| poly_invnorm2_fft |        5 |      260
+| poly_invnorm2_fft |        6 |      516
+| poly_invnorm2_fft |        7 |     1028
+| poly_invnorm2_fft |        8 |     2052
+| poly_invnorm2_fft |        9 |     4100
+| poly_invnorm2_fft |       10 |     8196
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
@@ -119,17 +119,17 @@
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
-| poly_LDL_fft |        0 |       11
+| poly_LDL_fft |        0 |       12
 | poly_LDL_fft |        1 |       30
-| poly_LDL_fft |        2 |       39
-| poly_LDL_fft |        3 |       78
-| poly_LDL_fft |        4 |      207
-| poly_LDL_fft |        5 |      415
-| poly_LDL_fft |        6 |      831
-| poly_LDL_fft |        7 |     1663
-| poly_LDL_fft |        8 |     3327
-| poly_LDL_fft |        9 |     6655
-| poly_LDL_fft |       10 |    13339
+| poly_LDL_fft |        2 |       34
+| poly_LDL_fft |        3 |       71
+| poly_LDL_fft |        4 |      187
+| poly_LDL_fft |        5 |      386
+| poly_LDL_fft |        6 |      796
+| poly_LDL_fft |        7 |     1580
+| poly_LDL_fft |        8 |     3180
+| poly_LDL_fft |        9 |     6415
+| poly_LDL_fft |       10 |    12791
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
@@ -149,15 +149,15 @@
 |:-------------|----------:|-----------:|
 | poly_split_fft |        0 |       10
 | poly_split_fft |        1 |        9
-| poly_split_fft |        2 |       12
-| poly_split_fft |        3 |       21
-| poly_split_fft |        4 |       51
-| poly_split_fft |        5 |       89
-| poly_split_fft |        6 |      165
-| poly_split_fft |        7 |      317
-| poly_split_fft |        8 |      621
-| poly_split_fft |        9 |     1229
-| poly_split_fft |       10 |     2641
+| poly_split_fft |        2 |       11
+| poly_split_fft |        3 |       20
+| poly_split_fft |        4 |       47
+| poly_split_fft |        5 |       81
+| poly_split_fft |        6 |      149
+| poly_split_fft |        7 |      285
+| poly_split_fft |        8 |      557
+| poly_split_fft |        9 |     1101
+| poly_split_fft |       10 |     2206
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
@@ -176,13 +176,13 @@
 
 |degree|  kg(us)|  ek(us)|  sd(us)| sdc(us)|  st(us)| stc(us)|  vv(us)| vvc(us)|
 | ---- |  ----- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| 512: | 18437.26 |   110.87 |   556.04 |   601.61 |   400.72 |   445.48 |    34.69 |    77.26 |
-|1024: | 51469.18 |   239.48 |  1148.44 |  1236.19 |   804.57 |   892.07 |    73.17 |   151.70 |
+| 512: | 18448.07 |   109.17 |   550.63 |   596.13 |   397.65 |   442.96 |    34.59 |    77.26 |
+|1024: | 51508.63 |   234.91 |  1130.65 |  1218.13 |   802.24 |   889.11 |    73.50 |   151.57 |
 
 |degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
 | ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| 512: | 33186.82 |   199.43 |  1000.69 |  1082.70 |   721.17 |   801.74 |    62.35 |   138.96 |
-|1024: | 92644.28 |   430.95 |  2067.03 |  2224.99 |  1448.08 |  1605.58 |   131.59 |   272.92 |
+| 512: | 33191.44 |   196.37 |   991.03 |  1072.90 |   715.65 |   797.19 |    62.17 |   138.95 |
+|1024: | 92707.33 |   422.70 |  2035.03 |  2192.45 |  1443.90 |  1600.27 |   132.21 |   272.74 |
 
 ## Benchmark 59b message
 
@@ -191,29 +191,28 @@
 mlen, smlen = 59, 715
 | Median   | sign | verify |
 |    | --:  | ---: |
-| kc |  1009.61 |    58.69 |
-| us |   561.48 |    32.87 |
+| kc |   999.40 |    59.85 |
+| us |   555.31 |    33.35 |
 | Ghz|     1.80 |     1.79 |
 
 | Average | sign | verify |
 |    | --:  | ---: |
-| kc |  1011.29 |    58.77 |
-| us |   565.23 |    32.88 |
-| Ghz|     1.79 |     1.79 |
-
+| kc |  1000.95 |    59.92 |
+| us |   556.20 |    33.40 |
+| Ghz|     1.80 |     1.79 |
 
 ### N = 1024
 
 mlen, smlen = 59, 1332
 | Median   | sign | verify |
 |    | --:  | ---: |
-| kc |  2070.44 |   127.84 |
-| us |  1150.87 |    71.46 |
-| Ghz|     1.80 |     1.79 |
+| kc |  2053.22 |   129.65 |
+| us |  1140.61 |    72.11 |
+| Ghz|     1.80 |     1.80 |
 
 | Average | sign | verify |
 |    | --:  | ---: |
-| kc |  2070.85 |   128.24 |
-| us |  1152.45 |    71.59 |
-| Ghz|     1.80 |     1.79 |
+| kc |  2053.30 |   130.04 |
+| us |  1140.55 |    72.33 |
+| Ghz|     1.80 |     1.80 |
 
