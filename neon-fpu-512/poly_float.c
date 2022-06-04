@@ -208,7 +208,7 @@ static inline void ZfN(poly_mul_fft_log1)(fpr *restrict c, const fpr *restrict a
 
     // vfmul_lane(neon_c, neon_b, neon_a, 0);
     // vfcmla_90(neon_c, neon_a, neon_b);
-    FPC_MUL(neon_c, neon_a, neon_b);
+    FPC_CMUL(neon_c, neon_a, neon_b);
 
     vstore(&c[0], neon_c);
 #else
@@ -244,7 +244,7 @@ static inline void ZfN(poly_mul_fft_log2)(fpr *restrict c, const fpr *restrict a
     b_re = neon_b.val[0];
     b_im = neon_b.val[1];
 
-    FPC_MUL_1(c_re, c_im, a_re, a_im, b_re, b_im);
+    FPC_MUL(c_re, c_im, a_re, a_im, b_re, b_im);
 
     neon_c.val[0] = c_re;
     neon_c.val[1] = c_im;
@@ -923,7 +923,7 @@ static inline void ZfN(poly_LDL_fft_log1)(const fpr *restrict g00, fpr *restrict
     // im: g01_im * g00_re - g01_re * g00_im
     // vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
     // vfcmla_270(mu_re.val[0], g00_re.val[0], g01_re.val[0]);
-    FPC_MULCONJ(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
+    FPC_CMUL_CONJ(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
 #else
     // g01_re * g00_re | g01_im * g01_im
     vfmul(g01_re.val[2], g01_re.val[0], g00_re.val[0]);
@@ -944,7 +944,7 @@ static inline void ZfN(poly_LDL_fft_log1)(const fpr *restrict g00, fpr *restrict
     // re: mu_im * g01_im + mu_re * g01_re
     // vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
     // vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
-    FPC_MUL(g01_re.val[1], g01_re.val[0], mu_re.val[1]);
+    FPC_CMUL(g01_re.val[1], g01_re.val[0], mu_re.val[1]);
 
     vswap(g01_re.val[0], g01_re.val[1]);
 #else
@@ -1219,7 +1219,7 @@ static inline void ZfN(poly_LDLmv_fft_log1)(fpr *restrict d11, fpr *restrict l10
     // im: g01_im * g00_re - g01_re * g00_im
     // vfmul_lane(mu_re.val[0], g01_re.val[0], g00_re.val[0], 0);
     // vfcmla_270(mu_re.val[0], g00_re.val[0], g01_re.val[0]);
-    FPC_MULCONJ(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
+    FPC_CMUL_CONJ(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
 #else
     // g01_re * g00_re | g01_im * g01_im
     vfmul(g01_re.val[2], g01_re.val[0], g00_re.val[0]);
@@ -1240,7 +1240,7 @@ static inline void ZfN(poly_LDLmv_fft_log1)(fpr *restrict d11, fpr *restrict l10
     // re: mu_im * g01_im + mu_re * g01_re
     // vfmul_lane(g01_re.val[1], g01_re.val[0], mu_re.val[1], 0);
     // vfcmla_90(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
-    FPC_MUL(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
+    FPC_CMUL(g01_re.val[1], mu_re.val[1], g01_re.val[0]);
 
     vswap(g01_re.val[0], g01_re.val[1]);
 #else

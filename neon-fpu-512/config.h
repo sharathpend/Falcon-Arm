@@ -22,13 +22,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-/*
- * Enable FMA/FMS instruction, this affect accuracy but better speed
- */
-#ifndef FMA
-#define FMA 1
-#endif
-
 /* 
  * By default, benchmark using APPLE_M1 is disable 
  */

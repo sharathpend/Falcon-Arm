@@ -353,10 +353,7 @@ void ZfN(FFT_log5)(fpr *f, const unsigned logn)
 
         if ( (j >> 4) & 1 )
         {
-            FWD_BOTJ(x_re.val[0], x_im.val[0], y_re.val[0], y_im.val[0], v_re.val[0], v_im.val[0]);
-            FWD_BOTJ(x_re.val[1], x_im.val[1], y_re.val[1], y_im.val[1], v_re.val[1], v_im.val[1]);
-            FWD_BOTJ(x_re.val[2], x_im.val[2], y_re.val[2], y_im.val[2], v_re.val[2], v_im.val[2]);
-            FWD_BOTJ(x_re.val[3], x_im.val[3], y_re.val[3], y_im.val[3], v_re.val[3], v_im.val[3]);
+            FWD_BOTJx4(x_re, x_im, y_re, y_im, v_re, v_im);
         }
         else
         {
