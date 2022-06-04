@@ -24,70 +24,33 @@
 #include "macrofx4.h"
 
 static inline 
-void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1, const unsigned logn)
+void ZfN(poly_mergeFFT_log2)(fpr *f, const fpr *f0, const fpr *f1)
 {
-    /* 
-    f1(   0,    4) * (   0,    1)
-    f1(   2,    6) * (   2,    3)
-    
-    f(   0,    8) = f0(   0,    4) - @
-    f(   4,   12) = f0(   2,    6) - @
 
-    f(   1,    9) = f0(   0,    4) + @
-    f(   5,   13) = f0(   2,    6) + @
-    ===
-    f1(   1,    5) * (   0,    1)
-    f1(   3,    7) * (   2,    3)
-    
-    f(   2,   10) = f0(   1,    5) - j@
-    f(   6,   14) = f0(   3,    7) - j@
-    
-    f(   3,   11) = f0(   1,    5) + j@
-    f(   7,   15) = f0(   3,    7) + j@
+    /*
+    n = 4; hn = 2; qn = 1;
+    a_re = f0[0];
+    a_im = f0[1];
+    d_re = f1[0];
+    d_im = f1[1];
+
+    b_re = 0*4 - 1*5
+    b_im = 0*5 + 1*4
      */
-    const unsigned n = 1 << logn;
-    const unsigned hn = n >> 1;
-    const unsigned ht = n >> 2;
+    fpr a_re, a_im, b_re, b_im, d_re, d_im, s;
+    a_re = f0[0];
+    a_im = f0[1];
+    s = fpr_tab_log2[0];
+    b_re = f1[0] * s;
+    b_im = f1[1] * s;
 
-    const fpr *table[] = {
-        fpr_tab_log2,
-        fpr_tab_log3,
-        fpr_tab_log4,
-        fpr_tab_log5,
-        fpr_tab_log6,
-        fpr_tab_log7,
-        fpr_tab_log8,
-        fpr_tab_log9,
-        fpr_tab_log10};
+    d_re = b_re - b_im;
+    d_im = b_re + b_im;
 
-    const fpr *fpr_merge = table[logn - 2];
-
-    float64x2x2_t g1_re, g1_im, g0_re, g0_im, s_re_im, t_re, t_im; 
-    float64x2x4_t g_re, g_im;
-
-    for (unsigned j = 0; j < ht; j+= 4)
-    {
-        unsigned j2 = j << 1; 
-
-        vload2(g1_re, &f1[j]);
-        vload2(g1_im, &f1[j + ht]);
-
-        vload2(s_re_im, &fpr_merge[j]);
-
-        FWD_TOP(t_re.val[0], t_im.val[1], g1_re.val[0], g1_im.val[0], s_re_im.val[0], s_re_im.val[1]);
-        vload2(g0_re, &f0[j]);
-
-        FWD_TOP(t_re.val[1], t_im.val[1], g1_re.val[1], g1_im.val[1], s_re_im.val[0], s_re_im.val[1]);
-        vload2(g0_im, &f0[j + ht]);
-
-        FPC_ADD (g_re.val[0], g_im.val[0], g0_re.val[0], g0_im.val[0], t_re.val[0], t_im.val[0]);
-        FPC_SUB (g_re.val[1], g_im.val[1], g0_re.val[0], g0_im.val[0], t_re.val[0], t_im.val[0]);
-        FPC_ADDJ(g_re.val[2], g_im.val[2], g0_re.val[1], g0_im.val[1], t_re.val[1], t_im.val[1]);
-        FPC_SUBJ(g_re.val[3], g_im.val[3], g0_re.val[1], g0_im.val[1], t_re.val[1], t_im.val[1]);
-
-        vstore4(&f[j2], g_re);
-        vstore4(&f[j2 + hn], g_im);
-    }
+    f[0] = a_re + d_re;
+    f[2] = a_im + d_im;
+    f[1] = a_re - d_re;
+    f[3] = a_im - d_im;
 }
 
 static inline 
@@ -123,62 +86,69 @@ void ZfN(poly_mergeFFT_log3)(fpr *f, const fpr *f0, const fpr *f1)
 }
 
 static inline 
-void ZfN(poly_mergeFFT_log2)(fpr *f, const fpr *f0, const fpr *f1)
+void ZfN(poly_mergeFFT_log4)(fpr *f, const fpr *f0, const fpr *f1, const unsigned logn)
 {
+    /* 
+    n = 16; hn = 8; ht = 4
+    f1(   0,    4) * (   0,    1)
+    f1(   2,    6) * (   2,    3)
+    
+    f(   0,    8) = f0(   0,    4) + @
+    f(   4,   12) = f0(   2,    6) + @
 
-    /*
-    n = 4; hn = 2; qn = 1;
-    a_re = f0[0];
-    a_im = f0[1];
-    d_re = f1[0];
-    d_im = f1[1];
-
-    b_re = 0*4 - 1*5
-    b_im = 0*5 + 1*4
+    f(   1,    9) = f0(   0,    4) - @
+    f(   5,   13) = f0(   2,    6) - @
+    ===
+    f1(   1,    5) * (   0,    1)
+    f1(   3,    7) * (   2,    3)
+    
+    f(   2,   10) = f0(   1,    5) + j@
+    f(   6,   14) = f0(   3,    7) + j@
+    
+    f(   3,   11) = f0(   1,    5) - j@
+    f(   7,   15) = f0(   3,    7) - j@
+    ---------
      */
-    fpr a_re, a_im, b_re, b_im, d_re, d_im, s;
-    a_re = f0[0];
-    a_im = f0[1];
-    s = fpr_tab_log2[0];
-    b_re = f1[0] * s;
-    b_im = f1[1] * s;
+    const unsigned n = 1 << logn;
+    const unsigned ht = n >> 2;
 
-    d_re = b_re - b_im;
-    d_im = b_re + b_im;
+    const fpr *table[] = {
+        fpr_tab_log2,
+        fpr_tab_log3,
+        fpr_tab_log4,
+        fpr_tab_log5,
+        fpr_tab_log6,
+        fpr_tab_log7,
+        fpr_tab_log8,
+        fpr_tab_log9,
+        fpr_tab_log10};
 
-    f[0] = a_re + d_re;
-    f[2] = a_im + d_im;
-    f[1] = a_re - d_re;
-    f[3] = a_im - d_im;
-}
+    const fpr *fpr_merge = table[logn - 2];
 
-/*
- * see inner.h
- * Only support logn >= 3
- */
-void ZfN(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
-                         const fpr *restrict f1, const unsigned logn)
-{
+    // Total SIMD register 22 = 14 + 8
+    float64x2x2_t g1_re, g1_im, g0_re, g0_im, s_re_im, t_re, t_im; // 14
+    float64x2x4_t g_re, g_im;                                      // 8
 
-    switch (logn)
+    for (unsigned j = 0; j < ht; j+= 4)
     {
-    case 1:
-        // n = 2; hn = 1;
-        f[0] = f0[0];
-        f[1] = f1[0];
-        break;
+        vload2(g1_re, &f1[j]);
+        vload2(g1_im, &f1[j + ht]);
 
-    case 2:
-        ZfN(poly_mergeFFT_log2)(f, f0, f1);
-        break;
+        vload2(s_re_im, &fpr_merge[j]);
 
-    case 3:
-        ZfN(poly_mergeFFT_log3)(f, f0, f1);
-        break;
+        FWD_TOP(t_re.val[0], t_im.val[0], g1_re.val[0], g1_im.val[0], s_re_im.val[0], s_re_im.val[1]);
+        vload2(g0_re, &f0[j]);
 
-    default:
-        ZfN(poly_mergeFFT_log4)(f, f0, f1, logn);
-        break;
+        FWD_TOP(t_re.val[1], t_im.val[1], g1_re.val[1], g1_im.val[1], s_re_im.val[0], s_re_im.val[1]);
+        vload2(g0_im, &f0[j + ht]);
+
+        FPC_ADD (g_re.val[0], g_im.val[0], g0_re.val[0], g0_im.val[0], t_re.val[0], t_im.val[0]);
+        FPC_SUB (g_re.val[1], g_im.val[1], g0_re.val[0], g0_im.val[0], t_re.val[0], t_im.val[0]);
+        FPC_ADDJ(g_re.val[2], g_im.val[2], g0_re.val[1], g0_im.val[1], t_re.val[1], t_im.val[1]);
+        FPC_SUBJ(g_re.val[3], g_im.val[3], g0_re.val[1], g0_im.val[1], t_re.val[1], t_im.val[1]);
+
+        vstore4(&f[j << 1], g_re);
+        vstore4(&f[(j + ht) << 1], g_im);
     }
 }
 
@@ -355,6 +325,35 @@ void ZfN(poly_split_fft)(fpr *restrict f0, fpr *restrict f1, const fpr *f, const
 
     default:
         ZfN(poly_splitFFT_log4)(f0, f1, f, logn);
+        break;
+    }
+}
+
+/*
+ * see inner.h
+ * Only support logn >= 3
+ */
+void ZfN(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
+                         const fpr *restrict f1, const unsigned logn)
+{
+    switch (logn)
+    {
+    case 1:
+        // n = 2; hn = 1;
+        f[0] = f0[0];
+        f[1] = f1[0];
+        break;
+
+    case 2:
+        ZfN(poly_mergeFFT_log2)(f, f0, f1);
+        break;
+
+    case 3:
+        ZfN(poly_mergeFFT_log3)(f, f0, f1);
+        break;
+
+    default:
+        ZfN(poly_mergeFFT_log4)(f, f0, f1, logn);
         break;
     }
 }
