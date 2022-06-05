@@ -1,4 +1,18 @@
-#include "fpr.h"
+#include "inner.h"
+
+static const fpr fpr_p2_tab[] = {
+	{ 2.00000000000 },
+	{ 1.00000000000 },
+	{ 0.50000000000 },
+	{ 0.25000000000 },
+	{ 0.12500000000 },
+	{ 0.06250000000 },
+	{ 0.03125000000 },
+	{ 0.01562500000 },
+	{ 0.00781250000 },
+	{ 0.00390625000 },
+	{ 0.00195312500 }
+};
 
 static const fpr fpr_gm_tab[] = {
 	{0}, {0}, /* unused */ //   0
@@ -1166,6 +1180,7 @@ static const fpr fpr_gm_tab[] = {
 /* see inner.h */
 void
 Zf(FFT_ref)(fpr *f, unsigned logn)
+// Zf(FFT)(fpr *f, unsigned logn)
 {
 	/*
 	 * FFT algorithm in bit-reversal order uses the following
@@ -1249,6 +1264,7 @@ Zf(FFT_ref)(fpr *f, unsigned logn)
 /* see inner.h */
 void
 Zf(iFFT_ref)(fpr *f, unsigned logn)
+// Zf(iFFT)(fpr *f, unsigned logn)
 {
 	/*
 	 * Inverse FFT algorithm in bit-reversal order uses the following
@@ -1348,6 +1364,7 @@ Zf(iFFT_ref)(fpr *f, unsigned logn)
 /* see inner.h */
 void
 Zf(poly_split_fft_ref)(
+// Zf(poly_split_fft)(
 	fpr *restrict f0, fpr *restrict f1,
 	const fpr *restrict f, unsigned logn)
 {
@@ -1397,6 +1414,7 @@ Zf(poly_split_fft_ref)(
 /* see inner.h */
 void
 Zf(poly_merge_fft_ref)(
+// Zf(poly_merge_fft)(
 	fpr *restrict f,
 	const fpr *restrict f0, const fpr *restrict f1, unsigned logn)
 {
