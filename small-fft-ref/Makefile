@@ -9,28 +9,35 @@
 .POSIX:
 
 CC = clang
-CFLAGS = -w -Wall -O3
+CFLAGS = -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O3
 LD = c99
 LDFLAGS = -O3
 LIBS = 
 
-OBJ1 = build/codec.o build/common.o build/fft.o build/fpr.o build/keygen.o build/nist.o build/rng.o build/shake.o build/sign.o build/vrfy.o
+OBJ1 = build/codec.o build/poly_fft.o build/common.o build/fft.o build/keygen.o build/rng.o build/shake.o build/sign.o build/vrfy.o
 
-OBJ2 = build/PQCgenKAT_sign.o build/katrng.o
+OBJ2a = build/nist_512.o 
+OBJ2 = build/PQCgenKAT_sign_512.o build/katrng.o
+
+OBJ3a = build/nist_1024.o 
+OBJ3 = build/PQCgenKAT_sign_1024.o build/katrng.o
 
 HEAD1 = api.h fpr.h inner.h
 HEAD2 = api.h katrng.h
 
-all: build build/kat512fpu
+all: build build/kat512fpu build/kat1024fpu
 
 build:
 	-mkdir build
 
 clean:
-	-rm -f build/kat512fpu $(OBJ1) $(OBJ2)
+	-rm -f build/kat512fpu build/kat1024fpu build/*.o
 
-build/kat512fpu: $(OBJ1) $(OBJ2)
-	$(LD) $(LDFLAGS) -o build/kat512fpu $(OBJ1) $(OBJ2) $(LIBS)
+build/kat512fpu: $(OBJ1) $(OBJ2) $(OBJ2a)
+	$(LD) $(LDFLAGS) -o build/kat512fpu $(OBJ1) $(OBJ2a) $(OBJ2) $(LIBS)
+
+build/kat1024fpu: $(OBJ1) $(OBJ3) $(OBJ3a)
+	$(LD) $(LDFLAGS) -o build/kat1024fpu $(OBJ1) $(OBJ3a) $(OBJ3) $(LIBS)
 
 test_fft: $(OBJ1) build/test_fft.o
 	$(LD) $(LDFLAGS) -o $@ build/test_fft.o $(OBJ1) build/katrng.o $(LIBS)
@@ -41,17 +48,23 @@ build/codec.o: codec.c $(HEAD1)
 build/common.o: common.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/common.o common.c
 
-build/fft.o: fft.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o build/fft.o fft.c
+build/poly_fft.o: poly_fft.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o $@ poly_fft.c
 
-build/fpr.o: fpr.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o build/fpr.o fpr.c
+build/fft.o: fast_fft.c $(HEAD1)
+	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O1 -c -o build/fft.o fast_fft.c
+
+build/fft_consts.o: fft_consts.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o $@ fft_consts.c
 
 build/keygen.o: keygen.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/keygen.o keygen.c
 
-build/nist.o: nist.c $(HEAD1)
-	$(CC) $(CFLAGS) -c -o build/nist.o nist.c
+build/nist_512.o: nist_512.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o $@ nist_512.c
+
+build/nist_1024.o: nist_1024.c $(HEAD1)
+	$(CC) $(CFLAGS) -c -o $@ nist_1024.c
 
 build/rng.o: rng.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/rng.o rng.c
@@ -68,8 +81,11 @@ build/vrfy.o: vrfy.c $(HEAD1)
 build/test_fft.o: test_fft.c fft_consts.c
 	$(CC) $(CFLAGS) -c -o $@ test_fft.c
 
-build/PQCgenKAT_sign.o: PQCgenKAT_sign.c $(HEAD2)
-	$(CC) $(CFLAGS) -I . -DALGNAME=falcon512fpu -c -o build/PQCgenKAT_sign.o PQCgenKAT_sign.c
+build/PQCgenKAT_sign_512.o: PQCgenKAT_sign_512.c $(HEAD2)
+	$(CC) $(CFLAGS) -I . -DALGNAME=falcon512fpu -c -o $@ PQCgenKAT_sign_512.c
+
+build/PQCgenKAT_sign_1024.o: PQCgenKAT_sign_1024.c $(HEAD2)
+	$(CC) $(CFLAGS) -I . -DALGNAME=falcon1024fpu -c -o $@ PQCgenKAT_sign_1024.c
 
 build/katrng.o: katrng.c $(HEAD2)
 	$(CC) $(CFLAGS) -I . -c -o build/katrng.o katrng.c 
