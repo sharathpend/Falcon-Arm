@@ -10,7 +10,7 @@
 
 CC = clang
 CFLAGS = -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O3
-LD = c99
+LD = clang
 LDFLAGS = -O3
 LIBS = 
 
@@ -39,8 +39,11 @@ build/kat512fpu: $(OBJ1) $(OBJ2) $(OBJ2a)
 build/kat1024fpu: $(OBJ1) $(OBJ3) $(OBJ3a)
 	$(LD) $(LDFLAGS) -o build/kat1024fpu $(OBJ1) $(OBJ3a) $(OBJ3) $(LIBS)
 
-test_fft: $(OBJ1) build/test_fft.o
-	$(LD) $(LDFLAGS) -o $@ build/test_fft.o $(OBJ1) build/katrng.o $(LIBS)
+test_fft_a72: ref_fft.c build/test_fft.o test_fft.c hal.c
+	$(LD) $(LDFLAGS) -o $@ hal.c      ref_fft.c build/test_fft.o -DAPPLE_M1=0 test_fft.c
+
+test_fft_m1:  ref_fft.c build/test_fft.o test_fft.c m1cycles.c
+	$(LD) $(LDFLAGS) -o $@ m1cycles.c ref_fft.c build/test_fft.o -DAPPLE_M1=1 test_fft.c
 
 build/codec.o: codec.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/codec.o codec.c
@@ -52,7 +55,10 @@ build/poly_fft.o: poly_fft.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ poly_fft.c
 
 build/fft.o: fast_fft.c $(HEAD1)
-	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O1 -c -o build/fft.o fast_fft.c
+	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O1 -c -o $@ fast_fft.c
+
+build/test_fft.o: fast_fft.c $(HEAD1)
+	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O1 -c -o $@ -DTEST_FFT=1 fast_fft.c
 
 build/fft_consts.o: fft_consts.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ fft_consts.c
@@ -77,9 +83,6 @@ build/sign.o: sign.c $(HEAD1)
 
 build/vrfy.o: vrfy.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o build/vrfy.o vrfy.c
-
-build/test_fft.o: test_fft.c fft_consts.c
-	$(CC) $(CFLAGS) -c -o $@ test_fft.c
 
 build/PQCgenKAT_sign_512.o: PQCgenKAT_sign_512.c $(HEAD2)
 	$(CC) $(CFLAGS) -I . -DALGNAME=falcon512fpu -c -o $@ PQCgenKAT_sign_512.c
