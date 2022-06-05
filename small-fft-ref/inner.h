@@ -638,6 +638,17 @@ prng_get_u8(prng *p)
  * internal representation.
  */
 
+/* For testing/benchmarking purpose */
+void Zf(FFT_ref)(fpr *f, unsigned logn);
+void Zf(iFFT_ref)(fpr *f, unsigned logn);
+void Zf(poly_split_fft_ref)(fpr *restrict f0, fpr *restrict f1,
+	const fpr *restrict f, unsigned logn);
+void Zf(poly_merge_fft_ref)(fpr *restrict f,
+	const fpr *restrict f0, const fpr *restrict f1, unsigned logn);
+void fwd_FFT_adj(fpr *f, unsigned logn);
+void inv_FFT_adj(fpr *f, unsigned logn);
+void fwd_FFT_short(fpr *f, unsigned logn);
+void inv_FFT_short(fpr *f, unsigned logn);
 /*
  * Compute FFT in-place: the source array should contain a real
  * polynomial (N coefficients); its storage area is reused to store
@@ -778,6 +789,7 @@ void Zf(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
 void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
 	const fpr *restrict f, unsigned logn);
 
+
 /*
  * Apply "merge" operation on two polynomials in FFT representation:
  * given f0 and f1, polynomials moduo X^(N/2)+1, this function computes
@@ -786,6 +798,7 @@ void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
  */
 void Zf(poly_merge_fft)(fpr *restrict f,
 	const fpr *restrict f0, const fpr *restrict f1, unsigned logn);
+
 
 /* ==================================================================== */
 /*
