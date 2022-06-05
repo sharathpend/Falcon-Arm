@@ -29,6 +29,18 @@ void print_header()
     printf("|:-------------|----------:|-----------:|\n");
 }
 
+void print_header1()
+{
+    printf("\n| Function (logn) | SplitFFT | AdjFFT |\n");
+    printf("|:-------------|----------:|-----------:|\n");
+}
+
+void print_header2()
+{
+    printf("\n| Function (logn) | Fast FFT | Ref FFT |\n");
+    printf("|:-------------|----------:|-----------:|\n");
+}
+
 static int cmp_uint64_t(const void *a, const void *b)
 {
     return (int)((*((const uint64_t *)a)) - (*((const uint64_t *)b)));
@@ -175,8 +187,8 @@ int test_with_ref_FFF(unsigned logn, unsigned tests)
         TIME(stop);
         times[j] = stop - start;
     }
-    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
-    fast_fft = times[ITERATIONS >> 1];
+    qsort(times, tests, sizeof(uint64_t), cmp_uint64_t);
+    fast_fft = times[tests >> 1];
 
     for (int j = 0; j < tests; j++)
     {
@@ -188,8 +200,8 @@ int test_with_ref_FFF(unsigned logn, unsigned tests)
         TIME(stop);
         times[j] = stop - start;
     }
-    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
-    ref_fft = times[ITERATIONS >> 1];
+    qsort(times, tests, sizeof(uint64_t), cmp_uint64_t);
+    ref_fft = times[tests >> 1];
 
     if (cmp_double(f, g, logn))
     {
@@ -222,8 +234,8 @@ int test_variant_fft(unsigned logn, unsigned tests)
         TIME(stop);
         times[j] = stop - start;
     }
-    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
-    fast_fft = times[ITERATIONS >> 1];
+    qsort(times, tests, sizeof(uint64_t), cmp_uint64_t);
+    fast_fft = times[tests >> 1];
 
     for (int j = 0; j < tests; j++)
     {
@@ -235,8 +247,8 @@ int test_variant_fft(unsigned logn, unsigned tests)
         TIME(stop);
         times[j] = stop - start;
     }
-    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
-    short_fft = times[ITERATIONS >> 1];
+    qsort(times, tests, sizeof(uint64_t), cmp_uint64_t);
+    short_fft = times[tests >> 1];
 
     if (cmp_double(f, g, logn))
     {
@@ -269,8 +281,8 @@ int test_split_merge_function(unsigned logn, unsigned tests)
         TIME(stop);
         times[j] = stop - start;
     }
-    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
-    fast = times[ITERATIONS >> 1];
+    qsort(times, tests, sizeof(uint64_t), cmp_uint64_t);
+    fast = times[tests >> 1];
 
     for (int j = 0; j < tests; j++)
     {
@@ -282,8 +294,8 @@ int test_split_merge_function(unsigned logn, unsigned tests)
         TIME(stop);
         times[j] = stop - start;
     }
-    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
-    ref = times[ITERATIONS >> 1];
+    qsort(times, tests, sizeof(uint64_t), cmp_uint64_t);
+    ref = times[tests >> 1];
 
     if (cmp_double(f, g, logn))
     {
@@ -293,7 +305,7 @@ int test_split_merge_function(unsigned logn, unsigned tests)
         return 1;
     }
 
-    printf("| FFT %u | %8lld | %8lld\n", logn, fast, ref);
+    printf("| Split/Merge %u | %8lld | %8lld\n", logn, fast, ref);
 
     return 0;
 }
@@ -306,7 +318,7 @@ int main(void)
 
     printf("\ntest_with_adj_FFT: ");
     printf("\nCompare split FFT versus adjacent FFT setting\n");
-    print_header();
+    print_header1();
     for (int logn = 2; logn < 11; logn++)
     {
         if (test_with_adj_FFT(logn, ITERATIONS))
@@ -315,7 +327,6 @@ int main(void)
             return 1;
         }
     }
-    printf("OK\n");
 
     printf("\ntest_variant_fft: ");
     printf("\nCompare my (loop separated) FFT versus my (without loop separateed) FFT code\n");
@@ -329,11 +340,10 @@ int main(void)
             return 1;
         }
     }
-    printf("OK\n");
 
-    printf("\ntest_with_ref_FFF: \n");
+    printf("\ntest_with_ref_FFF: ");
     printf("\nCompare my FFT versus reference FFT code\n");
-    print_header();
+    print_header2();
     for (int logn = 2; logn < 11; logn++)
     {
         if (test_with_ref_FFF(logn, ITERATIONS))
@@ -342,9 +352,8 @@ int main(void)
             return 1;
         }
     }
-    printf("OK\n");
 
-    printf("\ntest_split_merge_function: \n");
+    printf("\ntest_split_merge_function: ");
     printf("\nCompare my split/merge FFT versus reference split/merge FFT code\n");
     print_header();
     for (int logn = 2; logn < 11; logn++)
@@ -355,7 +364,6 @@ int main(void)
             return 1;
         }
     }
-    printf("OK\n");
 
     return 0;
 }

@@ -58,7 +58,7 @@ build/fft.o: fast_fft.c $(HEAD1)
 	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O1 -c -o $@ fast_fft.c
 
 build/test_fft.o: fast_fft.c $(HEAD1)
-	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O1 -c -o $@ -DTEST_FFT=1 fast_fft.c
+	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O3 -c -o $@ -DTEST_FFT=1 fast_fft.c
 
 build/fft_consts.o: fft_consts.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ fft_consts.c
