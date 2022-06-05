@@ -1,60 +1,25 @@
 /*
- * Addition of two complex numbers (d = a + b).
+ * High-speed FFT code for arbitrary `logn`.
+ *
+ * =============================================================================
+ * Copyright (c) 2022 by Cryptographic Engineering Research Group (CERG)
+ * ECE Department, George Mason University
+ * Fairfax, VA, U.S.A.
+ * Author: Duc Tri Nguyen
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =============================================================================
+ * @author   Duc Tri Nguyen <dnguye69@gmu.edu>
  */
-#define FPC_ADD(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re.v = a_re.v + b_re.v;                       \
-    d_im.v = a_im.v + b_im.v;
 
-/*
- * Addition of two complex numbers (d = a + jb).
- */
-#define FPC_ADDJ(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re.v = a_re.v - b_im.v;                        \
-    d_im.v = a_im.v + b_re.v;
-/*
- * Subtraction of two complex numbers (d = a - b).
- */
-#define FPC_SUB(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re.v = a_re.v - b_re.v;                       \
-    d_im.v = a_im.v - b_im.v;
-
-/*
- * Subtraction of two complex numbers (d = a - jb).
- */
-#define FPC_SUBJ(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re.v = a_re.v + b_im.v;                        \
-    d_im.v = a_im.v - b_re.v;
-
-/*
- * Multplication of two complex numbers (d = a * b).
- */
-#define FPC_MUL(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re.v = a_re.v * b_re.v - a_im.v * b_im.v;     \
-    d_im.v = a_re.v * b_im.v + a_im.v * b_re.v;
-
-/*
- * Multplication of two complex numbers (d = a * conj(b)).
- * a is swapped from: a_re|a_im to a_im|a_re
- * b is swapped from: b_re|b_im to b_im|b_re
- */
-#define FPC_MUL_CONJ(d_re, d_im, a_im, a_re, b_im, b_re) \
-    d_re.v = b_re.v * a_re.v + a_im.v * b_im.v;          \
-    d_im.v = b_im.v * a_re.v - a_im.v * b_re.v;
-
-/*
- * Multplication of two complex numbers (d = a * conj(jb)).
- */
-#define FPC_MUL_CONJ_J(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re.v = a_im.v * b_re.v - b_im.v * a_re.v;            \
-    d_im.v = -(a_im.v * b_im.v + b_re.v * a_re.v);
-
-/*
- * Multplication of two complex numbers (d = a * - conj(jb)).
- * b is swapped from: b_re|b_im to b_im|b_re
- */
-#define FPC_MUL_CONJ_J_m(d_re, d_im, a_re, a_im, b_im, b_re) \
-    d_re.v = a_re.v * b_re.v - a_im.v * b_im.v;              \
-    d_im.v = a_im.v * b_re.v + a_re.v * b_im.v;
+#include "fpr.h"
 
 const fpr fpr_tab_log2[] = {
     { 0.707106781186547524400844362}, {0.707106781186547524400844362}, // 4, 5
@@ -337,4 +302,16 @@ const fpr fpr_tab_log10[] = {
     { 0.391170384302253888687512949}, { 0.920318276709110566440076541}, // 1524
     { 0.713584868780793592903125099}, { 0.700568793943248366792866380}, // 1528
     { 0.009203754782059819315102378}, { 0.999957644551963866333120920}, // 1532
+};
+
+const fpr *fpr_table[] = {
+    fpr_tab_log2,
+    fpr_tab_log3,
+    fpr_tab_log4,
+    fpr_tab_log5,
+    fpr_tab_log6,
+    fpr_tab_log7,
+    fpr_tab_log8,
+    fpr_tab_log9,
+    fpr_tab_log10,
 };
