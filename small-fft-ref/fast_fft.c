@@ -93,7 +93,7 @@ void Zf(FFT)(fpr *f, unsigned logn)
      * We read the twiddle table in forward order
      */
     int level = 1;
-    fpr *fpr_tab = table[0];
+    fpr *fpr_tab = fpr_table[0];
     zeta_re = fpr_tab[0];
     zeta_im = fpr_tab[1];
 
@@ -111,7 +111,7 @@ void Zf(FFT)(fpr *f, unsigned logn)
 
     for (len = ht / 2; len > 0; len >>= 1)
     {
-        fpr_tab = table[level++];
+        fpr_tab = fpr_table[level++];
         k = 0;
         for (start = 0; start < hn; start = j + len)
         {
@@ -165,7 +165,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     
     for (len = 1; len < ht; len <<= 1)
     {
-        fpr_tab_inv = table[level--];
+        fpr_tab_inv = fpr_table[level--];
         k = 0;
         for (start = 0; start < hn; start = j + len)
         {
@@ -205,7 +205,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     }
 
 
-    fpr_tab_inv = table[0];
+    fpr_tab_inv = fpr_table[0];
     zeta_re = fpr_mul(fpr_tab_inv[0], fpr_p2_tab[logn]);
     zeta_im = fpr_mul(fpr_tab_inv[1], fpr_p2_tab[logn]);
     for (j = 0; j < ht; j += 1)
@@ -233,7 +233,7 @@ void Zf(poly_split_fft)(fpr *restrict f0, fpr *restrict f1,
     const unsigned hn = n >> 1; 
     const unsigned ht = n >> 2; 
 
-    const fpr *fpr_split = table[logn - 2];
+    const fpr *fpr_split = fpr_table[logn - 2];
     unsigned k = 0;
 
     f0[0] = f[0];
@@ -289,7 +289,7 @@ void Zf(poly_merge_fft)(fpr *restrict f, const fpr *restrict f0,
     const unsigned hn = n >> 1; 
     const unsigned ht = n >> 2; 
 
-    const fpr *fpr_merge = table[logn - 2];
+    const fpr *fpr_merge = fpr_table[logn - 2];
     unsigned k = 0;
 
     fpr a_re, a_im, b_re, b_im, t_re, t_im, v_re, v_im, s_re, s_im;
