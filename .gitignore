@@ -33,3 +33,5 @@ neon-fpu-512/fwd_ntt.coeff
 neon-fpu-512/test/unsigned_red
 neon-fpu-512/ntt.coeffs
 neon-fpu-512/test/bla
+*kat512fpu
+*kat1024fpu

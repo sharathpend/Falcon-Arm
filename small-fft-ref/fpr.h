@@ -379,11 +379,4 @@ fpr_expm_p63(fpr x, fpr ccs)
 
 }
 
-#define fpr_gm_tab   Zf(fpr_gm_tab)
-extern const fpr fpr_gm_tab[];
-
-#define fpr_p2_tab   Zf(fpr_p2_tab)
-extern const fpr fpr_p2_tab[];
-
 /* ====================================================================== */
-

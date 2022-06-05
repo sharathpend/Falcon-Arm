@@ -10,7 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "katrng.h"
-#include "api.h"
+#include "api_1024.h"
 
 #define	MAX_MARKER_LEN		50
 
