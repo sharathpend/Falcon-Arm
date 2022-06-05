@@ -31,7 +31,7 @@ build:
 	-mkdir build
 
 clean:
-	-rm -f build/kat512fpu build/kat1024fpu build/*.o
+	-rm -f test_fft_a72 test_fft_m1 build/kat512fpu build/kat1024fpu build/*.o
 
 build/kat512fpu: $(OBJ1) $(OBJ2) $(OBJ2a)
 	$(LD) $(LDFLAGS) -o build/kat512fpu $(OBJ1) $(OBJ2a) $(OBJ2) $(LIBS)
