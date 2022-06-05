@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "api.h"
+#include "api_1024.h"
 #include "inner.h"
 
 #define NONCELEN   40
