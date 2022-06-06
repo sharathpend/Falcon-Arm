@@ -211,13 +211,13 @@ With `-O1 -mtune=native`. `-O2, -O3` option create longer assembly, slower code.
 
 mlen, smlen = 59, 717
 | Median   | sign | verify |
-|    | --:  | ---: |
+| --   | --:  | ---: |
 | kc |  1503.08 |   129.51 |
 | us |   840.07 |    72.28 |
 | Ghz|     1.79 |     1.79 |
 
 | Average | sign | verify |
-|    | --:  | ---: |
+| --   | --:  | ---: |
 | kc |  1506.04 |   131.73 |
 | us |   855.20 |    72.43 |
 | Ghz|     1.76 |     1.82 |
