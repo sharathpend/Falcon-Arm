@@ -231,7 +231,6 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	{
 		return -1;
 	}
-	Zf(to_ntt_monty)(h);
 
 	/*
 	 * Find nonce, signature, message length.

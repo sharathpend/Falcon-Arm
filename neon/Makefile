@@ -25,7 +25,7 @@ OBJ_BENCH = bench.c
 OBJ_KAT = PQCgenKAT_sign.c
 OBJ_TEST_FALCON = falcon.c test_falcon.c
 
-HEAD = api.h fpr.h inner.h config.h katrng.h
+HEAD = api.h fpr.h inner.h config.h katrng.h params.h
 HEAD1 = falcon.h
 
 all: build kat

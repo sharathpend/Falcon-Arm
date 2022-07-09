@@ -899,7 +899,6 @@ falcon_verify_finish(const void *sig, size_t sig_len, int sig_type,
         /*
          * Verify signature.
          */
-        Zf(to_ntt_monty)( (int16_t *) h);
         if (!Zf(verify_raw)( (int16_t *) hm, sv, (int16_t *) h, (int16_t *) atmp)) {
                 return FALCON_ERR_BADSIG;
         }

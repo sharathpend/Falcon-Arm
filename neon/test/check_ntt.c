@@ -1,7 +1,7 @@
 #include <arm_neon.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../ntt.h"
+#include "../poly.h"
 
 // #define FALCON_LOGN 10
 // #define FALCON_N ((1 << FALCON_LOGN))
@@ -799,7 +799,7 @@ int test_neon_invntt()
         }
 
         ntt_rewrite_inverse(gold);
-        ZfN(poly_invntt)(test);
+        ZfN(poly_invntt)(test, 1);
 
         // print_array(gold, FALCON_N);
         // print_array(test, FALCON_N);

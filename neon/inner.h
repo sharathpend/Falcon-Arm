@@ -327,7 +327,10 @@ int ZfN(is_short_tmp)(int16_t *s1tmp, int16_t *s2tmp,
 /*
  * Signature verification functions (vrfy.c).
  */
-
+/*
+ * Convert a public key to NTT. Conversion is done in place.
+ */
+void Zf(to_ntt)(int16_t *h);
 /*
  * Convert a public key to NTT + Montgomery format. Conversion is done
  * in place.
@@ -346,7 +349,7 @@ void Zf(to_ntt_monty)(int16_t *h);
  * tmp[] must have 16-bit alignment.
  */
 int Zf(verify_raw)(const int16_t *c0, const int16_t *s2,
-	               const int16_t *h, int16_t *tmp);
+	               int16_t *h, int16_t *tmp);
 
 /*
  * Compute the public key h[], given the private key elements f[] and
