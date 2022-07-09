@@ -2267,7 +2267,6 @@ test_vrfy_inner(unsigned logn, const int8_t *f, const int8_t *g,
 		 */
 		h2 = (int16_t *)(s2 + n);
 		memcpy(h2, h, n * sizeof *h);
-		Zf(to_ntt_monty)((int16_t *) h2);
 
 		/*
 		 * Hash nonce + message into a point.
@@ -3639,9 +3638,6 @@ test_sign_self(const int8_t *f, const int8_t *g,
 		tt += 4;
 	}
 
-	memcpy(h, h_src, n * sizeof *h);
-	Zf(to_ntt_monty)((int16_t *) h);
-
 	/* sprintf(buf, "sign %u", logn); */
 	memcpy(buf, "sign 0", 7);
 	buf[5] = '0' + logn;
@@ -3650,6 +3646,7 @@ test_sign_self(const int8_t *f, const int8_t *g,
 	inner_shake256_inject(&rng, (uint8_t *)buf, strlen(buf));
 	inner_shake256_flip(&rng);
 	for (i = 0; i < 100; i ++) {
+	    memcpy(h, h_src, n * sizeof *h);
 		uint8_t msg[50];  /* nonce + plain */
 		inner_shake256_context sc, sc2;
 		size_t u;
@@ -3693,6 +3690,7 @@ test_sign_self(const int8_t *f, const int8_t *g,
     // printf("\n");
 
 	for (i = 0; i < 100; i ++) {
+        memcpy(h, h_src, n * sizeof *h);
 		uint8_t msg[50];  /* nonce + plain */
 		inner_shake256_context sc;
 
@@ -3813,13 +3811,6 @@ test_keygen_inner(unsigned logn, uint8_t *tmp)
 			memcpy(s1, tt, n * sizeof *s1);
 		} while (!Zf(is_invertible)(sig, tt));
 		
-        // printf("h = \n", h);
-        // for (int j = 0; j < n; j++)
-        // {
-        //     printf("%d, ", h[j]);
-        // }
-        // printf("\n");
-        Zf(to_ntt_monty)((int16_t *) h);
 
 		if (!Zf(verify_raw)((int16_t *) hm, (int16_t *) sig, (int16_t *) h, (int16_t *) tt)) {
 			fprintf(stderr, "self signature not verified\n");
@@ -3830,13 +3821,7 @@ test_keygen_inner(unsigned logn, uint8_t *tmp)
 			exit(EXIT_FAILURE);
 		}
 
-        // printf("h2 = \n", h2);
-        // for (int j = 0; j < n; j++)
-        // {
-        //     printf("%d, ", h2[j]);
-        // }
-        // printf("\n");
-		Zf(to_ntt_monty)((int16_t *) h2);
+		Zf(to_ntt)((int16_t *) h2);
         
 		check_eq(h, h2, n * sizeof *h, "recovered public key");
 
@@ -4132,7 +4117,6 @@ test_external_API_inner(unsigned logn, shake256_context *rng)
 static void
 test_external_API(void)
 {
-	unsigned logn;
 	shake256_context rng;
 
 	printf("Test external API: ");
@@ -4822,7 +4806,6 @@ test_nist_KAT(unsigned logn, const char *srefhash)
 		/*
 		 * Verify the signature.
 		 */
-		Zf(to_ntt_monty)((int16_t *) h);
 		if (!Zf(verify_raw)( (int16_t *) hm, sig, (int16_t *) h, (int16_t *) tmp)) {
 			fprintf(stderr, "Invalid signature\n");
 			exit(EXIT_FAILURE);
