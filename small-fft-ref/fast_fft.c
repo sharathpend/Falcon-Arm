@@ -369,27 +369,17 @@ static const fpr *fpr_table[] = {
 
 /*
  * Multplication of two complex numbers (d = a * conj(b)).
- * a is swapped from: a_re|a_im to a_im|a_re
- * b is swapped from: b_re|b_im to b_im|b_re
  */
-#define FPC_MUL_CONJ(d_re, d_im, a_im, a_re, b_im, b_re) \
-    d_re.v = b_re.v * a_re.v + a_im.v * b_im.v;          \
-    d_im.v = b_im.v * a_re.v - a_im.v * b_re.v;
+#define FPC_MUL_CONJ(d_re, d_im, a_re, a_im, b_re, b_im) \
+    d_re.v = b_im.v * a_im.v + a_re.v * b_re.v;          \
+    d_im.v = b_re.v * a_im.v - a_re.v * b_im.v;
 
 /*
- * Multplication of two complex numbers (d = a * conj(jb)).
+ * Multplication of two complex numbers (d = a * conj(-jb)).
  */
-#define FPC_MUL_CONJ_J(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re.v = a_im.v * b_re.v - b_im.v * a_re.v;            \
-    d_im.v = -(a_im.v * b_im.v + b_re.v * a_re.v);
-
-/*
- * Multplication of two complex numbers (d = a * - conj(jb)).
- * b is swapped from: b_re|b_im to b_im|b_re
- */
-#define FPC_MUL_CONJ_J_m(d_re, d_im, a_re, a_im, b_im, b_re) \
-    d_re.v = a_re.v * b_re.v - a_im.v * b_im.v;              \
-    d_im.v = a_im.v * b_re.v + a_re.v * b_im.v;
+#define FPC_MUL_CONJ_J_m(d_re, d_im, a_re, a_im, b_re, b_im) \
+    d_re.v = a_re.v * b_im.v - a_im.v * b_re.v;              \
+    d_im.v = a_im.v * b_im.v + a_re.v * b_re.v;
 
 
 void Zf(FFT)(fpr *f, unsigned logn)
