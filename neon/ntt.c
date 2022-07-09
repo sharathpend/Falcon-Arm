@@ -26,6 +26,11 @@
 #include "poly.h"
 #include "inner.h"
 
+#include <stdio.h>
+
+#define MONT 1
+#define MONT_INV 2
+
 /*
  * Assume Input in the range [-Q/2, Q/2]
  * Total Barrett point for N = 512, 1024: 2048, 4096
@@ -572,13 +577,16 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
         // 1.3
 #endif
 
-        if (mont)
+        if (mont == MONT)
         {
             // Convert to Montgomery domain by multiply with FALCON_MONT
-            barmuli_mont_x4(v0, neon_qmvq, t);
-            barmuli_mont_x4(v1, neon_qmvq, t);
-            barmuli_mont_x4(v2, neon_qmvq, t2);
-            barmuli_mont_x4(v3, neon_qmvq, t2);
+            barmuli_mont_x8(v0, v1, neon_qmvq, t, t2);
+            barmuli_mont_x8(v2, v3, neon_qmvq, t, t2);
+        }
+        else if (mont == MONT_INV)
+        {
+            barmuli_mont_ninv_x8(v0, v1, neon_qmvq, t, t2);
+            barmuli_mont_ninv_x8(v2, v3, neon_qmvq, t, t2);
         }
 
         vstore_s16_4(&a[j], v0);
@@ -592,7 +600,7 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
  * Assume input in range [-Q, Q]
  * Total Barrett point N = 512, 1024: 1792, 3840
  */
-void ZfN(poly_invntt)(int16_t a[FALCON_N])
+void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
 {
     // Total SIMD registers: 29 = 16 + 12 + 1
     int16x8x4_t v0, v1, v2, v3; // 16
@@ -954,8 +962,14 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N])
         vstore_s16_x4(&a[j + 96], v3);
     }
 
+#if FALCON_N == 512
     zl.val[0] = vld1q_s16(&invntt_br[k]);
     zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
+#elif FALCON_N == 1024
+    k += 8*ninv;
+    zl.val[0] = vld1q_s16(&invntt_br[k]);
+    zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
+#endif
 
 #if FALCON_N == 512
     // Layer 7, 8
@@ -1001,15 +1015,23 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N])
         gsbf_top_x4(v0, v2, t);
         gsbf_top_x4(v1, v3, t2);
 
-        gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t);
-        gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t2);
 
         // v0: 2
         // v1: 1.75
         // v2: 1.25
         // v3: 1.15
-        barmul_invntt_x4(v0, zl.val[0], zh.val[0], 3, neon_qmvq, t);
-        barmul_invntt_x4(v1, zl.val[0], zh.val[0], 3, neon_qmvq, t2);
+        if (ninv)
+        {
+            gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t);
+            gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t2);
+            barmul_invntt_x4(v0, zl.val[0], zh.val[0], 3, neon_qmvq, t);
+            barmul_invntt_x4(v1, zl.val[0], zh.val[0], 3, neon_qmvq, t2);
+        }
+        else
+        {
+            gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 4, 4, 4, 4, neon_qmvq, t);
+            gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 4, 4, 4, 4, neon_qmvq, t2);
+        }
 
         // v0: 1.25
         // v1: 1.15
@@ -1017,13 +1039,11 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N])
         // v3: 1.15
         barrett_x4(v0, neon_qmvq, t);
         barrett_x4(v1, neon_qmvq, t);
-        barrett_x4(v2, neon_qmvq, t2);
-        barrett_x4(v3, neon_qmvq, t2);
 
         // v0: 0.5
         // v1: 0.5
-        // v2: 0.5
-        // v3: 0.5
+        // v2: 0.97
+        // v3: 0.93
 
         vstore_s16_x4(&a[j], v0);
         vstore_s16_x4(&a[j + 128], v1);
@@ -1076,15 +1096,23 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N])
         gsbf_top_x4(v0, v2, t);
         gsbf_top_x4(v1, v3, t2);
 
-        gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t);
-        gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t2);
 
         // v0: 1
         // v1: 1
         // v2: .87
         // v3: .87
-        barmul_invntt_x4(v0, zl.val[0], zh.val[0], 3, neon_qmvq, t);
-        barmul_invntt_x4(v1, zl.val[0], zh.val[0], 3, neon_qmvq, t2);
+        if (ninv)
+        {
+            gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t);
+            gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t2);
+            barmul_invntt_x4(v0, zl.val[0], zh.val[0], 3, neon_qmvq, t);
+            barmul_invntt_x4(v1, zl.val[0], zh.val[0], 3, neon_qmvq, t2);
+        }
+        else
+        {
+            gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 4, 4, 4, 4, neon_qmvq, t);
+            gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 4, 4, 4, 4, neon_qmvq, t2);
+        }
 
         // v0: .87
         // v1: .87
@@ -1252,10 +1280,13 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N])
         // u1, 5: 1, .87
         // u3, 7: 2.3, 1.4
 
-        barmul_invntt_x2(u0, zl.val[0], zh.val[0], 7, neon_qmvq, t);
-        barmul_invntt_x2(u1, zl.val[0], zh.val[0], 7, neon_qmvq, t);
-        barmul_invntt_x2(u2, zl.val[0], zh.val[0], 7, neon_qmvq, t2);
-        barmul_invntt_x2(u3, zl.val[0], zh.val[0], 7, neon_qmvq, t2);
+        if (ninv)
+        {
+            barmul_invntt_x2(u0, zl.val[0], zh.val[0], 7, neon_qmvq, t);
+            barmul_invntt_x2(u1, zl.val[0], zh.val[0], 7, neon_qmvq, t);
+            barmul_invntt_x2(u2, zl.val[0], zh.val[0], 7, neon_qmvq, t2);
+            barmul_invntt_x2(u3, zl.val[0], zh.val[0], 7, neon_qmvq, t2);
+        }
 
         // u0, 4: .87, .87
         // u2, 6: 1.5, 1.5

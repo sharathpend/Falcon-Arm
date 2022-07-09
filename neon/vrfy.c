@@ -23,6 +23,11 @@
 #include "poly.h"
 
 /* see inner.h */
+void Zf(to_ntt)(int16_t *h)
+{
+    ZfN(poly_ntt)(h, 0);
+}
+
 void Zf(to_ntt_monty)(int16_t *h)
 {
     ZfN(poly_ntt)(h, 1);
@@ -30,7 +35,7 @@ void Zf(to_ntt_monty)(int16_t *h)
 
 /* see inner.h */
 int Zf(verify_raw)(const int16_t *c0, const int16_t *s2,
-                   const int16_t *h, int16_t *tmp)
+                   int16_t *h, int16_t *tmp)
 {
     int16_t *tt = tmp;
 
@@ -39,9 +44,10 @@ int Zf(verify_raw)(const int16_t *c0, const int16_t *s2,
      */
 
     memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
-    ZfN(poly_ntt)(tt, 0);
+    ZfN(poly_ntt)(h, 0);
+    ZfN(poly_ntt)(tt, 2);
     ZfN(poly_montmul_ntt)(tt, h);
-    ZfN(poly_invntt)(tt);
+    ZfN(poly_invntt)(tt, 0);
     ZfN(poly_sub_barrett)(tt, c0, tt);
 
     /*
@@ -68,7 +74,7 @@ int Zf(compute_public)(int16_t *h, const int8_t *f, const int8_t *g, int16_t *tm
     }
     ZfN(poly_div_12289)(h, tt);
 
-    ZfN(poly_invntt)(h);
+    ZfN(poly_invntt)(h, 1);
 
     ZfN(poly_convert_to_unsigned)(h);
 
@@ -102,7 +108,7 @@ int Zf(complete_private)(int8_t *G, const int8_t *f,
     }
     ZfN(poly_div_12289)(t1, t2);
 
-    ZfN(poly_invntt)(t1);
+    ZfN(poly_invntt)(t1, 1);
 
     if (ZfN(poly_int16_to_int8)(G, t1))
     {
@@ -153,7 +159,7 @@ int Zf(verify_recover)(int16_t *h, const int16_t *c0,
     r = ZfN(poly_compare_with_zero)(tt);
     ZfN(poly_div_12289)(h, tt);
 
-    ZfN(poly_invntt)(h);
+    ZfN(poly_invntt)(h, 1);
 
     /*
      * Signature is acceptable if and only if it is short enough,

@@ -6,7 +6,7 @@
 
 void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont);
 
-void ZfN(poly_invntt)(int16_t a[FALCON_N]);
+void ZfN(poly_invntt)(int16_t a[FALCON_N], int inv);
 
 void ZfN(poly_int8_to_int16)(int16_t out[FALCON_N], const int8_t in[FALCON_N]);
 
