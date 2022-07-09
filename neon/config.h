@@ -22,6 +22,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include "params.h"
+
 /* 
  * By default, benchmark using APPLE_M1 is disable 
  */
@@ -46,20 +48,5 @@
 #else
 #define COMPLEX 0
 #endif
-
-/*
- * Define Table for Forward and Inverse NTT, for better caching purpose
- */
-#ifndef FALCON_LOGN
-#define FALCON_LOGN 9
-#endif
-
-#define FALCON_N (1 << FALCON_LOGN)
-#define FALCON_Q 12289
-#define FALCON_QINV (-12287)
-#define FALCON_V 5461
-#define FALCON_MONT 4091   // pow(2, 16, 12289)
-#define FALCON_MONT2 10952 // pow(4, 16, 12289)
-#define FALCON_MONT_QINV 10908
 
 #endif
