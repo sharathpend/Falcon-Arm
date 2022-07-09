@@ -183,24 +183,69 @@
     a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVQ, 0); \
     a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVQ, 0);
 
+/*
+ * Convert coefficients to Montgomery domain
+ */
 #define barmuli_mont(a, QMVM, t)         \
     t = vmulq_laneq_s16(a, QMVM, 2);     \
     a = vqrdmulhq_laneq_s16(a, QMVM, 6); \
     a = vmlsq_laneq_s16(t, a, QMVM, 0);
 
-#define barmuli_mont_x4(a, QMVM, t)                          \
-    t.val[0] = vmulq_laneq_s16(a.val[0], QMVM, 2);           \
-    t.val[1] = vmulq_laneq_s16(a.val[1], QMVM, 2);           \
-    t.val[2] = vmulq_laneq_s16(a.val[2], QMVM, 2);           \
-    t.val[3] = vmulq_laneq_s16(a.val[3], QMVM, 2);           \
-    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 6);       \
-    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 6);       \
-    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 6);       \
-    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 6);       \
-    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVM, 0); \
-    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVM, 0); \
-    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVM, 0); \
-    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVM, 0);
+#define barmuli_mont_x8(a, b, QMVM, t, t2)                    \
+    t.val[0] = vmulq_laneq_s16(a.val[0], QMVM, 2);            \
+    t.val[1] = vmulq_laneq_s16(a.val[1], QMVM, 2);            \
+    t.val[2] = vmulq_laneq_s16(a.val[2], QMVM, 2);            \
+    t.val[3] = vmulq_laneq_s16(a.val[3], QMVM, 2);            \
+    t2.val[0] = vmulq_laneq_s16(b.val[0], QMVM, 2);           \
+    t2.val[1] = vmulq_laneq_s16(b.val[1], QMVM, 2);           \
+    t2.val[2] = vmulq_laneq_s16(b.val[2], QMVM, 2);           \
+    t2.val[3] = vmulq_laneq_s16(b.val[3], QMVM, 2);           \
+    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 6);        \
+    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 6);        \
+    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 6);        \
+    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 6);        \
+    b.val[0] = vqrdmulhq_laneq_s16(b.val[0], QMVM, 6);        \
+    b.val[1] = vqrdmulhq_laneq_s16(b.val[1], QMVM, 6);        \
+    b.val[2] = vqrdmulhq_laneq_s16(b.val[2], QMVM, 6);        \
+    b.val[3] = vqrdmulhq_laneq_s16(b.val[3], QMVM, 6);        \
+    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVM, 0);  \
+    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVM, 0);  \
+    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVM, 0);  \
+    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVM, 0);  \
+    b.val[0] = vmlsq_laneq_s16(t2.val[0], b.val[0], QMVM, 0); \
+    b.val[1] = vmlsq_laneq_s16(t2.val[1], b.val[1], QMVM, 0); \
+    b.val[2] = vmlsq_laneq_s16(t2.val[2], b.val[2], QMVM, 0); \
+    b.val[3] = vmlsq_laneq_s16(t2.val[3], b.val[3], QMVM, 0);
+
+/*
+ * Convert coefficients to Montgomery domain and embeded n^-1
+ */
+
+#define barmuli_mont_ninv_x8(a, b, QMVM, t, t2)               \
+    t.val[0] = vshlq_n_s16(a.val[0], FALCON_LOG2_NINV_MONT);  \
+    t.val[1] = vshlq_n_s16(a.val[1], FALCON_LOG2_NINV_MONT);  \
+    t.val[2] = vshlq_n_s16(a.val[2], FALCON_LOG2_NINV_MONT);  \
+    t.val[3] = vshlq_n_s16(a.val[3], FALCON_LOG2_NINV_MONT);  \
+    t2.val[0] = vshlq_n_s16(b.val[0], FALCON_LOG2_NINV_MONT); \
+    t2.val[1] = vshlq_n_s16(b.val[1], FALCON_LOG2_NINV_MONT); \
+    t2.val[2] = vshlq_n_s16(b.val[2], FALCON_LOG2_NINV_MONT); \
+    t2.val[3] = vshlq_n_s16(b.val[3], FALCON_LOG2_NINV_MONT); \
+    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 7);        \
+    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 7);        \
+    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 7);        \
+    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 7);        \
+    b.val[0] = vqrdmulhq_laneq_s16(b.val[0], QMVM, 7);        \
+    b.val[1] = vqrdmulhq_laneq_s16(b.val[1], QMVM, 7);        \
+    b.val[2] = vqrdmulhq_laneq_s16(b.val[2], QMVM, 7);        \
+    b.val[3] = vqrdmulhq_laneq_s16(b.val[3], QMVM, 7);        \
+    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVM, 0);  \
+    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVM, 0);  \
+    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVM, 0);  \
+    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVM, 0);  \
+    b.val[0] = vmlsq_laneq_s16(t2.val[0], b.val[0], QMVM, 0); \
+    b.val[1] = vmlsq_laneq_s16(t2.val[1], b.val[1], QMVM, 0); \
+    b.val[2] = vmlsq_laneq_s16(t2.val[2], b.val[2], QMVM, 0); \
+    b.val[3] = vmlsq_laneq_s16(t2.val[3], b.val[3], QMVM, 0);
 
 /*
  * CT Butterfly with Barrett *Rounding* reduction
