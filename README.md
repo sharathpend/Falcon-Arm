@@ -2,212 +2,73 @@
 
 ## Overall status
 
-Complete Sign and Verify. 
+Finished Signature generation and Verification. 
+There is negligible speed up Key generation from FFT implementation.
 
+## Reproduce Benchmark
 
-## Sign 
+If you don't have the hardware, inside each folder has `*.md` files,
+which are the benchmarked results for AVX (Intel chip), Apple M1, Cortex-A72.
 
-List of vectorized files: 
+Feel free to reproduce results. 
+Steps are described below. 
 
-- common.c
-- fft_tree.c
-- fft.c
-- fpr.h
-- poly_float.c
-- sign_sampler.c
-- sign.c
+### Apple M1
 
-Bottlenecks are floating point operation, serial hashing and sampling. 
+#### NEON 
 
-Todo: Maybe change FFT storage structure. (see TODO in fft_tree.c)
+Go to `neon` folder, `make build` first, then run: 
 
-## Verify
+- `make m1_59b`: to run speed benchmark for 59b message (as shown in paper)
+- `make m1_ghz`: to run speed benchmark and frequency of the CPU
+- `make m1`: to run default Falcon speed benchmark and my function benchmark
+- `make m1_test`: to run default Falcon test vectors
+- `make kat`: to generate KAT file. 
 
-List of vectorized files: 
+To clean up, run `make clean`.
 
-- ntt_consts.c
-- ntt_consts.h
-- ntt_consts9.c
-- ntt_consts10.c
-- ntt.c
-- poly_int.c
-- poly.h
-- vrfy.c
+Note: You may need `sudo` password to perform benchmark (cycle count in Apple M1 requires `sudo`). 
 
-Bottleneck is serial hashing.
+#### REF
 
-## TODO: 
+Go to `ref-avx` (reference implementation of Falcon), then run:
 
-NTT and FFT can be further enhance by Radix-4:
+- `make m1_59b`: to run speed benchmark for 59b message (as shown in paper)
+- `make m1_ghz`: to run speed benchmark and frequency of the CPU
+- `make m1`: to run default Falcon speed benchmark and my function benchmark
 
-- In FFT, Radix-4 can be applied to `FFT_log2` and `IFFT_log2` function. 
-- In NTT, Radix-4 can be applied to Forward and Inverse NTT. 
+To clean up, run `make clean`.
+Note: You may need `sudo` password to perform benchmark (cycle count in Apple M1 requires `sudo`). 
 
 
-Radix-4 NTT for Forward NTT:  a +- bw
+### Cortex-A72
 
-```c
-Radix-2:
+#### NEON
 
-- Layer 8:
-a_0' = a_0 + a_1*w_1 
-a_1' = a_0 - a_1*w_1 
+Go to `neon` folder, `make build` first, then run: 
 
-a_2' = a_2 + a_3*w_1 
-a_2' = a_2 - a_3*w_1 
+- `make a72_59b`: to run speed benchmark for 59b message (as shown in paper)
+- `make a72_ghz`: to run speed benchmark and frequency of the CPU
+- `make a72`: to run default Falcon speed benchmark and my function benchmark
+- `make a72_test`: to run default Falcon test vectors
+- `make kat`: to generate KAT file. 
 
-- Layer 7: 
-a_0'' = a_0' + a_2'*w_2
-a_2'' = a_0' - a_2'*w_2
+To clean up, run `make clean`.
 
-a_1'' = a_1' + a_3'*w_3
-a_3'' = a_1' - a_3'*w_3
+There is no need for `sudo`. 
 
-Expand: 
+#### REF
 
-a_0'' = a_0 + a_1*w_1 + (a_2 + a_3*w_1)*w_2 = a_0 + a_1*w_1 + (a_2*w_2 + a_3*w_3)
-a_2'' = a_0 + a_1*w_1 - (a_2 + a_3*w_1)*w_2 = a_0 + a_1*w_1 - (a_2*w_2 + a_3*w_3)
+Go to `ref-avx` (reference implementation of Falcon), then run:
 
-a_1'' = a_0 - a_1*w_1 + (a_2 - a_3*w_1)*w_3 = a_0 - a_1*w_1 + (a_2*w_3 - a_3*w_4)
-a_3'' = a_0 - a_1*w_1 - (a_2 - a_3*w_1)*w_3 = a_0 - a_1*w_1 - (a_2*w_3 - a_3*w_4)
+- `make a72_59b`: to run speed benchmark for 59b message (as shown in paper)
+- `make a72_ghz`: to run speed benchmark and frequency of the CPU
+- `make a72`: to run default Falcon speed benchmark and my function benchmark
 
-The equation above is Radix-4. 
+There is no need for `sudo`. 
 
-We can group pattern of operation base on index like this: 
 
-0: (+, +, +)
-2: (+, -, -)
-1: (-, +, -)
-3: (-, -, +)
+## Compressed Twiddle Factor Implementation
 
-Similarly for other indcies (distance of 4): 
-
-0, 4, 8, 12, 16, 20, 24, 28: (+, +, +)
-
-so on ... 
-
-
-Recall Barrett reduction: 
-
-a*w % N = a*w - N*[ (a * [wR/N]) / R ]
-
-where [wR/N] are precomputed, and with R= 2^16 the multiplication use multiply return high-only.
-
-Since a % N + b % N = (a + b) % N. So we expand the Barrett reduction above to 2 elements: 
-
-(a*w_1 + b*w_2) % N = (a*w_1 + b*w_2) - N*[ ( (a * [w_1*R/N]) + (b * w_2*R/N) ) / R ]
-
-Expand to 4 elements, then we have: 
-
-a_0 + a_1 * w_1 + a_2*w_2 + a_3*w_3 % N 
-
-can be implement using 7 MUL instructions: 
-
-z1 = mla(a_0, a_1, w_1)     (a0 + a1*w1)
-z2 = mla(z1, a_2, w_2)      (a0 + a1*w1 + a2*w2)
-z3 = mla(z2, a_3, w_3)      (a0 + a1*w1 + a2*w2 + a3*w3)
-
-t1 = sqrdmulh(a_1, w_1*R/N)           (a1 * [w1*R/N])/R
-t2 = sqrdmlah(t1, a_2, w_2*R/N)       (a1 * [w1*R/N] + a2 * [w2*R/N])/R
-t3 = sqrdmlah(t2, a_3, w_3*R/N)       (a1 * [w1*R/N] + a2 * [w2*R/N] + a3 * [w3*R/N])/R
-
-z = vmls(z3, t3, N) 
-
-```
-
-
-Compare `Radix-4` versus `2 x Radix-2`: 
-
-| Radix-4 | 2 x Radix-2 
---- | --- | 
-| 7 MUL   | 6 MUL + 4 ADD 
-
-Less number of additions and reduce to N. This lead to fewer Barrett points reduction.  This is roughly optimal case. 
-
----------
-
-Generalize this to other indexes: 
-```
-0, 4, 8,  12, 16, 20, 24, 28: (+, +, +)  -- Done
-1, 5, 9,  13, 17, 21, 25, 29: (+, -, -)
-2, 6, 10, 14, 18, 22, 26, 30: (-, +, -)
-3, 7, 11, 15, 19, 23, 27, 31: (-, -, +)
-```
----------
-In the case of (+, +, +): 
-
-- a_0 + a_1 * w_1 + a_2*w_2 + a_3*w_3 % N 
-
-In the case of (+, -, -):
-
-- a_0 + a_1 * w_1 - a_2*w_2 - a_3*w_3 % N 
-
-We can generate the assembly like this for the pair (+, +, +) and (+, -, -) since they have `w_2` and `w_3` in common: 
-```c
-
-z1 = mul(a_1, w_1)           (a1*w1)
-z2 = mul(a_2, w_2)
-z3 = mla(z2, a_3, w_3)       (a2*w2 + a3*w3)
-
-t1 = sqrdmulh(a_1, w_1*R/N)  (a1 * [w1R/N])/R
-t2 = sqrdmulh(a_2, w_2*R/N)
-t3 = sqrdmlah(a_3, w_3*R/N)  (a2 * [w2R/N] + a3 * [w3R/N])/R
-
-
-(+, +, +) = mls( (a0 + z1) + z3, t1 + t3, N)
-(+, -, -) = mls( (a0 + z1) - z3, t1 - t3, N)
-```
-
-Total of MULs: `8`
-
-Total of ADDs: `5`
-
-=> Total cost: `8` MULs + `5` ADDs
-
--------
-
-In the case of (-, +, -):
-
-- a_0 - a_1 * w_1 + a_2*w_3 - a_3*w_4 % N 
-
-In the case of (-, -, +):
-
-- a_0 - a_1 * w_1 - a_2*w_3 + a_3*w_4 % N 
-
-We can generate the assembly like this for the pair (-, +, -) and (-, -, +) since they have `w_3` and `w_4` in common:
-
-```c
-
-z2 = mul(a_2, w_3)
-z3 = mls(z2, a_3, w_4)       (a2*w3 - a3*w4)
-
-t2 = sqrdmulh(a_2, w_3*R/N)
-t3 = sqrdmlsh(a_3, w_4*R/N)  (a2 * [w3R/N] - a3 * [w4R/N])/R
-
-We reuse z1 and t1 in the first pair.
-
-(-, +, -) = mls(a0 - z1 + z3, t1 + t3, N)
-(-, -, +) = mls(a0 - z1 - z3, t1 - t3, N)
-```
-
-Total of MULs: `6`
-
-Total of ADDs: `5`
-
-=> Total costs: `6` MULs + `5` ADDs
-
-Overall total costs: `14` MULs + `10` ADDs
-
-Compare with current Radix-2 for 2 layers of NTT. Beware that after 2 layers of Radix-2 NTT, we have to spend 3 MULs for Barrett reduction: 
-
-| OPs | Radix-4 | 2 x Radix-2 | 2 x Radix-2 + Barrett
---- | --- | --- | ---
-| MULs | 14 = 8 + 6     | 12 = 3 x 4 | 24 = 3 x 4 + 3 x 4
-| ADDs | 10 = 5 + 5     | 8 = 2 x 4 |  8 = 2 x 4
-
-We save 24/14 = 170% number of `MUL instructions`
-
-I think this doesn't work out for GS butterfly. 
-
-
+See `small-fft-ref` folder for my compressed FFT roots in  `C` code. 
 
