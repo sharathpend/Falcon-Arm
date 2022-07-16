@@ -13,6 +13,19 @@ which are the benchmarked results for AVX (Intel chip), Apple M1, Cortex-A72.
 Feel free to reproduce results. 
 Steps are described below. 
 
+### Intel i7 1165G
+
+#### AVX2 
+
+Go to `ref-avx` (reference implementation of Falcon), then run:
+
+- `make avx_59b`: to run speed benchmark for 59b message (as shown in paper)
+- `make avx_ghz`: to run speed benchmark and frequency of the CPU
+- `make avx`: to run default Falcon speed benchmark and my function benchmark
+
+There is no need for `sudo`. 
+
+
 ### Apple M1
 
 #### NEON 
