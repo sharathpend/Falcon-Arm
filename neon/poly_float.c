@@ -1116,8 +1116,8 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
             m.val[0] = vdivq_f64(vdupq_n_f64(1.0), m.val[0]);
 
             m.val[1] = vmulq_f64(g00_re.val[1], g00_re.val[1]);
-            m.val[1] = vdivq_f64(vdupq_n_f64(1.0), m.val[1]);
             m.val[1] = vfmaq_f64(m.val[1], g00_im.val[1], g00_im.val[1]);
+            m.val[1] = vdivq_f64(vdupq_n_f64(1.0), m.val[1]);
             
             m.val[2] = vmulq_f64(g00_re.val[2], g00_re.val[2]);
             m.val[2] = vfmaq_f64(m.val[2], g00_im.val[2], g00_im.val[2]);
