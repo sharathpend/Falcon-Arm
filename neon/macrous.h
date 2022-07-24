@@ -80,16 +80,16 @@
 #define gsbf_br(a, b, zl, zh, QMVQ, t) \
     t = vsubq_s16(a, b);               \
     a = vaddq_s16(a, b);               \
-    b = vmulq_s16(t, zl);              \
-    t = vqrdmulhq_s16(t, zh);          \
-    b = vmlsq_laneq_s16(b, t, QMVQ, 0);
+    b = vqrdmulhq_s16(t, zh);          \
+    t = vmulq_s16(t, zl);              \
+    b = vmlsq_laneq_s16(t, b, QMVQ, 0);
 
 #define gsbf_bri(a, b, zl, zh, i, QMVQ, t) \
     t = vsubq_s16(a, b);                   \
     a = vaddq_s16(a, b);                   \
-    b = vmulq_laneq_s16(t, zl, i);         \
-    t = vqrdmulhq_laneq_s16(t, zh, i);     \
-    b = vmlsq_laneq_s16(b, t, QMVQ, 0);
+    b = vqrdmulhq_laneq_s16(t, zh, i);     \
+    t = vmulq_laneq_s16(t, zl, i);         \
+    b = vmlsq_laneq_s16(t, b, QMVQ, 0);
 
 #define gsbf_bri_x4(a, b, zl, zh, i0, i1, i2, i3, QMVQ, t)   \
     t.val[0] = vsubq_s16(a.val[0], b.val[0]);                \
@@ -100,18 +100,18 @@
     a.val[1] = vaddq_s16(a.val[1], b.val[1]);                \
     a.val[2] = vaddq_s16(a.val[2], b.val[2]);                \
     a.val[3] = vaddq_s16(a.val[3], b.val[3]);                \
-    b.val[0] = vmulq_laneq_s16(t.val[0], zl, i0);            \
-    t.val[0] = vqrdmulhq_laneq_s16(t.val[0], zh, i0);        \
-    b.val[1] = vmulq_laneq_s16(t.val[1], zl, i1);            \
-    t.val[1] = vqrdmulhq_laneq_s16(t.val[1], zh, i1);        \
-    b.val[2] = vmulq_laneq_s16(t.val[2], zl, i2);            \
-    t.val[2] = vqrdmulhq_laneq_s16(t.val[2], zh, i2);        \
-    b.val[3] = vmulq_laneq_s16(t.val[3], zl, i3);            \
-    t.val[3] = vqrdmulhq_laneq_s16(t.val[3], zh, i3);        \
-    b.val[0] = vmlsq_laneq_s16(b.val[0], t.val[0], QMVQ, 0); \
-    b.val[1] = vmlsq_laneq_s16(b.val[1], t.val[1], QMVQ, 0); \
-    b.val[2] = vmlsq_laneq_s16(b.val[2], t.val[2], QMVQ, 0); \
-    b.val[3] = vmlsq_laneq_s16(b.val[3], t.val[3], QMVQ, 0);
+    b.val[0] = vqrdmulhq_laneq_s16(t.val[0], zh, i0);        \
+    b.val[1] = vqrdmulhq_laneq_s16(t.val[1], zh, i1);        \
+    b.val[2] = vqrdmulhq_laneq_s16(t.val[2], zh, i2);        \
+    b.val[3] = vqrdmulhq_laneq_s16(t.val[3], zh, i3);        \
+    t.val[0] = vmulq_laneq_s16(t.val[0], zl, i0);            \
+    b.val[0] = vmlsq_laneq_s16(t.val[0], b.val[0], QMVQ, 0); \
+    t.val[1] = vmulq_laneq_s16(t.val[1], zl, i1);            \
+    b.val[1] = vmlsq_laneq_s16(t.val[1], b.val[1], QMVQ, 0); \
+    t.val[2] = vmulq_laneq_s16(t.val[2], zl, i2);            \
+    b.val[2] = vmlsq_laneq_s16(t.val[2], b.val[2], QMVQ, 0); \
+    t.val[3] = vmulq_laneq_s16(t.val[3], zl, i3);            \
+    b.val[3] = vmlsq_laneq_s16(t.val[3], b.val[3], QMVQ, 0);
 
 #define gsbf_top_x4(a, b, t)                  \
     t.val[0] = vsubq_s16(a.val[0], b.val[0]); \
@@ -124,127 +124,127 @@
     a.val[3] = vaddq_s16(a.val[3], b.val[3]);
 
 #define gsbf_bri_bot_x4(b, zl, zh, i0, i1, i2, i3, QMVQ, t)  \
-    b.val[0] = vmulq_laneq_s16(t.val[0], zl, i0);            \
-    t.val[0] = vqrdmulhq_laneq_s16(t.val[0], zh, i0);        \
-    b.val[1] = vmulq_laneq_s16(t.val[1], zl, i1);            \
-    t.val[1] = vqrdmulhq_laneq_s16(t.val[1], zh, i1);        \
-    b.val[2] = vmulq_laneq_s16(t.val[2], zl, i2);            \
-    t.val[2] = vqrdmulhq_laneq_s16(t.val[2], zh, i2);        \
-    b.val[3] = vmulq_laneq_s16(t.val[3], zl, i3);            \
-    t.val[3] = vqrdmulhq_laneq_s16(t.val[3], zh, i3);        \
-    b.val[0] = vmlsq_laneq_s16(b.val[0], t.val[0], QMVQ, 0); \
-    b.val[1] = vmlsq_laneq_s16(b.val[1], t.val[1], QMVQ, 0); \
-    b.val[2] = vmlsq_laneq_s16(b.val[2], t.val[2], QMVQ, 0); \
-    b.val[3] = vmlsq_laneq_s16(b.val[3], t.val[3], QMVQ, 0);
+    b.val[0] = vqrdmulhq_laneq_s16(t.val[0], zh, i0);        \
+    b.val[1] = vqrdmulhq_laneq_s16(t.val[1], zh, i1);        \
+    b.val[2] = vqrdmulhq_laneq_s16(t.val[2], zh, i2);        \
+    b.val[3] = vqrdmulhq_laneq_s16(t.val[3], zh, i3);        \
+    t.val[0] = vmulq_laneq_s16(t.val[0], zl, i0);            \
+    b.val[0] = vmlsq_laneq_s16(t.val[0], b.val[0], QMVQ, 0); \
+    t.val[1] = vmulq_laneq_s16(t.val[1], zl, i1);            \
+    b.val[1] = vmlsq_laneq_s16(t.val[1], b.val[1], QMVQ, 0); \
+    t.val[2] = vmulq_laneq_s16(t.val[2], zl, i2);            \
+    b.val[2] = vmlsq_laneq_s16(t.val[2], b.val[2], QMVQ, 0); \
+    t.val[3] = vmulq_laneq_s16(t.val[3], zl, i3);            \
+    b.val[3] = vmlsq_laneq_s16(t.val[3], b.val[3], QMVQ, 0);
 
 #define gsbf_top(a, b, t) \
     t = vsubq_s16(a, b);  \
     a = vaddq_s16(a, b);
 
 #define gsbf_bri_bot(b, zl, zh, i, QMVQ, t) \
-    b = vmulq_laneq_s16(t, zl, i);          \
-    t = vqrdmulhq_laneq_s16(t, zh, i);      \
-    b = vmlsq_laneq_s16(b, t, QMVQ, 0);
+    b = vqrdmulhq_laneq_s16(t, zh, i);      \
+    t = vmulq_laneq_s16(t, zl, i);          \
+    b = vmlsq_laneq_s16(t, b, QMVQ, 0);
 
 #define gsbf_br_bot(b, zl, zh, QMVQ, t) \
-    b = vmulq_s16(t, zl);               \
-    t = vqrdmulhq_s16(t, zh);           \
-    b = vmlsq_laneq_s16(b, t, QMVQ, 0);
+    b = vqrdmulhq_s16(t, zh);           \
+    t = vmulq_s16(t, zl);               \
+    b = vmlsq_laneq_s16(t, b, QMVQ, 0);
 /*
  * Barrett multiplication via *Rounding* use for Inverse NTT
  * Input: a, b, zl, zh, Q. a in [-R, R]
  * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
  */
 #define barmul_invntt(a, zl, zh, i, QMVQ, t) \
-    t = vmulq_laneq_s16(a, zl, i);           \
-    a = vqrdmulhq_laneq_s16(a, zh, i);       \
-    a = vmlsq_laneq_s16(t, a, QMVQ, 0);
+    t = vqrdmulhq_laneq_s16(a, zh, i);       \
+    a = vmulq_laneq_s16(a, zl, i);           \
+    a = vmlsq_laneq_s16(a, t, QMVQ, 0);
 
 #define barmul_invntt_x2(a, zl, zh, i, QMVQ, t)              \
-    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);             \
-    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);         \
-    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);             \
-    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);         \
-    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVQ, 0); \
-    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVQ, 0);
+    t.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);         \
+    t.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);         \
+    a.val[0] = vmulq_laneq_s16(a.val[0], zl, i);             \
+    a.val[0] = vmlsq_laneq_s16(a.val[0], t.val[0], QMVQ, 0); \
+    a.val[1] = vmulq_laneq_s16(a.val[1], zl, i);             \
+    a.val[1] = vmlsq_laneq_s16(a.val[1], t.val[1], QMVQ, 0);
 
 #define barmul_invntt_x4(a, zl, zh, i, QMVQ, t)              \
-    t.val[0] = vmulq_laneq_s16(a.val[0], zl, i);             \
-    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);         \
-    t.val[1] = vmulq_laneq_s16(a.val[1], zl, i);             \
-    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);         \
-    t.val[2] = vmulq_laneq_s16(a.val[2], zl, i);             \
-    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], zh, i);         \
-    t.val[3] = vmulq_laneq_s16(a.val[3], zl, i);             \
-    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], zh, i);         \
-    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVQ, 0); \
-    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVQ, 0); \
-    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVQ, 0); \
-    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVQ, 0);
+    t.val[0] = vqrdmulhq_laneq_s16(a.val[0], zh, i);         \
+    t.val[1] = vqrdmulhq_laneq_s16(a.val[1], zh, i);         \
+    t.val[2] = vqrdmulhq_laneq_s16(a.val[2], zh, i);         \
+    t.val[3] = vqrdmulhq_laneq_s16(a.val[3], zh, i);         \
+    a.val[0] = vmulq_laneq_s16(a.val[0], zl, i);             \
+    a.val[0] = vmlsq_laneq_s16(a.val[0], t.val[0], QMVQ, 0); \
+    a.val[1] = vmulq_laneq_s16(a.val[1], zl, i);             \
+    a.val[1] = vmlsq_laneq_s16(a.val[1], t.val[1], QMVQ, 0); \
+    a.val[2] = vmulq_laneq_s16(a.val[2], zl, i);             \
+    a.val[2] = vmlsq_laneq_s16(a.val[2], t.val[2], QMVQ, 0); \
+    a.val[3] = vmulq_laneq_s16(a.val[3], zl, i);             \
+    a.val[3] = vmlsq_laneq_s16(a.val[3], t.val[3], QMVQ, 0);
 
 /*
  * Convert coefficients to Montgomery domain
  */
 #define barmuli_mont(a, QMVM, t)         \
-    t = vmulq_laneq_s16(a, QMVM, 2);     \
-    a = vqrdmulhq_laneq_s16(a, QMVM, 6); \
-    a = vmlsq_laneq_s16(t, a, QMVM, 0);
+    t = vqrdmulhq_laneq_s16(a, QMVM, 6); \
+    a = vmulq_laneq_s16(a, QMVM, 2);     \
+    a = vmlsq_laneq_s16(a, t, QMVM, 0);
 
 #define barmuli_mont_x8(a, b, QMVM, t, t2)                    \
-    t.val[0] = vmulq_laneq_s16(a.val[0], QMVM, 2);            \
-    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 6);        \
-    t.val[1] = vmulq_laneq_s16(a.val[1], QMVM, 2);            \
-    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 6);        \
-    t.val[2] = vmulq_laneq_s16(a.val[2], QMVM, 2);            \
-    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 6);        \
-    t.val[3] = vmulq_laneq_s16(a.val[3], QMVM, 2);            \
-    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 6);        \
-    t2.val[0] = vmulq_laneq_s16(b.val[0], QMVM, 2);           \
-    b.val[0] = vqrdmulhq_laneq_s16(b.val[0], QMVM, 6);        \
-    t2.val[1] = vmulq_laneq_s16(b.val[1], QMVM, 2);           \
-    b.val[1] = vqrdmulhq_laneq_s16(b.val[1], QMVM, 6);        \
-    t2.val[2] = vmulq_laneq_s16(b.val[2], QMVM, 2);           \
-    b.val[2] = vqrdmulhq_laneq_s16(b.val[2], QMVM, 6);        \
-    t2.val[3] = vmulq_laneq_s16(b.val[3], QMVM, 2);           \
-    b.val[3] = vqrdmulhq_laneq_s16(b.val[3], QMVM, 6);        \
-    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVM, 0);  \
-    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVM, 0);  \
-    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVM, 0);  \
-    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVM, 0);  \
-    b.val[0] = vmlsq_laneq_s16(t2.val[0], b.val[0], QMVM, 0); \
-    b.val[1] = vmlsq_laneq_s16(t2.val[1], b.val[1], QMVM, 0); \
-    b.val[2] = vmlsq_laneq_s16(t2.val[2], b.val[2], QMVM, 0); \
-    b.val[3] = vmlsq_laneq_s16(t2.val[3], b.val[3], QMVM, 0);
+    t.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 6);        \
+    t.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 6);        \
+    t.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 6);        \
+    t.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 6);        \
+    t2.val[0] = vqrdmulhq_laneq_s16(b.val[0], QMVM, 6);       \
+    t2.val[1] = vqrdmulhq_laneq_s16(b.val[1], QMVM, 6);       \
+    t2.val[2] = vqrdmulhq_laneq_s16(b.val[2], QMVM, 6);       \
+    t2.val[3] = vqrdmulhq_laneq_s16(b.val[3], QMVM, 6);       \
+    a.val[0] = vmulq_laneq_s16(a.val[0], QMVM, 2);            \
+    a.val[0] = vmlsq_laneq_s16(a.val[0], t.val[0], QMVM, 0);  \
+    a.val[1] = vmulq_laneq_s16(a.val[1], QMVM, 2);            \
+    a.val[1] = vmlsq_laneq_s16(a.val[1], t.val[1], QMVM, 0);  \
+    a.val[2] = vmulq_laneq_s16(a.val[2], QMVM, 2);            \
+    a.val[2] = vmlsq_laneq_s16(a.val[2], t.val[2], QMVM, 0);  \
+    a.val[3] = vmulq_laneq_s16(a.val[3], QMVM, 2);            \
+    a.val[3] = vmlsq_laneq_s16(a.val[3], t.val[3], QMVM, 0);  \
+    b.val[0] = vmulq_laneq_s16(b.val[0], QMVM, 2);            \
+    b.val[0] = vmlsq_laneq_s16(b.val[0], t2.val[0], QMVM, 0); \
+    b.val[1] = vmulq_laneq_s16(b.val[1], QMVM, 2);            \
+    b.val[1] = vmlsq_laneq_s16(b.val[1], t2.val[1], QMVM, 0); \
+    b.val[2] = vmulq_laneq_s16(b.val[2], QMVM, 2);            \
+    b.val[2] = vmlsq_laneq_s16(b.val[2], t2.val[2], QMVM, 0); \
+    b.val[3] = vmulq_laneq_s16(b.val[3], QMVM, 2);            \
+    b.val[3] = vmlsq_laneq_s16(b.val[3], t2.val[3], QMVM, 0);
 
 /*
  * Convert coefficients to Montgomery domain and embeded n^-1
  */
 
 #define barmuli_mont_ninv_x8(a, b, QMVM, t, t2)               \
-    t.val[0] = vshlq_n_s16(a.val[0], FALCON_LOG2_NINV_MONT);  \
-    a.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 7);        \
-    t.val[1] = vshlq_n_s16(a.val[1], FALCON_LOG2_NINV_MONT);  \
-    a.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 7);        \
-    t.val[2] = vshlq_n_s16(a.val[2], FALCON_LOG2_NINV_MONT);  \
-    a.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 7);        \
-    t.val[3] = vshlq_n_s16(a.val[3], FALCON_LOG2_NINV_MONT);  \
-    a.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 7);        \
-    t2.val[0] = vshlq_n_s16(b.val[0], FALCON_LOG2_NINV_MONT); \
-    b.val[0] = vqrdmulhq_laneq_s16(b.val[0], QMVM, 7);        \
-    t2.val[1] = vshlq_n_s16(b.val[1], FALCON_LOG2_NINV_MONT); \
-    b.val[1] = vqrdmulhq_laneq_s16(b.val[1], QMVM, 7);        \
-    t2.val[2] = vshlq_n_s16(b.val[2], FALCON_LOG2_NINV_MONT); \
-    b.val[2] = vqrdmulhq_laneq_s16(b.val[2], QMVM, 7);        \
-    t2.val[3] = vshlq_n_s16(b.val[3], FALCON_LOG2_NINV_MONT); \
-    b.val[3] = vqrdmulhq_laneq_s16(b.val[3], QMVM, 7);        \
-    a.val[0] = vmlsq_laneq_s16(t.val[0], a.val[0], QMVM, 0);  \
-    a.val[1] = vmlsq_laneq_s16(t.val[1], a.val[1], QMVM, 0);  \
-    a.val[2] = vmlsq_laneq_s16(t.val[2], a.val[2], QMVM, 0);  \
-    a.val[3] = vmlsq_laneq_s16(t.val[3], a.val[3], QMVM, 0);  \
-    b.val[0] = vmlsq_laneq_s16(t2.val[0], b.val[0], QMVM, 0); \
-    b.val[1] = vmlsq_laneq_s16(t2.val[1], b.val[1], QMVM, 0); \
-    b.val[2] = vmlsq_laneq_s16(t2.val[2], b.val[2], QMVM, 0); \
-    b.val[3] = vmlsq_laneq_s16(t2.val[3], b.val[3], QMVM, 0);
+    t.val[0] = vqrdmulhq_laneq_s16(a.val[0], QMVM, 7);        \
+    t.val[1] = vqrdmulhq_laneq_s16(a.val[1], QMVM, 7);        \
+    t.val[2] = vqrdmulhq_laneq_s16(a.val[2], QMVM, 7);        \
+    t.val[3] = vqrdmulhq_laneq_s16(a.val[3], QMVM, 7);        \
+    t2.val[0] = vqrdmulhq_laneq_s16(b.val[0], QMVM, 7);       \
+    t2.val[1] = vqrdmulhq_laneq_s16(b.val[1], QMVM, 7);       \
+    t2.val[2] = vqrdmulhq_laneq_s16(b.val[2], QMVM, 7);       \
+    t2.val[3] = vqrdmulhq_laneq_s16(b.val[3], QMVM, 7);       \
+    a.val[0] = vshlq_n_s16(a.val[0], FALCON_LOG2_NINV_MONT);  \
+    a.val[0] = vmlsq_laneq_s16(a.val[0], t.val[0], QMVM, 0);  \
+    a.val[1] = vshlq_n_s16(a.val[1], FALCON_LOG2_NINV_MONT);  \
+    a.val[1] = vmlsq_laneq_s16(a.val[1], t.val[1], QMVM, 0);  \
+    a.val[2] = vshlq_n_s16(a.val[2], FALCON_LOG2_NINV_MONT);  \
+    a.val[2] = vmlsq_laneq_s16(a.val[2], t.val[2], QMVM, 0);  \
+    a.val[3] = vshlq_n_s16(a.val[3], FALCON_LOG2_NINV_MONT);  \
+    a.val[3] = vmlsq_laneq_s16(a.val[3], t.val[3], QMVM, 0);  \
+    b.val[0] = vshlq_n_s16(b.val[0], FALCON_LOG2_NINV_MONT);  \
+    b.val[0] = vmlsq_laneq_s16(b.val[0], t2.val[0], QMVM, 0); \
+    b.val[1] = vshlq_n_s16(b.val[1], FALCON_LOG2_NINV_MONT);  \
+    b.val[1] = vmlsq_laneq_s16(b.val[1], t2.val[1], QMVM, 0); \
+    b.val[2] = vshlq_n_s16(b.val[2], FALCON_LOG2_NINV_MONT);  \
+    b.val[2] = vmlsq_laneq_s16(b.val[2], t2.val[2], QMVM, 0); \
+    b.val[3] = vshlq_n_s16(b.val[3], FALCON_LOG2_NINV_MONT);  \
+    b.val[3] = vmlsq_laneq_s16(b.val[3], t2.val[3], QMVM, 0);
 
 /*
  * CT Butterfly with Barrett *Rounding* reduction
@@ -252,46 +252,46 @@
  * Output: c = a * b % Q. c in [-3Q/2, 3Q/2]
  */
 #define ctbf_br(a, b, zl, zh, QMVQ, t)  \
-    t = vmulq_s16(b, zl);               \
-    b = vqrdmulhq_s16(b, zh);           \
-    t = vmlsq_laneq_s16(t, b, QMVQ, 0); \
+    t = vqrdmulhq_s16(b, zh);           \
+    b = vmulq_s16(b, zl);               \
+    t = vmlsq_laneq_s16(b, t, QMVQ, 0); \
     b = vsubq_s16(a, t);                \
     a = vaddq_s16(a, t);
 
 #define ctbf_bri(a, b, zl, zh, i, QMVQ, t) \
-    t = vmulq_laneq_s16(b, zl, i);         \
-    b = vqrdmulhq_laneq_s16(b, zh, i);     \
-    t = vmlsq_laneq_s16(t, b, QMVQ, 0);    \
+    t = vqrdmulhq_laneq_s16(b, zh, i);     \
+    b = vmulq_laneq_s16(b, zl, i);         \
+    t = vmlsq_laneq_s16(b, t, QMVQ, 0);    \
     b = vsubq_s16(a, t);                   \
     a = vaddq_s16(a, t);
 
 #define ctbf_br_top(b, zl, zh, QMVQ, t) \
-    t = vmulq_s16(b, zl);               \
-    b = vqrdmulhq_s16(b, zh);           \
-    t = vmlsq_laneq_s16(t, b, QMVQ, 0);
+    t = vqrdmulhq_s16(b, zh);           \
+    b = vmulq_s16(b, zl);               \
+    t = vmlsq_laneq_s16(b, t, QMVQ, 0);
 
 #define ctbf_bri_top(b, zl, zh, i, QMVQ, t) \
-    t = vmulq_laneq_s16(b, zl, i);          \
-    b = vqrdmulhq_laneq_s16(b, zh, i);      \
-    t = vmlsq_laneq_s16(t, b, QMVQ, 0);
+    t = vqrdmulhq_laneq_s16(b, zh, i);      \
+    b = vmulq_laneq_s16(b, zl, i);          \
+    t = vmlsq_laneq_s16(b, t, QMVQ, 0);
 
 #define ctbf_bot(a, b, t) \
     b = vsubq_s16(a, t);  \
     a = vaddq_s16(a, t);
 
 #define ctbf_bri_top_x4(b, zl, zh, i0, i1, i2, i3, QMVQ, t)  \
-    t.val[0] = vmulq_laneq_s16(b.val[0], zl, i0);            \
-    b.val[0] = vqrdmulhq_laneq_s16(b.val[0], zh, i0);        \
-    t.val[1] = vmulq_laneq_s16(b.val[1], zl, i1);            \
-    b.val[1] = vqrdmulhq_laneq_s16(b.val[1], zh, i1);        \
-    t.val[2] = vmulq_laneq_s16(b.val[2], zl, i2);            \
-    b.val[2] = vqrdmulhq_laneq_s16(b.val[2], zh, i2);        \
-    t.val[3] = vmulq_laneq_s16(b.val[3], zl, i3);            \
-    b.val[3] = vqrdmulhq_laneq_s16(b.val[3], zh, i3);        \
-    t.val[0] = vmlsq_laneq_s16(t.val[0], b.val[0], QMVQ, 0); \
-    t.val[1] = vmlsq_laneq_s16(t.val[1], b.val[1], QMVQ, 0); \
-    t.val[2] = vmlsq_laneq_s16(t.val[2], b.val[2], QMVQ, 0); \
-    t.val[3] = vmlsq_laneq_s16(t.val[3], b.val[3], QMVQ, 0);
+    t.val[0] = vqrdmulhq_laneq_s16(b.val[0], zh, i0);        \
+    t.val[1] = vqrdmulhq_laneq_s16(b.val[1], zh, i1);        \
+    t.val[2] = vqrdmulhq_laneq_s16(b.val[2], zh, i2);        \
+    t.val[3] = vqrdmulhq_laneq_s16(b.val[3], zh, i3);        \
+    b.val[0] = vmulq_laneq_s16(b.val[0], zl, i0);            \
+    t.val[0] = vmlsq_laneq_s16(b.val[0], t.val[0], QMVQ, 0); \
+    b.val[1] = vmulq_laneq_s16(b.val[1], zl, i1);            \
+    t.val[1] = vmlsq_laneq_s16(b.val[1], t.val[1], QMVQ, 0); \
+    b.val[2] = vmulq_laneq_s16(b.val[2], zl, i2);            \
+    t.val[2] = vmlsq_laneq_s16(b.val[2], t.val[2], QMVQ, 0); \
+    b.val[3] = vmulq_laneq_s16(b.val[3], zl, i3);            \
+    t.val[3] = vmlsq_laneq_s16(b.val[3], t.val[3], QMVQ, 0);
 
 #define ctbf_bot_x4(a, b, t)                  \
     b.val[0] = vsubq_s16(a.val[0], t.val[0]); \
@@ -304,18 +304,18 @@
     a.val[3] = vaddq_s16(a.val[3], t.val[3]);
 
 #define ctbf_bri_x4(a, b, zl, zh, i0, i1, i2, i3, QMVQ, t)   \
-    t.val[0] = vmulq_laneq_s16(b.val[0], zl, i0);            \
-    b.val[0] = vqrdmulhq_laneq_s16(b.val[0], zh, i0);        \
-    t.val[1] = vmulq_laneq_s16(b.val[1], zl, i1);            \
-    b.val[1] = vqrdmulhq_laneq_s16(b.val[1], zh, i1);        \
-    t.val[2] = vmulq_laneq_s16(b.val[2], zl, i2);            \
-    b.val[2] = vqrdmulhq_laneq_s16(b.val[2], zh, i2);        \
-    t.val[3] = vmulq_laneq_s16(b.val[3], zl, i3);            \
-    b.val[3] = vqrdmulhq_laneq_s16(b.val[3], zh, i3);        \
-    t.val[0] = vmlsq_laneq_s16(t.val[0], b.val[0], QMVQ, 0); \
-    t.val[1] = vmlsq_laneq_s16(t.val[1], b.val[1], QMVQ, 0); \
-    t.val[2] = vmlsq_laneq_s16(t.val[2], b.val[2], QMVQ, 0); \
-    t.val[3] = vmlsq_laneq_s16(t.val[3], b.val[3], QMVQ, 0); \
+    t.val[0] = vqrdmulhq_laneq_s16(b.val[0], zh, i0);        \
+    t.val[1] = vqrdmulhq_laneq_s16(b.val[1], zh, i1);        \
+    t.val[2] = vqrdmulhq_laneq_s16(b.val[2], zh, i2);        \
+    t.val[3] = vqrdmulhq_laneq_s16(b.val[3], zh, i3);        \
+    b.val[0] = vmulq_laneq_s16(b.val[0], zl, i0);            \
+    t.val[0] = vmlsq_laneq_s16(b.val[0], t.val[0], QMVQ, 0); \
+    b.val[1] = vmulq_laneq_s16(b.val[1], zl, i1);            \
+    t.val[1] = vmlsq_laneq_s16(b.val[1], t.val[1], QMVQ, 0); \
+    b.val[2] = vmulq_laneq_s16(b.val[2], zl, i2);            \
+    t.val[2] = vmlsq_laneq_s16(b.val[2], t.val[2], QMVQ, 0); \
+    b.val[3] = vmulq_laneq_s16(b.val[3], zl, i3);            \
+    t.val[3] = vmlsq_laneq_s16(b.val[3], t.val[3], QMVQ, 0); \
     b.val[0] = vsubq_s16(a.val[0], t.val[0]);                \
     b.val[1] = vsubq_s16(a.val[1], t.val[1]);                \
     b.val[2] = vsubq_s16(a.val[2], t.val[2]);                \
