@@ -205,7 +205,7 @@ int benchmark_59b_message(int iteration)
     avg_verify_time = sum(times, iteration);
 
     printf("| Median   | sign | verify |\n");
-    printf("|    | --:  | ---: |\n");
+    printf("|  --  | --:  | ---: |\n");
 
     scc = sign_cycle / 1000.0;
     vcc = verify_cycle / 1000.0;
@@ -220,7 +220,7 @@ int benchmark_59b_message(int iteration)
     printf("| Ghz| %8.2f | %8.2f |\n\n", scc, vcc);
 
     printf("| Average | sign | verify |\n");
-    printf("|    | --:  | ---: |\n");
+    printf("|  --  | --:  | ---: |\n");
 
     scc = ((double)avg_sign_cycle) / 1000.0 / iteration;
     vcc = ((double)avg_verify_cycle) / 1000.0 / iteration;
