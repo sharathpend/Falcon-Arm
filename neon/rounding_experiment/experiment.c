@@ -136,7 +136,7 @@ int main()
     uint64_t count = 0; 
     srand(0); 
 
-    for (int i = 0; i < TESTS; i++)
+    for (uint64_t i = 0; i < TESTS; i++)
     {
         ccs = (fpr)rand() / RAND_MAX;
         tmp = (fpr)rand() / RAND_MAX;
