@@ -163,11 +163,12 @@ fpr_expm_p63(const fpr x, const fpr ccs)
     // Convert to below code
 
     a1 = vmulq_f64(neon_exp0.val[1], neon_x2);
-    a2 = vmulq_f64(neon_exp0.val[3], neon_x2);
-    a3 = vmulq_f64(neon_exp1.val[1], neon_x2);
-
     y1 = vaddq_f64(neon_exp0.val[0], a1);
+
+    a2 = vmulq_f64(neon_exp0.val[3], neon_x2);
     y2 = vaddq_f64(neon_exp0.val[2], a2);
+    
+    a3 = vmulq_f64(neon_exp1.val[1], neon_x2);
     y3 = vaddq_f64(neon_exp1.val[0], a3);
     // End conversion
 
@@ -180,11 +181,12 @@ fpr_expm_p63(const fpr x, const fpr ccs)
     // y = vfmaq_f64(y, neon_exp1.val[2], neon_x12);
     // Convert to below code
     a1 = vmulq_f64(y2, neon_x4);
-    a2 = vmulq_f64(y3, neon_x8);
-    a3 = vmulq_f64(neon_exp1.val[2], neon_x12);
-
     y = vaddq_f64(y1, a1);
+    
+    a2 = vmulq_f64(y3, neon_x8);
     y = vaddq_f64(y, a2);
+    
+    a3 = vmulq_f64(neon_exp1.val[2], neon_x12);
     y = vaddq_f64(y, a3);
     // End conversion
 
