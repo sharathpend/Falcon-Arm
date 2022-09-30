@@ -22,6 +22,37 @@ static const double C_expm[] = {
     0.000000000000000000000000000000,
 };
 
+/* 
+ * Output assembly: via radare2
+┌ 108: sym._fpr_expm_p63_fmla ();
+│           0x100003dfc      a8070010       adr x8, sym._C_expm        ; 0x100003ef0
+│           0x100003e00      1f2003d5       nop
+│           0x100003e04      022ddf4c       ld1 {v2.2d, v3.2d, v4.2d, v5.2d}, [x8], 0x40
+│           0x100003e08      106d404c       ld1 {v16.2d, v17.2d, v18.2d}, [x8]
+│           0x100003e0c      087ce8d2       movz x8, 0x43e0, lsl 48
+│           0x100003e10      0601679e       fmov d6, x8
+│           0x100003e14      2108661e       fmul d1, d1, d6
+│           0x100003e18      06f6036f       fmov v6.2d, 1.00000000
+│           0x100003e1c      0604186e       ins v6.d[1], v0.d[0]
+│           0x100003e20      0008601e       fmul d0, d0, d0
+│           0x100003e24      0708601e       fmul d7, d0, d0
+│           0x100003e28      f304084e       dup v19.2d, v7.d[0]
+│           0x100003e2c      f408671e       fmul d20, d7, d7
+│           0x100003e30      7392d44f       fmul v19.2d, v19.2d, v20.d[0]
+│           0x100003e34      6210c04f       fmla v2.2d, v3.2d, v0.d[0]
+│           0x100003e38      a410c04f       fmla v4.2d, v5.2d, v0.d[0]
+│           0x100003e3c      3012c04f       fmla v16.2d, v17.2d, v0.d[0]
+│           0x100003e40      c0dc626e       fmul v0.2d, v6.2d, v2.2d
+│           0x100003e44      c2dc646e       fmul v2.2d, v6.2d, v4.2d
+│           0x100003e48      c3dc706e       fmul v3.2d, v6.2d, v16.2d
+│           0x100003e4c      4010c74f       fmla v0.2d, v2.2d, v7.d[0]
+│           0x100003e50      6010d44f       fmla v0.2d, v3.2d, v20.d[0]
+│           0x100003e54      60ce724e       fmla v0.2d, v19.2d, v18.2d
+│           0x100003e58      0090c14f       fmul v0.2d, v0.2d, v1.d[0]
+│           0x100003e5c      00d8707e       faddp d0, v0.2d
+│           0x100003e60      0000799e       fcvtzu x0, d0
+└           0x100003e64      c0035fd6       ret
+ */
 static uint64_t __attribute__((noinline)) 
 fpr_expm_p63_fmla(const fpr x, const fpr ccs)
 {
@@ -63,6 +94,43 @@ fpr_expm_p63_fmla(const fpr x, const fpr ccs)
     return (uint64_t) ret;
 }
 
+/* 
+ * Output assembly: via radare2
+┌ 132: sym._fpr_expm_p63 ();
+│           0x100003d78      c80b0010       adr x8, sym._C_expm        ; 0x100003ef0
+│           0x100003d7c      1f2003d5       nop
+│           0x100003d80      022ddf4c       ld1 {v2.2d, v3.2d, v4.2d, v5.2d}, [x8], 0x40
+│           0x100003d84      106d404c       ld1 {v16.2d, v17.2d, v18.2d}, [x8]
+│           0x100003d88      087ce8d2       movz x8, 0x43e0, lsl 48
+│           0x100003d8c      0601679e       fmov d6, x8
+│           0x100003d90      2108661e       fmul d1, d1, d6
+│           0x100003d94      06f6036f       fmov v6.2d, 1.00000000
+│           0x100003d98      0604186e       ins v6.d[1], v0.d[0]
+│           0x100003d9c      0008601e       fmul d0, d0, d0
+│           0x100003da0      0708601e       fmul d7, d0, d0
+│           0x100003da4      f304084e       dup v19.2d, v7.d[0]
+│           0x100003da8      f408671e       fmul d20, d7, d7
+│           0x100003dac      7392d44f       fmul v19.2d, v19.2d, v20.d[0]
+│           0x100003db0      7590c04f       fmul v21.2d, v3.2d, v0.d[0]
+│           0x100003db4      b690c04f       fmul v22.2d, v5.2d, v0.d[0]
+│           0x100003db8      2092c04f       fmul v0.2d, v17.2d, v0.d[0]
+│           0x100003dbc      55d4754e       fadd v21.2d, v2.2d, v21.2d
+│           0x100003dc0      82d4764e       fadd v2.2d, v4.2d, v22.2d
+│           0x100003dc4      00d6604e       fadd v0.2d, v16.2d, v0.2d
+│           0x100003dc8      c3dc756e       fmul v3.2d, v6.2d, v21.2d
+│           0x100003dcc      c2dc626e       fmul v2.2d, v6.2d, v2.2d
+│           0x100003dd0      c0dc606e       fmul v0.2d, v6.2d, v0.2d
+│           0x100003dd4      4290c74f       fmul v2.2d, v2.2d, v7.d[0]
+│           0x100003dd8      0090d44f       fmul v0.2d, v0.2d, v20.d[0]
+│           0x100003ddc      64de726e       fmul v4.2d, v19.2d, v18.2d
+│           0x100003de0      62d4624e       fadd v2.2d, v3.2d, v2.2d
+│           0x100003de4      40d4604e       fadd v0.2d, v2.2d, v0.2d
+│           0x100003de8      80d4604e       fadd v0.2d, v4.2d, v0.2d
+│           0x100003dec      0090c14f       fmul v0.2d, v0.2d, v1.d[0]
+│           0x100003df0      00d8707e       faddp d0, v0.2d
+│           0x100003df4      0000799e       fcvtzu x0, d0
+└           0x100003df8      c0035fd6       ret
+ */
 static uint64_t __attribute__((noinline)) 
 fpr_expm_p63(const fpr x, const fpr ccs)
 {
