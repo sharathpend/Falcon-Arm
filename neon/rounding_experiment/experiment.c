@@ -242,7 +242,7 @@ int main()
 /* 
 Input that show rounding differences between fmla and (fmul, fadd)
 
-- Apple M1
+- Apple M1, Cortex-A72 over the same input
 ccs: 0.2580461167
 tmp: 0.9669854429
   2: a, b: c8f12a7b6931c00 | c8f12a7b6931e00
