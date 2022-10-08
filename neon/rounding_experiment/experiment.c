@@ -1,6 +1,6 @@
 #include <arm_neon.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include "mtwister.h"
 
 typedef double fpr;
 
@@ -204,12 +204,13 @@ int main()
     fpr ccs, tmp;
     uint64_t a, b, diff;
     uint64_t count = 0; 
-    srand(0); 
+    
+    MTRand r = seedRand(0x123456);
 
     for (uint64_t i = 0; i < TESTS; i++)
     {
-        ccs = (fpr)rand() / RAND_MAX;
-        tmp = (fpr)rand() / RAND_MAX;
+        ccs = genRand(&r);
+        tmp = genRand(&r);
 
         a = fpr_expm_p63(tmp, ccs);
         b = fpr_expm_p63_fmla(tmp, ccs);
@@ -225,15 +226,15 @@ int main()
             {
                 printf("ccs: %.10f\n", ccs);
                 printf("tmp: %.10f\n", tmp);
-                printf("%3d: a, b: %8x | %8x\n", i, a, b);
-                printf("diff: %llu\n", diff);
+                printf("%3lu: a, b: %8lx | %8lx\n", i, a, b);
+                printf("diff: %lu\n", diff);
                 printf("=====\n");
             }
             count++;
         }
-        printf("%3d: %08x\n", i, a);
+        printf("%3lu: %08lx\n", i, a);
     }
-    printf("Total incorrect: %llu/%llu\n", count, TESTS);
+    printf("Total incorrect: %lu/%llu\n", count, TESTS);
 
     return 0;
 }
