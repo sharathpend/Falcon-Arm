@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -fomit-frame-pointer -W -Wall -O3 -Wextra -Wpedantic -Wshadow -Wundef
+CFLAGS = -fomit-frame-pointer -W -Wall -O1 -Wextra -Wpedantic -Wshadow -Wundef
 
 
 all: experiment

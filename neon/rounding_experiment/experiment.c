@@ -197,7 +197,7 @@ fpr_expm_p63(const fpr x, const fpr ccs)
 }
 
 #define TESTS 100ULL
-#define DEBUG 1
+#define DEBUG 0
 
 int main()
 {
@@ -225,13 +225,13 @@ int main()
             {
                 printf("ccs: %.10f\n", ccs);
                 printf("tmp: %.10f\n", tmp);
-                printf("a: %llu\n", a);
-                printf("b: %llu\n", b);
+                printf("%3d: a, b: %8x | %8x\n", i, a, b);
                 printf("diff: %llu\n", diff);
                 printf("=====\n");
             }
             count++;
         }
+        printf("%3d: %08x\n", i, a);
     }
     printf("Total incorrect: %llu/%llu\n", count, TESTS);
 
