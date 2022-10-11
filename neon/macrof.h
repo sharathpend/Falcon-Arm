@@ -70,7 +70,7 @@
 // c = -a
 #define vfneg(c, a) c = vnegq_f64(a);
 
-#define transpose(a, b, t, ia, ib, it)            \
+#define transpose_f64(a, b, t, ia, ib, it)        \
     t.val[it] = a.val[ia];                        \
     a.val[ia] = vzip1q_f64(a.val[ia], b.val[ib]); \
     b.val[ib] = vzip2q_f64(t.val[it], b.val[ib]);
@@ -119,13 +119,24 @@
     c = vmulq_laneq_f64(a, b, 0); \
     c = vcmlaq_rot270_f64(c, b, a);
 
+#if FMA == 1
 // d = c + a *b
-#define vfma(d, c, a, b) d = vfmaq_f64(c, a, b); // 7 cycles
+#define vfmla(d, c, a, b) d = vfmaq_f64(c, a, b);
 // d = c - a * b
-#define vfms(d, c, a, b) d = vfmsq_f64(c, a, b);
+#define vfmls(d, c, a, b) d = vfmsq_f64(c, a, b);
 // d = c + a * b[i]
-#define vfma_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
-// d = c - a * b[i]
-#define vfms_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
+#define vfmla_lane(d, c, a, b, i) d = vfmaq_laneq_f64(c, a, b, i);
+
+#else
+// d = c + a *b
+#define vfmla(d, c, a, b) d = vmlaq_f64(c, a, b);
+// d = c - a *b
+#define vfmls(d, c, a, b) d = vmlsq_f64(c, a, b);
+// d = c + a * b[i]
+#define vfmla_lane(d, c, a, b, i) \
+    d = vmulq_laneq_f64(a, b, i); \
+    d = vaddq_f64(c, d);
+
+#endif
 
 #endif

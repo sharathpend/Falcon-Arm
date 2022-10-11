@@ -490,20 +490,20 @@ void ZfN(FFT_log5)(fpr *f, const unsigned logn)
         (  10,   26) = (  10,   26) + j@
         (  14,   30) = (  14,   30) + j@
         
-        before transpose
+        before transpose_f64
         x_re: 0, 1 |  2,  3 |  4,  5 |  6,  7
         y_re: 8, 9 | 10, 11 | 12, 13 | 14, 15
-        after transpose
+        after transpose_f64
         x_re: 0, 4 |  2,  6 |  1,  5 |  3,  7
         y_re: 8, 12|  9,  13| 10, 14 | 11, 15
         after swap
         x_re: 0, 4 |  1,  5 | 2,  6 |  3,  7
         y_re: 8, 12| 10, 14 | 9,  13| 11, 15
         */
-        transpose(x_re, x_re, v_re, 0, 2, 0);
-        transpose(x_re, x_re, v_re, 1, 3, 1);
-        transpose(x_im, x_im, v_im, 0, 2, 0);
-        transpose(x_im, x_im, v_im, 1, 3, 1);
+        transpose_f64(x_re, x_re, v_re, 0, 2, 0);
+        transpose_f64(x_re, x_re, v_re, 1, 3, 1);
+        transpose_f64(x_im, x_im, v_im, 0, 2, 0);
+        transpose_f64(x_im, x_im, v_im, 1, 3, 1);
 
 
         v_re.val[0] = x_re.val[2];
@@ -514,10 +514,10 @@ void ZfN(FFT_log5)(fpr *f, const unsigned logn)
         x_im.val[2] = x_im.val[1];
         x_im.val[1] = v_im.val[0];
 
-        transpose(y_re, y_re, v_re, 0, 2, 2);
-        transpose(y_re, y_re, v_re, 1, 3, 3);
-        transpose(y_im, y_im, v_im, 0, 2, 2);
-        transpose(y_im, y_im, v_im, 1, 3, 3);
+        transpose_f64(y_re, y_re, v_re, 0, 2, 2);
+        transpose_f64(y_re, y_re, v_re, 1, 3, 3);
+        transpose_f64(y_im, y_im, v_im, 0, 2, 2);
+        transpose_f64(y_im, y_im, v_im, 1, 3, 3);
 
         v_re.val[0] = y_re.val[2];
         y_re.val[2] = y_re.val[1];
@@ -955,9 +955,9 @@ static void ZfN(iFFT_log3)(fpr *f)
     vload2(s_re_im, &fpr_tab_log3[0]);
 
     vfmul(y_re_im.val[0], v.val[1], s_re_im.val[1]);
-    vfma(y_re_im.val[0], y_re_im.val[0], v.val[0], s_re_im.val[0]);
+    vfmla(y_re_im.val[0], y_re_im.val[0], v.val[0], s_re_im.val[0]);
     vfmul(y_re_im.val[1], v.val[1], s_re_im.val[0]);
-    vfms(y_re_im.val[1], y_re_im.val[1], v.val[0], s_re_im.val[1]);
+    vfmls(y_re_im.val[1], y_re_im.val[1], v.val[0], s_re_im.val[1]);
 
     // x: 0,2 | 4,6
     // y: 1,3 | 5,7
@@ -1056,10 +1056,10 @@ static void ZfN(iFFT_log4)(fpr *f)
     // re: 0, 4 | 1, 5 | 2, 6 | 3, 7
     // im: 8, 12| 9, 13|10, 14|11, 15
 
-    transpose(re, re, t, 0, 1, 0);
-    transpose(re, re, t, 2, 3, 1);
-    transpose(im, im, t, 0, 1, 2);
-    transpose(im, im, t, 2, 3, 3);
+    transpose_f64(re, re, t, 0, 1, 0);
+    transpose_f64(re, re, t, 2, 3, 1);
+    transpose_f64(im, im, t, 0, 1, 2);
+    transpose_f64(im, im, t, 2, 3, 3);
 
     // re: 0, 1 | 4,  5 | 2, 3 | 6, 7
     // im: 8, 9 | 12, 13|10, 11| 14, 15
@@ -1202,15 +1202,15 @@ void ZfN(iFFT_log5)(fpr *f, const unsigned logn, const unsigned last)
         // x_re: 0, 4 | 1, 5 | 2, 6 | 3, 7
         // y_re: 8, 12| 9, 13|10, 14|11, 15
         
-        transpose(x_re, x_re, t_re, 0, 1, 0);
-        transpose(x_re, x_re, t_re, 2, 3, 1);
-        transpose(y_re, y_re, t_re, 0, 1, 2);
-        transpose(y_re, y_re, t_re, 2, 3, 3);
+        transpose_f64(x_re, x_re, t_re, 0, 1, 0);
+        transpose_f64(x_re, x_re, t_re, 2, 3, 1);
+        transpose_f64(y_re, y_re, t_re, 0, 1, 2);
+        transpose_f64(y_re, y_re, t_re, 2, 3, 3);
 
-        transpose(x_im, x_im, t_im, 0, 1, 0);
-        transpose(x_im, x_im, t_im, 2, 3, 1);
-        transpose(y_im, y_im, t_im, 0, 1, 2);
-        transpose(y_im, y_im, t_im, 2, 3, 3);
+        transpose_f64(x_im, x_im, t_im, 0, 1, 0);
+        transpose_f64(x_im, x_im, t_im, 2, 3, 1);
+        transpose_f64(y_im, y_im, t_im, 0, 1, 2);
+        transpose_f64(y_im, y_im, t_im, 2, 3, 3);
 
         // x_re: 0, 1 | 4, 5 | 2, 3 | 6, 7
         // y_re: 8, 9 | 12,13|10,11 |14, 15

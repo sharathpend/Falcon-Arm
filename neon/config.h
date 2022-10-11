@@ -49,4 +49,9 @@
 #define COMPLEX 0
 #endif
 
+/* 
+ * By default, FMA is disabled due to rounding error between (FADD, FMUL) and FMA
+ */
+#define FMA 0
+
 #endif

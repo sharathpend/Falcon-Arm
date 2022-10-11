@@ -34,6 +34,7 @@
 
 #include <math.h>
 #include <arm_neon.h>
+#include "macrof.h"
 
 /*
  * We wrap the native 'double' type into a structure so that the C compiler
@@ -221,17 +222,17 @@ fpr_expm_p63(fpr x, fpr ccs)
     neon_x8 = vmulq_f64(neon_x4, neon_x4);
     neon_x12 = vmulq_f64(neon_x8, neon_x4);
 
-    y1 = vfmaq_f64(neon_exp0.val[0], neon_exp0.val[1], neon_x2);
-    y2 = vfmaq_f64(neon_exp0.val[2], neon_exp0.val[3], neon_x2);
-    y3 = vfmaq_f64(neon_exp1.val[0], neon_exp1.val[1], neon_x2);
+    vfmla(y1, neon_exp0.val[0], neon_exp0.val[1], neon_x2);
+    vfmla(y2, neon_exp0.val[2], neon_exp0.val[3], neon_x2);
+    vfmla(y3, neon_exp1.val[0], neon_exp1.val[1], neon_x2);
 
     y1 = vmulq_f64(y1, neon_1x);
     y2 = vmulq_f64(y2, neon_1x);
     y3 = vmulq_f64(y3, neon_1x);    
 
-    y = vfmaq_f64(y1, y2, neon_x4);
-    y = vfmaq_f64( y, y3, neon_x8);
-    y = vfmaq_f64( y, neon_exp1.val[2], neon_x12);
+    vfmla(y, y1, y2, neon_x4);
+    vfmla(y,  y, y3, neon_x8);
+    vfmla(y,  y, neon_exp1.val[2], neon_x12);
     y = vmulq_f64( y, neon_ccs);
     ret = vaddvq_f64(y);
 
