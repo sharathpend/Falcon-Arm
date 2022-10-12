@@ -620,15 +620,15 @@ void ZfN(poly_div_fft)(fpr *restrict c, const fpr *restrict a, const fpr *restri
         vloadx4(b_im, &b[i + hn]);
 
         vfmulx4(m, b_re, b_re);
-        vfmax4(m, m, b_im, b_im);
+        vfmlax4(m, m, b_im, b_im);
 
         vfmulx4(c_re, a_re, b_re);
-        vfmax4(c_re, c_re, a_im, b_im);
+        vfmlax4(c_re, c_re, a_im, b_im);
 
         vfinvx4(m, m);
 
         vfmulx4(c_im, a_im, b_re);
-        vfmsx4(c_im, c_im, a_re, b_im);
+        vfmlsx4(c_im, c_im, a_re, b_im);
 
         vfmulx4(c_re, c_re, m);
         vfmulx4(c_im, c_im, m);
@@ -1108,7 +1108,7 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
             vloadx4(g00_im, &g00[i + hn]);
 
             // vfmulx4(m, g00_re, g00_re);
-            // vfmax4(m, m, g00_im, g00_im);
+            // vfmlax4(m, m, g00_im, g00_im);
             // vfinvx4(m, m);
 
             vfmul(m.val[0], g00_re.val[0], g00_re.val[0]);
@@ -1131,7 +1131,7 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
             vloadx4(g01_im, &g01[i + hn]);
 
             // vfmulx4(mu_re, g01_re, g00_re);
-            // vfmax4(mu_re, mu_re, g01_im, g00_im);
+            // vfmlax4(mu_re, mu_re, g01_im, g00_im);
 
             vfmul(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
             vfmla(mu_re.val[0], mu_re.val[0], g01_im.val[0], g00_im.val[0]);
@@ -1146,7 +1146,7 @@ void ZfN(poly_LDL_fft)(const fpr *restrict g00, fpr *restrict g01, fpr *restrict
             vfmla(mu_re.val[3], mu_re.val[3], g01_im.val[3], g00_im.val[3]);
 
             // vfmulx4(mu_im, g01_im, g00_re);
-            // vfmsx4(mu_im, mu_im, g01_re, g00_im);
+            // vfmlsx4(mu_im, mu_im, g01_re, g00_im);
 
             vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
             vfmls(mu_im.val[0], mu_im.val[0], g01_re.val[0], g00_im.val[0]);
@@ -1403,7 +1403,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
             vloadx4(g00_im, &g00[i + hn]);
 
             // vfmulx4(m, g00_re, g00_re);
-            // vfmax4(m, m, g00_im, g00_im);
+            // vfmlax4(m, m, g00_im, g00_im);
             // vfinvx4(m, m);
 
             vfmul(m.val[0], g00_re.val[0], g00_re.val[0]);
@@ -1426,7 +1426,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
             vloadx4(g01_im, &g01[i + hn]);
 
             // vfmulx4(mu_re, g01_re, g00_re);
-            // vfmax4(mu_re, mu_re, g01_im, g00_im);
+            // vfmlax4(mu_re, mu_re, g01_im, g00_im);
 
             vfmul(mu_re.val[0], g01_re.val[0], g00_re.val[0]);
             vfmla(mu_re.val[0], mu_re.val[0], g01_im.val[0], g00_im.val[0]);
@@ -1441,7 +1441,7 @@ void ZfN(poly_LDLmv_fft)(fpr *restrict d11, fpr *restrict l10,
             vfmla(mu_re.val[3], mu_re.val[3], g01_im.val[3], g00_im.val[3]);
 
             // vfmulx4(mu_im, g01_im, g00_re);
-            // vfmsx4(mu_im, mu_im, g01_re, g00_im);
+            // vfmlsx4(mu_im, mu_im, g01_re, g00_im);
 
             vfmul(mu_im.val[0], g01_im.val[0], g00_re.val[0]);
             vfmls(mu_im.val[0], mu_im.val[0], g01_re.val[0], g00_im.val[0]);
