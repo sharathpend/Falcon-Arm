@@ -24,22 +24,22 @@
 
 #include "params.h"
 
-/* 
- * By default, benchmark using APPLE_M1 is disable 
+/*
+ * By default, benchmark using APPLE_M1 is disable
  */
 #ifndef APPLE_M1
 #define APPLE_M1 0
 #endif
 
-/* 
- * By default, benchmark using cycle count is disable, 
+/*
+ * By default, benchmark using cycle count is disable,
  * thus only return result in nanosecond
  */
 #ifndef BENCH_CYCLES
 #define BENCH_CYCLES 0
 #endif
 
-/* 
+/*
  * By default, complex instruction on ARMv8.2 is auto enable on M1
  * otherwise it is disable
  */
@@ -49,9 +49,29 @@
 #define COMPLEX 0
 #endif
 
-/* 
+/*
  * By default, FMA is disabled due to rounding error between (FADD, FMUL) and FMA
  */
 #define FMA 0
+
+/*
+ * By default, NEON is little Edian, either 0 or 1 will must pass the test
+ * FALCON_LE: Little Edian flag
+ */
+#define FALCON_LE 0
+
+/*
+ * By default, FPEMU is 0 on NEON implementation
+ * FALCON_FPEMU: Floating-point emulator flag
+ */
+#define FALCON_FPEMU 0
+#if FALCON_FPEMU != 0
+#error "FPEMU is not support in NEON implementation"
+#endif
+
+/*
+ * By default, my benchmark I use AES instead of CHACHA20
+ */
+#define FALCON_KG_CHACHA20 0
 
 #endif

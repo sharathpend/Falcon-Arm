@@ -24,6 +24,7 @@
 
 #include <arm_neon.h>
 #include "config.h"
+#include "macrof.h"
 
 #define vloadx4(c, addr) c = vld1q_f64_x4(addr);
 
@@ -85,17 +86,17 @@
     c.val[2] = vcvtq_f64_s64(a.val[2]); \
     c.val[3] = vcvtq_f64_s64(a.val[3]);
 
-#define vfmax4(d, c, a, b)                              \
-    d.val[0] = vfmaq_f64(c.val[0], a.val[0], b.val[0]); \
-    d.val[1] = vfmaq_f64(c.val[1], a.val[1], b.val[1]); \
-    d.val[2] = vfmaq_f64(c.val[2], a.val[2], b.val[2]); \
-    d.val[3] = vfmaq_f64(c.val[3], a.val[3], b.val[3]);
+#define vfmlax4(d, c, a, b)                        \
+    vfmla(d.val[0], c.val[0], a.val[0], b.val[0]); \
+    vfmla(d.val[1], c.val[1], a.val[1], b.val[1]); \
+    vfmla(d.val[2], c.val[2], a.val[2], b.val[2]); \
+    vfmla(d.val[3], c.val[3], a.val[3], b.val[3]);
 
-#define vfmsx4(d, c, a, b)                              \
-    d.val[0] = vfmsq_f64(c.val[0], a.val[0], b.val[0]); \
-    d.val[1] = vfmsq_f64(c.val[1], a.val[1], b.val[1]); \
-    d.val[2] = vfmsq_f64(c.val[2], a.val[2], b.val[2]); \
-    d.val[3] = vfmsq_f64(c.val[3], a.val[3], b.val[3]);
+#define vfmlsx4(d, c, a, b)                        \
+    vfmls(d.val[0], c.val[0], a.val[0], b.val[0]); \
+    vfmls(d.val[1], c.val[1], a.val[1], b.val[1]); \
+    vfmls(d.val[2], c.val[2], a.val[2], b.val[2]); \
+    vfmls(d.val[3], c.val[3], a.val[3], b.val[3]);
 
 #define vfrintx4(c, a)                   \
     c.val[0] = vcvtnq_s64_f64(a.val[0]); \
@@ -108,132 +109,132 @@
  */
 
 #define FPC_MUL(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re = vmulq_f64(a_re, b_re);                   \
-    d_re = vfmsq_f64(d_re, a_im, b_im);             \
-    d_im = vmulq_f64(a_re, b_im);                   \
-    d_im = vfmaq_f64(d_im, a_im, b_re);
+    vfmul(d_re, a_re, b_re);                        \
+    vfmls(d_re, d_re, a_im, b_im);                  \
+    vfmul(d_im, a_re, b_im);                        \
+    vfmla(d_im, d_im, a_im, b_re);
 
-#define FPC_MULx2(d_re, d_im, a_re, a_im, b_re, b_im)               \
-    d_re.val[0] = vmulq_f64(a_re.val[0], b_re.val[0]);              \
-    d_re.val[0] = vfmsq_f64(d_re.val[0], a_im.val[0], b_im.val[0]); \
-    d_re.val[1] = vmulq_f64(a_re.val[1], b_re.val[1]);              \
-    d_re.val[1] = vfmsq_f64(d_re.val[1], a_im.val[1], b_im.val[1]); \
-    d_im.val[0] = vmulq_f64(a_re.val[0], b_im.val[0]);              \
-    d_im.val[0] = vfmaq_f64(d_im.val[0], a_im.val[0], b_re.val[0]); \
-    d_im.val[1] = vmulq_f64(a_re.val[1], b_im.val[1]);              \
-    d_im.val[1] = vfmaq_f64(d_im.val[1], a_im.val[1], b_re.val[1]);
+#define FPC_MULx2(d_re, d_im, a_re, a_im, b_re, b_im)          \
+    vfmul(d_re.val[0], a_re.val[0], b_re.val[0]);              \
+    vfmls(d_re.val[0], d_re.val[0], a_im.val[0], b_im.val[0]); \
+    vfmul(d_re.val[1], a_re.val[1], b_re.val[1]);              \
+    vfmls(d_re.val[1], d_re.val[1], a_im.val[1], b_im.val[1]); \
+    vfmul(d_im.val[0], a_re.val[0], b_im.val[0]);              \
+    vfmla(d_im.val[0], d_im.val[0], a_im.val[0], b_re.val[0]); \
+    vfmul(d_im.val[1], a_re.val[1], b_im.val[1]);              \
+    vfmla(d_im.val[1], d_im.val[1], a_im.val[1], b_re.val[1]);
 
-#define FPC_MULx4(d_re, d_im, a_re, a_im, b_re, b_im)               \
-    d_re.val[0] = vmulq_f64(a_re.val[0], b_re.val[0]);              \
-    d_re.val[0] = vfmsq_f64(d_re.val[0], a_im.val[0], b_im.val[0]); \
-    d_re.val[1] = vmulq_f64(a_re.val[1], b_re.val[1]);              \
-    d_re.val[1] = vfmsq_f64(d_re.val[1], a_im.val[1], b_im.val[1]); \
-    d_re.val[2] = vmulq_f64(a_re.val[2], b_re.val[2]);              \
-    d_re.val[2] = vfmsq_f64(d_re.val[2], a_im.val[2], b_im.val[2]); \
-    d_re.val[3] = vmulq_f64(a_re.val[3], b_re.val[3]);              \
-    d_re.val[3] = vfmsq_f64(d_re.val[3], a_im.val[3], b_im.val[3]); \
-    d_im.val[0] = vmulq_f64(a_re.val[0], b_im.val[0]);              \
-    d_im.val[0] = vfmaq_f64(d_im.val[0], a_im.val[0], b_re.val[0]); \
-    d_im.val[1] = vmulq_f64(a_re.val[1], b_im.val[1]);              \
-    d_im.val[1] = vfmaq_f64(d_im.val[1], a_im.val[1], b_re.val[1]); \
-    d_im.val[2] = vmulq_f64(a_re.val[2], b_im.val[2]);              \
-    d_im.val[2] = vfmaq_f64(d_im.val[2], a_im.val[2], b_re.val[2]); \
-    d_im.val[3] = vmulq_f64(a_re.val[3], b_im.val[3]);              \
-    d_im.val[3] = vfmaq_f64(d_im.val[3], a_im.val[3], b_re.val[3]);
+#define FPC_MULx4(d_re, d_im, a_re, a_im, b_re, b_im)          \
+    vfmul(d_re.val[0], a_re.val[0], b_re.val[0]);              \
+    vfmls(d_re.val[0], d_re.val[0], a_im.val[0], b_im.val[0]); \
+    vfmul(d_re.val[1], a_re.val[1], b_re.val[1]);              \
+    vfmls(d_re.val[1], d_re.val[1], a_im.val[1], b_im.val[1]); \
+    vfmul(d_re.val[2], a_re.val[2], b_re.val[2]);              \
+    vfmls(d_re.val[2], d_re.val[2], a_im.val[2], b_im.val[2]); \
+    vfmul(d_re.val[3], a_re.val[3], b_re.val[3]);              \
+    vfmls(d_re.val[3], d_re.val[3], a_im.val[3], b_im.val[3]); \
+    vfmul(d_im.val[0], a_re.val[0], b_im.val[0]);              \
+    vfmla(d_im.val[0], d_im.val[0], a_im.val[0], b_re.val[0]); \
+    vfmul(d_im.val[1], a_re.val[1], b_im.val[1]);              \
+    vfmla(d_im.val[1], d_im.val[1], a_im.val[1], b_re.val[1]); \
+    vfmul(d_im.val[2], a_re.val[2], b_im.val[2]);              \
+    vfmla(d_im.val[2], d_im.val[2], a_im.val[2], b_re.val[2]); \
+    vfmul(d_im.val[3], a_re.val[3], b_im.val[3]);              \
+    vfmla(d_im.val[3], d_im.val[3], a_im.val[3], b_re.val[3]);
 
 #define FPC_MLA(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re = vfmaq_f64(d_re, a_re, b_re);             \
-    d_re = vfmsq_f64(d_re, a_im, b_im);             \
-    d_im = vfmaq_f64(d_im, a_re, b_im);             \
-    d_im = vfmaq_f64(d_im, a_im, b_re);
+    vfmla(d_re, d_re, a_re, b_re);                  \
+    vfmls(d_re, d_re, a_im, b_im);                  \
+    vfmla(d_im, d_im, a_re, b_im);                  \
+    vfmla(d_im, d_im, a_im, b_re);
 
-#define FPC_MLAx2(d_re, d_im, a_re, a_im, b_re, b_im)               \
-    d_re.val[0] = vfmaq_f64(d_re.val[0], a_re.val[0], b_re.val[0]); \
-    d_re.val[0] = vfmsq_f64(d_re.val[0], a_im.val[0], b_im.val[0]); \
-    d_re.val[1] = vfmaq_f64(d_re.val[1], a_re.val[1], b_re.val[1]); \
-    d_re.val[1] = vfmsq_f64(d_re.val[1], a_im.val[1], b_im.val[1]); \
-    d_im.val[0] = vfmaq_f64(d_im.val[0], a_re.val[0], b_im.val[0]); \
-    d_im.val[0] = vfmaq_f64(d_im.val[0], a_im.val[0], b_re.val[0]); \
-    d_im.val[1] = vfmaq_f64(d_im.val[1], a_re.val[1], b_im.val[1]); \
-    d_im.val[1] = vfmaq_f64(d_im.val[1], a_im.val[1], b_re.val[1]);
+#define FPC_MLAx2(d_re, d_im, a_re, a_im, b_re, b_im)          \
+    vfmla(d_re.val[0], d_re.val[0], a_re.val[0], b_re.val[0]); \
+    vfmls(d_re.val[0], d_re.val[0], a_im.val[0], b_im.val[0]); \
+    vfmla(d_re.val[1], d_re.val[1], a_re.val[1], b_re.val[1]); \
+    vfmls(d_re.val[1], d_re.val[1], a_im.val[1], b_im.val[1]); \
+    vfmla(d_im.val[0], d_im.val[0], a_re.val[0], b_im.val[0]); \
+    vfmla(d_im.val[0], d_im.val[0], a_im.val[0], b_re.val[0]); \
+    vfmla(d_im.val[1], d_im.val[1], a_re.val[1], b_im.val[1]); \
+    vfmla(d_im.val[1], d_im.val[1], a_im.val[1], b_re.val[1]);
 
-#define FPC_MLAx4(d_re, d_im, a_re, a_im, b_re, b_im)               \
-    d_re.val[0] = vfmaq_f64(d_re.val[0], a_re.val[0], b_re.val[0]); \
-    d_re.val[0] = vfmsq_f64(d_re.val[0], a_im.val[0], b_im.val[0]); \
-    d_re.val[1] = vfmaq_f64(d_re.val[1], a_re.val[1], b_re.val[1]); \
-    d_re.val[1] = vfmsq_f64(d_re.val[1], a_im.val[1], b_im.val[1]); \
-    d_re.val[2] = vfmaq_f64(d_re.val[2], a_re.val[2], b_re.val[2]); \
-    d_re.val[2] = vfmsq_f64(d_re.val[2], a_im.val[2], b_im.val[2]); \
-    d_re.val[3] = vfmaq_f64(d_re.val[3], a_re.val[3], b_re.val[3]); \
-    d_re.val[3] = vfmsq_f64(d_re.val[3], a_im.val[3], b_im.val[3]); \
-    d_im.val[0] = vfmaq_f64(d_im.val[0], a_re.val[0], b_im.val[0]); \
-    d_im.val[0] = vfmaq_f64(d_im.val[0], a_im.val[0], b_re.val[0]); \
-    d_im.val[1] = vfmaq_f64(d_im.val[1], a_re.val[1], b_im.val[1]); \
-    d_im.val[1] = vfmaq_f64(d_im.val[1], a_im.val[1], b_re.val[1]); \
-    d_im.val[2] = vfmaq_f64(d_im.val[2], a_re.val[2], b_im.val[2]); \
-    d_im.val[2] = vfmaq_f64(d_im.val[2], a_im.val[2], b_re.val[2]); \
-    d_im.val[3] = vfmaq_f64(d_im.val[3], a_re.val[3], b_im.val[3]); \
-    d_im.val[3] = vfmaq_f64(d_im.val[3], a_im.val[3], b_re.val[3]);
+#define FPC_MLAx4(d_re, d_im, a_re, a_im, b_re, b_im)          \
+    vfmla(d_re.val[0], d_re.val[0], a_re.val[0], b_re.val[0]); \
+    vfmls(d_re.val[0], d_re.val[0], a_im.val[0], b_im.val[0]); \
+    vfmla(d_re.val[1], d_re.val[1], a_re.val[1], b_re.val[1]); \
+    vfmls(d_re.val[1], d_re.val[1], a_im.val[1], b_im.val[1]); \
+    vfmla(d_re.val[2], d_re.val[2], a_re.val[2], b_re.val[2]); \
+    vfmls(d_re.val[2], d_re.val[2], a_im.val[2], b_im.val[2]); \
+    vfmla(d_re.val[3], d_re.val[3], a_re.val[3], b_re.val[3]); \
+    vfmls(d_re.val[3], d_re.val[3], a_im.val[3], b_im.val[3]); \
+    vfmla(d_im.val[0], d_im.val[0], a_re.val[0], b_im.val[0]); \
+    vfmla(d_im.val[0], d_im.val[0], a_im.val[0], b_re.val[0]); \
+    vfmla(d_im.val[1], d_im.val[1], a_re.val[1], b_im.val[1]); \
+    vfmla(d_im.val[1], d_im.val[1], a_im.val[1], b_re.val[1]); \
+    vfmla(d_im.val[2], d_im.val[2], a_re.val[2], b_im.val[2]); \
+    vfmla(d_im.val[2], d_im.val[2], a_im.val[2], b_re.val[2]); \
+    vfmla(d_im.val[3], d_im.val[3], a_re.val[3], b_im.val[3]); \
+    vfmla(d_im.val[3], d_im.val[3], a_im.val[3], b_re.val[3]);
 
-#define FPC_MUL_CONJx4(d_re, d_im, a_re, a_im, b_re, b_im)          \
-    d_re.val[0] = vmulq_f64(b_im.val[0], a_im.val[0]);              \
-    d_re.val[0] = vfmaq_f64(d_re.val[0], a_re.val[0], b_re.val[0]); \
-    d_re.val[1] = vmulq_f64(b_im.val[1], a_im.val[1]);              \
-    d_re.val[1] = vfmaq_f64(d_re.val[1], a_re.val[1], b_re.val[1]); \
-    d_re.val[2] = vmulq_f64(b_im.val[2], a_im.val[2]);              \
-    d_re.val[2] = vfmaq_f64(d_re.val[2], a_re.val[2], b_re.val[2]); \
-    d_re.val[3] = vmulq_f64(b_im.val[3], a_im.val[3]);              \
-    d_re.val[3] = vfmaq_f64(d_re.val[3], a_re.val[3], b_re.val[3]); \
-    d_im.val[0] = vmulq_f64(b_re.val[0], a_im.val[0]);              \
-    d_im.val[0] = vfmsq_f64(d_im.val[0], a_re.val[0], b_im.val[0]); \
-    d_im.val[1] = vmulq_f64(b_re.val[1], a_im.val[1]);              \
-    d_im.val[1] = vfmsq_f64(d_im.val[1], a_re.val[1], b_im.val[1]); \
-    d_im.val[2] = vmulq_f64(b_re.val[2], a_im.val[2]);              \
-    d_im.val[2] = vfmsq_f64(d_im.val[2], a_re.val[2], b_im.val[2]); \
-    d_im.val[3] = vmulq_f64(b_re.val[3], a_im.val[3]);              \
-    d_im.val[3] = vfmsq_f64(d_im.val[3], a_re.val[3], b_im.val[3]);
+#define FPC_MUL_CONJx4(d_re, d_im, a_re, a_im, b_re, b_im)     \
+    vfmul(d_re.val[0], b_im.val[0], a_im.val[0]);              \
+    vfmla(d_re.val[0], d_re.val[0], a_re.val[0], b_re.val[0]); \
+    vfmul(d_re.val[1], b_im.val[1], a_im.val[1]);              \
+    vfmla(d_re.val[1], d_re.val[1], a_re.val[1], b_re.val[1]); \
+    vfmul(d_re.val[2], b_im.val[2], a_im.val[2]);              \
+    vfmla(d_re.val[2], d_re.val[2], a_re.val[2], b_re.val[2]); \
+    vfmul(d_re.val[3], b_im.val[3], a_im.val[3]);              \
+    vfmla(d_re.val[3], d_re.val[3], a_re.val[3], b_re.val[3]); \
+    vfmul(d_im.val[0], b_re.val[0], a_im.val[0]);              \
+    vfmls(d_im.val[0], d_im.val[0], a_re.val[0], b_im.val[0]); \
+    vfmul(d_im.val[1], b_re.val[1], a_im.val[1]);              \
+    vfmls(d_im.val[1], d_im.val[1], a_re.val[1], b_im.val[1]); \
+    vfmul(d_im.val[2], b_re.val[2], a_im.val[2]);              \
+    vfmls(d_im.val[2], d_im.val[2], a_re.val[2], b_im.val[2]); \
+    vfmul(d_im.val[3], b_re.val[3], a_im.val[3]);              \
+    vfmls(d_im.val[3], d_im.val[3], a_re.val[3], b_im.val[3]);
 
-#define FPC_MLA_CONJx4(d_re, d_im, a_re, a_im, b_re, b_im)          \
-    d_re.val[0] = vfmaq_f64(d_re.val[0], b_im.val[0], a_im.val[0]); \
-    d_re.val[0] = vfmaq_f64(d_re.val[0], a_re.val[0], b_re.val[0]); \
-    d_re.val[1] = vfmaq_f64(d_re.val[1], b_im.val[1], a_im.val[1]); \
-    d_re.val[1] = vfmaq_f64(d_re.val[1], a_re.val[1], b_re.val[1]); \
-    d_re.val[2] = vfmaq_f64(d_re.val[2], b_im.val[2], a_im.val[2]); \
-    d_re.val[2] = vfmaq_f64(d_re.val[2], a_re.val[2], b_re.val[2]); \
-    d_re.val[3] = vfmaq_f64(d_re.val[3], b_im.val[3], a_im.val[3]); \
-    d_re.val[3] = vfmaq_f64(d_re.val[3], a_re.val[3], b_re.val[3]); \
-    d_im.val[0] = vfmaq_f64(d_im.val[0], b_re.val[0], a_im.val[0]); \
-    d_im.val[0] = vfmsq_f64(d_im.val[0], a_re.val[0], b_im.val[0]); \
-    d_im.val[1] = vfmaq_f64(d_im.val[1], b_re.val[1], a_im.val[1]); \
-    d_im.val[1] = vfmsq_f64(d_im.val[1], a_re.val[1], b_im.val[1]); \
-    d_im.val[2] = vfmaq_f64(d_im.val[2], b_re.val[2], a_im.val[2]); \
-    d_im.val[2] = vfmsq_f64(d_im.val[2], a_re.val[2], b_im.val[2]); \
-    d_im.val[3] = vfmaq_f64(d_im.val[3], b_re.val[3], a_im.val[3]); \
-    d_im.val[3] = vfmsq_f64(d_im.val[3], a_re.val[3], b_im.val[3]);
+#define FPC_MLA_CONJx4(d_re, d_im, a_re, a_im, b_re, b_im)     \
+    vfmla(d_re.val[0], d_re.val[0], b_im.val[0], a_im.val[0]); \
+    vfmla(d_re.val[0], d_re.val[0], a_re.val[0], b_re.val[0]); \
+    vfmla(d_re.val[1], d_re.val[1], b_im.val[1], a_im.val[1]); \
+    vfmla(d_re.val[1], d_re.val[1], a_re.val[1], b_re.val[1]); \
+    vfmla(d_re.val[2], d_re.val[2], b_im.val[2], a_im.val[2]); \
+    vfmla(d_re.val[2], d_re.val[2], a_re.val[2], b_re.val[2]); \
+    vfmla(d_re.val[3], d_re.val[3], b_im.val[3], a_im.val[3]); \
+    vfmla(d_re.val[3], d_re.val[3], a_re.val[3], b_re.val[3]); \
+    vfmla(d_im.val[0], d_im.val[0], b_re.val[0], a_im.val[0]); \
+    vfmls(d_im.val[0], d_im.val[0], a_re.val[0], b_im.val[0]); \
+    vfmla(d_im.val[1], d_im.val[1], b_re.val[1], a_im.val[1]); \
+    vfmls(d_im.val[1], d_im.val[1], a_re.val[1], b_im.val[1]); \
+    vfmla(d_im.val[2], d_im.val[2], b_re.val[2], a_im.val[2]); \
+    vfmls(d_im.val[2], d_im.val[2], a_re.val[2], b_im.val[2]); \
+    vfmla(d_im.val[3], d_im.val[3], b_re.val[3], a_im.val[3]); \
+    vfmls(d_im.val[3], d_im.val[3], a_re.val[3], b_im.val[3]);
 
 #define FPC_MUL_LANE(d_re, d_im, a_re, a_im, b_re_im) \
-    d_re = vmulq_laneq_f64(a_re, b_re_im, 0);         \
-    d_re = vfmsq_laneq_f64(d_re, a_im, b_re_im, 1);   \
-    d_im = vmulq_laneq_f64(a_re, b_re_im, 1);         \
-    d_im = vfmaq_laneq_f64(d_im, a_im, b_re_im, 0);
+    vfmul_lane(d_re, a_re, b_re_im, 0);               \
+    vfmls_lane(d_re, d_re, a_im, b_re_im, 1);         \
+    vfmul_lane(d_im, a_re, b_re_im, 1);               \
+    vfmla_lane(d_im, d_im, a_im, b_re_im, 0);
 
-#define FPC_MUL_LANEx4(d_re, d_im, a_re, a_im, b_re_im)                  \
-    d_re.val[0] = vmulq_laneq_f64(a_re.val[0], b_re_im, 0);              \
-    d_re.val[0] = vfmsq_laneq_f64(d_re.val[0], a_im.val[0], b_re_im, 1); \
-    d_re.val[1] = vmulq_laneq_f64(a_re.val[1], b_re_im, 0);              \
-    d_re.val[1] = vfmsq_laneq_f64(d_re.val[1], a_im.val[1], b_re_im, 1); \
-    d_re.val[2] = vmulq_laneq_f64(a_re.val[2], b_re_im, 0);              \
-    d_re.val[2] = vfmsq_laneq_f64(d_re.val[2], a_im.val[2], b_re_im, 1); \
-    d_re.val[3] = vmulq_laneq_f64(a_re.val[3], b_re_im, 0);              \
-    d_re.val[3] = vfmsq_laneq_f64(d_re.val[3], a_im.val[3], b_re_im, 1); \
-    d_im.val[0] = vmulq_laneq_f64(a_re.val[0], b_re_im, 1);              \
-    d_im.val[0] = vfmaq_laneq_f64(d_im.val[0], a_im.val[0], b_re_im, 0); \
-    d_im.val[1] = vmulq_laneq_f64(a_re.val[1], b_re_im, 1);              \
-    d_im.val[1] = vfmaq_laneq_f64(d_im.val[1], a_im.val[1], b_re_im, 0); \
-    d_im.val[2] = vmulq_laneq_f64(a_re.val[2], b_re_im, 1);              \
-    d_im.val[2] = vfmaq_laneq_f64(d_im.val[2], a_im.val[2], b_re_im, 0); \
-    d_im.val[3] = vmulq_laneq_f64(a_re.val[3], b_re_im, 1);              \
-    d_im.val[3] = vfmaq_laneq_f64(d_im.val[3], a_im.val[3], b_re_im, 0);
+#define FPC_MUL_LANEx4(d_re, d_im, a_re, a_im, b_re_im)            \
+    vfmul_lane(d_re.val[0], a_re.val[0], b_re_im, 0);              \
+    vfmls_lane(d_re.val[0], d_re.val[0], a_im.val[0], b_re_im, 1); \
+    vfmul_lane(d_re.val[1], a_re.val[1], b_re_im, 0);              \
+    vfmls_lane(d_re.val[1], d_re.val[1], a_im.val[1], b_re_im, 1); \
+    vfmul_lane(d_re.val[2], a_re.val[2], b_re_im, 0);              \
+    vfmls_lane(d_re.val[2], d_re.val[2], a_im.val[2], b_re_im, 1); \
+    vfmul_lane(d_re.val[3], a_re.val[3], b_re_im, 0);              \
+    vfmls_lane(d_re.val[3], d_re.val[3], a_im.val[3], b_re_im, 1); \
+    vfmul_lane(d_im.val[0], a_re.val[0], b_re_im, 1);              \
+    vfmla_lane(d_im.val[0], d_im.val[0], a_im.val[0], b_re_im, 0); \
+    vfmul_lane(d_im.val[1], a_re.val[1], b_re_im, 1);              \
+    vfmla_lane(d_im.val[1], d_im.val[1], a_im.val[1], b_re_im, 0); \
+    vfmul_lane(d_im.val[2], a_re.val[2], b_re_im, 1);              \
+    vfmla_lane(d_im.val[2], d_im.val[2], a_im.val[2], b_re_im, 0); \
+    vfmul_lane(d_im.val[3], a_re.val[3], b_re_im, 1);              \
+    vfmla_lane(d_im.val[3], d_im.val[3], a_im.val[3], b_re_im, 0);
 
 #define FWD_TOP(t_re, t_im, b_re, b_im, zeta_re, zeta_im) \
     FPC_MUL(t_re, t_im, b_re, b_im, zeta_re, zeta_im);
@@ -333,34 +334,34 @@
  * d_im = b_re * a_im - a_re * b_im;
  */
 #define FPC_MUL_BOTJ_LANE(d_re, d_im, a_re, a_im, b_re_im) \
-    d_re = vmulq_laneq_f64(a_re, b_re_im, 0);              \
-    d_re = vfmaq_laneq_f64(d_re, a_im, b_re_im, 1);        \
-    d_im = vmulq_laneq_f64(a_im, b_re_im, 0);              \
-    d_im = vfmsq_laneq_f64(d_im, a_re, b_re_im, 1);
+    vfmul_lane(d_re, a_re, b_re_im, 0);                    \
+    vfmla_lane(d_re, d_re, a_im, b_re_im, 1);              \
+    vfmul_lane(d_im, a_im, b_re_im, 0);                    \
+    vfmls_lane(d_im, d_im, a_re, b_re_im, 1);
 
-#define FPC_MUL_BOTJ_LANEx4(d_re, d_im, a_re, a_im, b_re_im)             \
-    d_re.val[0] = vmulq_laneq_f64(a_re.val[0], b_re_im, 0);              \
-    d_re.val[0] = vfmaq_laneq_f64(d_re.val[0], a_im.val[0], b_re_im, 1); \
-    d_im.val[0] = vmulq_laneq_f64(a_im.val[0], b_re_im, 0);              \
-    d_im.val[0] = vfmsq_laneq_f64(d_im.val[0], a_re.val[0], b_re_im, 1); \
-    d_re.val[1] = vmulq_laneq_f64(a_re.val[1], b_re_im, 0);              \
-    d_re.val[1] = vfmaq_laneq_f64(d_re.val[1], a_im.val[1], b_re_im, 1); \
-    d_im.val[1] = vmulq_laneq_f64(a_im.val[1], b_re_im, 0);              \
-    d_im.val[1] = vfmsq_laneq_f64(d_im.val[1], a_re.val[1], b_re_im, 1); \
-    d_re.val[2] = vmulq_laneq_f64(a_re.val[2], b_re_im, 0);              \
-    d_re.val[2] = vfmaq_laneq_f64(d_re.val[2], a_im.val[2], b_re_im, 1); \
-    d_im.val[2] = vmulq_laneq_f64(a_im.val[2], b_re_im, 0);              \
-    d_im.val[2] = vfmsq_laneq_f64(d_im.val[2], a_re.val[2], b_re_im, 1); \
-    d_re.val[3] = vmulq_laneq_f64(a_re.val[3], b_re_im, 0);              \
-    d_re.val[3] = vfmaq_laneq_f64(d_re.val[3], a_im.val[3], b_re_im, 1); \
-    d_im.val[3] = vmulq_laneq_f64(a_im.val[3], b_re_im, 0);              \
-    d_im.val[3] = vfmsq_laneq_f64(d_im.val[3], a_re.val[3], b_re_im, 1);
+#define FPC_MUL_BOTJ_LANEx4(d_re, d_im, a_re, a_im, b_re_im)       \
+    vfmul_lane(d_re.val[0], a_re.val[0], b_re_im, 0);              \
+    vfmla_lane(d_re.val[0], d_re.val[0], a_im.val[0], b_re_im, 1); \
+    vfmul_lane(d_im.val[0], a_im.val[0], b_re_im, 0);              \
+    vfmls_lane(d_im.val[0], d_im.val[0], a_re.val[0], b_re_im, 1); \
+    vfmul_lane(d_re.val[1], a_re.val[1], b_re_im, 0);              \
+    vfmla_lane(d_re.val[1], d_re.val[1], a_im.val[1], b_re_im, 1); \
+    vfmul_lane(d_im.val[1], a_im.val[1], b_re_im, 0);              \
+    vfmls_lane(d_im.val[1], d_im.val[1], a_re.val[1], b_re_im, 1); \
+    vfmul_lane(d_re.val[2], a_re.val[2], b_re_im, 0);              \
+    vfmla_lane(d_re.val[2], d_re.val[2], a_im.val[2], b_re_im, 1); \
+    vfmul_lane(d_im.val[2], a_im.val[2], b_re_im, 0);              \
+    vfmls_lane(d_im.val[2], d_im.val[2], a_re.val[2], b_re_im, 1); \
+    vfmul_lane(d_re.val[3], a_re.val[3], b_re_im, 0);              \
+    vfmla_lane(d_re.val[3], d_re.val[3], a_im.val[3], b_re_im, 1); \
+    vfmul_lane(d_im.val[3], a_im.val[3], b_re_im, 0);              \
+    vfmls_lane(d_im.val[3], d_im.val[3], a_re.val[3], b_re_im, 1);
 
 #define FPC_MUL_BOTJ(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re = vmulq_f64(b_im, a_im);                        \
-    d_re = vfmaq_f64(d_re, a_re, b_re);                  \
-    d_im = vmulq_f64(b_re, a_im);                        \
-    d_im = vfmsq_f64(d_im, a_re, b_im);
+    vfmul(d_re, b_im, a_im);                             \
+    vfmla(d_re, d_re, a_re, b_re);                       \
+    vfmul(d_im, b_re, a_im);                             \
+    vfmls(d_im, d_im, a_re, b_im);
 
 #define INV_TOPJ(t_re, t_im, a_re, a_im, b_re, b_im) \
     FPC_SUB(t_re, t_im, a_re, a_im, b_re, b_im);     \
@@ -386,34 +387,34 @@
  * d_im = a_im * b_im + a_re * b_re;
  */
 #define FPC_MUL_BOTJm_LANE(d_re, d_im, a_re, a_im, b_re_im) \
-    d_re = vmulq_laneq_f64(a_re, b_re_im, 1);               \
-    d_re = vfmsq_laneq_f64(d_re, a_im, b_re_im, 0);         \
-    d_im = vmulq_laneq_f64(a_re, b_re_im, 0);               \
-    d_im = vfmaq_laneq_f64(d_im, a_im, b_re_im, 1);
+    vfmul_lane(d_re, a_re, b_re_im, 1);                     \
+    vfmls_lane(d_re, d_re, a_im, b_re_im, 0);               \
+    vfmul_lane(d_im, a_re, b_re_im, 0);                     \
+    vfmla_lane(d_im, d_im, a_im, b_re_im, 1);
 
-#define FPC_MUL_BOTJm_LANEx4(d_re, d_im, a_re, a_im, b_re_im)            \
-    d_re.val[0] = vmulq_laneq_f64(a_re.val[0], b_re_im, 1);              \
-    d_re.val[0] = vfmsq_laneq_f64(d_re.val[0], a_im.val[0], b_re_im, 0); \
-    d_im.val[0] = vmulq_laneq_f64(a_re.val[0], b_re_im, 0);              \
-    d_im.val[0] = vfmaq_laneq_f64(d_im.val[0], a_im.val[0], b_re_im, 1); \
-    d_re.val[1] = vmulq_laneq_f64(a_re.val[1], b_re_im, 1);              \
-    d_re.val[1] = vfmsq_laneq_f64(d_re.val[1], a_im.val[1], b_re_im, 0); \
-    d_im.val[1] = vmulq_laneq_f64(a_re.val[1], b_re_im, 0);              \
-    d_im.val[1] = vfmaq_laneq_f64(d_im.val[1], a_im.val[1], b_re_im, 1); \
-    d_re.val[2] = vmulq_laneq_f64(a_re.val[2], b_re_im, 1);              \
-    d_re.val[2] = vfmsq_laneq_f64(d_re.val[2], a_im.val[2], b_re_im, 0); \
-    d_im.val[2] = vmulq_laneq_f64(a_re.val[2], b_re_im, 0);              \
-    d_im.val[2] = vfmaq_laneq_f64(d_im.val[2], a_im.val[2], b_re_im, 1); \
-    d_re.val[3] = vmulq_laneq_f64(a_re.val[3], b_re_im, 1);              \
-    d_re.val[3] = vfmsq_laneq_f64(d_re.val[3], a_im.val[3], b_re_im, 0); \
-    d_im.val[3] = vmulq_laneq_f64(a_re.val[3], b_re_im, 0);              \
-    d_im.val[3] = vfmaq_laneq_f64(d_im.val[3], a_im.val[3], b_re_im, 1);
+#define FPC_MUL_BOTJm_LANEx4(d_re, d_im, a_re, a_im, b_re_im)      \
+    vfmul_lane(d_re.val[0], a_re.val[0], b_re_im, 1);              \
+    vfmls_lane(d_re.val[0], d_re.val[0], a_im.val[0], b_re_im, 0); \
+    vfmul_lane(d_im.val[0], a_re.val[0], b_re_im, 0);              \
+    vfmla_lane(d_im.val[0], d_im.val[0], a_im.val[0], b_re_im, 1); \
+    vfmul_lane(d_re.val[1], a_re.val[1], b_re_im, 1);              \
+    vfmls_lane(d_re.val[1], d_re.val[1], a_im.val[1], b_re_im, 0); \
+    vfmul_lane(d_im.val[1], a_re.val[1], b_re_im, 0);              \
+    vfmla_lane(d_im.val[1], d_im.val[1], a_im.val[1], b_re_im, 1); \
+    vfmul_lane(d_re.val[2], a_re.val[2], b_re_im, 1);              \
+    vfmls_lane(d_re.val[2], d_re.val[2], a_im.val[2], b_re_im, 0); \
+    vfmul_lane(d_im.val[2], a_re.val[2], b_re_im, 0);              \
+    vfmla_lane(d_im.val[2], d_im.val[2], a_im.val[2], b_re_im, 1); \
+    vfmul_lane(d_re.val[3], a_re.val[3], b_re_im, 1);              \
+    vfmls_lane(d_re.val[3], d_re.val[3], a_im.val[3], b_re_im, 0); \
+    vfmul_lane(d_im.val[3], a_re.val[3], b_re_im, 0);              \
+    vfmla_lane(d_im.val[3], d_im.val[3], a_im.val[3], b_re_im, 1);
 
 #define FPC_MUL_BOTJm(d_re, d_im, a_re, a_im, b_re, b_im) \
-    d_re = vmulq_f64(a_re, b_im);                         \
-    d_re = vfmsq_f64(d_re, a_im, b_re);                   \
-    d_im = vmulq_f64(a_im, b_im);                         \
-    d_im = vfmaq_f64(d_im, a_re, b_re);
+    vfmul(d_re, a_re, b_im);                              \
+    vfmls(d_re, d_re, a_im, b_re);                        \
+    vfmul(d_im, a_im, b_im);                              \
+    vfmla(d_im, d_im, a_re, b_re);
 
 #define INV_TOPJm(t_re, t_im, a_re, a_im, b_re, b_im) \
     FPC_SUB(t_re, t_im, b_re, b_im, a_re, a_im);      \
