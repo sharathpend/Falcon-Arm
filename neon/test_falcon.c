@@ -3069,6 +3069,7 @@ test_poly_inner(unsigned logn, uint8_t *tmp, size_t tlen)
 		ZfN(iFFT)(g, logn);
 		for (u = 0; u < n; u ++) {
 			if (fpr_rint(f[u]) != fpr_rint(g[u])) {
+                printf("%d: %lld - %lld\n", logn, fpr_rint(f[u]), fpr_rint(g[u]));
 				fprintf(stderr, "FFT/iFFT error\n");
 				exit(EXIT_FAILURE);
 			}
