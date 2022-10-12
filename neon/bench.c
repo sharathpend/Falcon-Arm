@@ -403,6 +403,31 @@ void test_poly_merge_fft(fpr *restrict f, const fpr *restrict f0,
     printf("| %8s | %8u | %8lld\n", string, logn, fft);
 }
 
+void test_compute_bnorm(fpr *restrict fa, fpr *restrict fb, char *string)
+{
+#if BENCH_CYCLES == 0
+    struct timespec start, stop;
+#else
+    long long start, stop;
+#endif
+    long long fft;
+    unsigned ntests = ITERATIONS;
+    
+    /* =================================== */
+    for (unsigned i = 0; i < ntests; i++)
+    {
+        TIME(start);
+        ZfN(compute_bnorm)(fa, fb);
+        TIME(stop);
+
+        times[i] = stop - start;
+    }
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    fft = times[ITERATIONS >> 1];
+
+    printf("| %8s | %8u | %8lld\n", string, FALCON_LOGN, fft);
+}
+
 int main()
 {
     fpr f[FALCON_N], fa[FALCON_N], fb[FALCON_N], fc[FALCON_N], tmp[FALCON_N] = {0};
@@ -486,6 +511,9 @@ int main()
     {
         test_poly_merge_fft(f, fa, fb, i, "poly_merge_fft");
     }
+    print_header();
+    test_compute_bnorm(fa, fb, "compute_bnorm");
+    
 
     return 0;
 }

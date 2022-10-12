@@ -1565,15 +1565,18 @@ fpr ZfN(compute_bnorm)(const fpr *rt1, const fpr *rt2)
 
     bnorm = vdupq_n_f64(0);
 
-    for (int i = 0; i < FALCON_N; i += 16)
+    for (int i = 0; i < FALCON_N;)
     {
         vloadx4(r1, &rt1[i]);
-        vloadx4(r11, &rt1[i + 8]);
+        i += 8;
 
         vfmla(bnorm, bnorm, r1.val[0], r1.val[0]);
         vfmla(bnorm, bnorm, r1.val[1], r1.val[1]);
         vfmla(bnorm, bnorm, r1.val[2], r1.val[2]);
         vfmla(bnorm, bnorm, r1.val[3], r1.val[3]);
+
+        vloadx4(r11, &rt1[i]);
+        i += 8;
 
         vfmla(bnorm, bnorm, r11.val[0], r11.val[0]);
         vfmla(bnorm, bnorm, r11.val[1], r11.val[1]);
@@ -1581,15 +1584,18 @@ fpr ZfN(compute_bnorm)(const fpr *rt1, const fpr *rt2)
         vfmla(bnorm, bnorm, r11.val[3], r11.val[3]);
     }
 
-    for (int i = 0; i < FALCON_N; i += 16)
+    for (int i = 0; i < FALCON_N;)
     {
         vloadx4(r2, &rt2[i]);
-        vloadx4(r22, &rt2[i + 8]);
+        i += 8;
 
         vfmla(bnorm, bnorm, r2.val[0], r2.val[0]);
         vfmla(bnorm, bnorm, r2.val[1], r2.val[1]);
         vfmla(bnorm, bnorm, r2.val[2], r2.val[2]);
         vfmla(bnorm, bnorm, r2.val[3], r2.val[3]);
+
+        vloadx4(r22, &rt2[i]);
+        i += 8;
 
         vfmla(bnorm, bnorm, r22.val[0], r22.val[0]);
         vfmla(bnorm, bnorm, r22.val[1], r22.val[1]);
