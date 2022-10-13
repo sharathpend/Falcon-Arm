@@ -196,7 +196,7 @@ fpr_expm_p63(const fpr x, const fpr ccs)
     return (uint64_t) ret;
 }
 
-#define TESTS 100ULL
+#define TESTS 100000ULL
 #define DEBUG 1
 
 int main()
