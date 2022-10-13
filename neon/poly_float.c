@@ -1561,9 +1561,10 @@ void ZfN(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n)
 fpr ZfN(compute_bnorm)(const fpr *rt1, const fpr *rt2)
 {
     float64x2x4_t r1, r11, r2, r22;
-    float64x2x4_t bnorm;
+    float64x2x4_t bnorm, bnorm2;
 
     vfdupx4(bnorm, 0);
+    vfdupx4(bnorm2, 0);
 
     for (int i = 0; i < FALCON_N;)
     {
@@ -1578,10 +1579,10 @@ fpr ZfN(compute_bnorm)(const fpr *rt1, const fpr *rt2)
         vloadx4(r11, &rt1[i]);
         i += 8;
 
-        vfmla(bnorm.val[0], bnorm.val[0], r11.val[0], r11.val[0]);
-        vfmla(bnorm.val[1], bnorm.val[1], r11.val[1], r11.val[1]);
-        vfmla(bnorm.val[2], bnorm.val[2], r11.val[2], r11.val[2]);
-        vfmla(bnorm.val[3], bnorm.val[3], r11.val[3], r11.val[3]);
+        vfmla(bnorm2.val[0], bnorm2.val[0], r11.val[0], r11.val[0]);
+        vfmla(bnorm2.val[1], bnorm2.val[1], r11.val[1], r11.val[1]);
+        vfmla(bnorm2.val[2], bnorm2.val[2], r11.val[2], r11.val[2]);
+        vfmla(bnorm2.val[3], bnorm2.val[3], r11.val[3], r11.val[3]);
     }
 
     for (int i = 0; i < FALCON_N;)
@@ -1597,15 +1598,20 @@ fpr ZfN(compute_bnorm)(const fpr *rt1, const fpr *rt2)
         vloadx4(r22, &rt2[i]);
         i += 8;
 
-        vfmla(bnorm.val[0], bnorm.val[0], r22.val[0], r22.val[0]);
-        vfmla(bnorm.val[1], bnorm.val[1], r22.val[1], r22.val[1]);
-        vfmla(bnorm.val[2], bnorm.val[2], r22.val[2], r22.val[2]);
-        vfmla(bnorm.val[3], bnorm.val[3], r22.val[3], r22.val[3]);
+        vfmla(bnorm2.val[0], bnorm2.val[0], r22.val[0], r22.val[0]);
+        vfmla(bnorm2.val[1], bnorm2.val[1], r22.val[1], r22.val[1]);
+        vfmla(bnorm2.val[2], bnorm2.val[2], r22.val[2], r22.val[2]);
+        vfmla(bnorm2.val[3], bnorm2.val[3], r22.val[3], r22.val[3]);
     }
 
     vfadd(bnorm.val[0], bnorm.val[0], bnorm.val[1]);
+    vfadd(bnorm2.val[0], bnorm2.val[0], bnorm2.val[1]);
     vfadd(bnorm.val[2], bnorm.val[2], bnorm.val[3]);
+    vfadd(bnorm2.val[2], bnorm2.val[2], bnorm2.val[3]);
     vfadd(bnorm.val[0], bnorm.val[0], bnorm.val[2]);
+    vfadd(bnorm2.val[0], bnorm2.val[0], bnorm2.val[2]);
+
+    vfadd(bnorm.val[0], bnorm.val[0], bnorm2.val[0]);
 
     return vaddvq_f64(bnorm.val[0]);
 }
