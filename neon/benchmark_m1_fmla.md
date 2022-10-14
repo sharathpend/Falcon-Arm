@@ -175,8 +175,8 @@
 
 | Function | logn | cycles |
 |:-------------|----------:|-----------:|
-| compute_bnorm |        9 |      594
-| compute_bnorm |       10 |     1106
+| compute_bnorm |        9 |      341
+| compute_bnorm |       10 |      614
 
 |degree|  kg(kc)|   ek(kc)|  sd(kc)| sdc(kc)|  st(kc)| stc(kc)|  vv(kc)| vvc(kc)|
 | ---- | ------ |  ------ | ------ | ------ | ------ | ------ | ------ | ------ |
