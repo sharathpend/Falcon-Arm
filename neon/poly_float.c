@@ -753,59 +753,21 @@ void ZfN(poly_add_muladj_fft)(fpr *restrict d,
     for (int i = 0; i < hn; i += 8)
     {
         vloadx4(F_re, &F[i]);
+        vloadx4(F_im, &F[i + hn]);
         vloadx4(f_re, &f[i]);
+        vloadx4(f_im, &f[i + hn]);
+
+        FPC_MUL_CONJx4(a_re, a_im, F_re, F_im, f_re, f_im);
 
         vloadx4(G_re, &G[i]);
         vloadx4(g_re, &g[i]);
 
-        vloadx4(F_im, &F[i + hn]);
-        vloadx4(f_im, &f[i + hn]);
-
         vloadx4(G_im, &G[i + hn]);
         vloadx4(g_im, &g[i + hn]);
 
-        vfmul(a_re.val[0], F_re.val[0], f_re.val[0]);
-        vfmla(a_re.val[0], a_re.val[0], G_re.val[0], g_re.val[0]);
-        vfmla(a_re.val[0], a_re.val[0], F_im.val[0], f_im.val[0]);
-        vfmla(a_re.val[0], a_re.val[0], G_im.val[0], g_im.val[0]);
-
-        vfmul(a_re.val[1], F_re.val[1], f_re.val[1]);
-        vfmla(a_re.val[1], a_re.val[1], F_im.val[1], f_im.val[1]);
-        vfmla(a_re.val[1], a_re.val[1], G_re.val[1], g_re.val[1]);
-        vfmla(a_re.val[1], a_re.val[1], G_im.val[1], g_im.val[1]);
-
-        vfmul(a_re.val[2], F_re.val[2], f_re.val[2]);
-        vfmla(a_re.val[2], a_re.val[2], G_re.val[2], g_re.val[2]);
-        vfmla(a_re.val[2], a_re.val[2], F_im.val[2], f_im.val[2]);
-        vfmla(a_re.val[2], a_re.val[2], G_im.val[2], g_im.val[2]);
-
-        vfmul(a_re.val[3], F_re.val[3], f_re.val[3]);
-        vfmla(a_re.val[3], a_re.val[3], G_re.val[3], g_re.val[3]);
-        vfmla(a_re.val[3], a_re.val[3], F_im.val[3], f_im.val[3]);
-        vfmla(a_re.val[3], a_re.val[3], G_im.val[3], g_im.val[3]);
+        FPC_MLA_CONJx4(a_re, a_im, G_re, G_im, g_re, g_im);
 
         vstorex4(&d[i], a_re);
-
-        vfmul(a_im.val[0], F_im.val[0], f_re.val[0]);
-        vfmla(a_im.val[0], a_im.val[0], G_im.val[0], g_re.val[0]);
-        vfmls(a_im.val[0], a_im.val[0], F_re.val[0], f_im.val[0]);
-        vfmls(a_im.val[0], a_im.val[0], G_re.val[0], g_im.val[0]);
-
-        vfmul(a_im.val[1], F_im.val[1], f_re.val[1]);
-        vfmla(a_im.val[1], a_im.val[1], G_im.val[1], g_re.val[1]);
-        vfmls(a_im.val[1], a_im.val[1], F_re.val[1], f_im.val[1]);
-        vfmls(a_im.val[1], a_im.val[1], G_re.val[1], g_im.val[1]);
-
-        vfmul(a_im.val[2], F_im.val[2], f_re.val[2]);
-        vfmla(a_im.val[2], a_im.val[2], G_im.val[2], g_re.val[2]);
-        vfmls(a_im.val[2], a_im.val[2], F_re.val[2], f_im.val[2]);
-        vfmls(a_im.val[2], a_im.val[2], G_re.val[2], g_im.val[2]);
-
-        vfmul(a_im.val[3], F_im.val[3], f_re.val[3]);
-        vfmla(a_im.val[3], a_im.val[3], G_im.val[3], g_re.val[3]);
-        vfmls(a_im.val[3], a_im.val[3], F_re.val[3], f_im.val[3]);
-        vfmls(a_im.val[3], a_im.val[3], G_re.val[3], g_im.val[3]);
-
         vstorex4(&d[i + hn], a_im);
     }
 }
@@ -1532,28 +1494,16 @@ void ZfN(poly_fpr_of_s16)(fpr *t0, const uint16_t *hm, const unsigned falcon_n)
         neon_hms64[3].val[2] = (int64x2_t)vzip1q_u32(neon_hmu32[1].val[3], (uint32x4_t)neon_zero);
         neon_hms64[3].val[3] = (int64x2_t)vzip2q_u32(neon_hmu32[1].val[3], (uint32x4_t)neon_zero);
 
-        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[0].val[0]);
-        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[0].val[1]);
-        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[0].val[2]);
-        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[0].val[3]);
+        vfcvtx4(neon_t0, neon_hms64[0]);
         vstorex4(&t0[u], neon_t0);
 
-        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[1].val[0]);
-        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[1].val[1]);
-        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[1].val[2]);
-        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[1].val[3]);
+        vfcvtx4(neon_t0, neon_hms64[1]);
         vstorex4(&t0[u + 8], neon_t0);
 
-        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[2].val[0]);
-        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[2].val[1]);
-        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[2].val[2]);
-        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[2].val[3]);
+        vfcvtx4(neon_t0, neon_hms64[2]);
         vstorex4(&t0[u + 16], neon_t0);
 
-        neon_t0.val[0] = vcvtq_f64_s64(neon_hms64[3].val[0]);
-        neon_t0.val[1] = vcvtq_f64_s64(neon_hms64[3].val[1]);
-        neon_t0.val[2] = vcvtq_f64_s64(neon_hms64[3].val[2]);
-        neon_t0.val[3] = vcvtq_f64_s64(neon_hms64[3].val[3]);
+        vfcvtx4(neon_t0, neon_hms64[3]);
         vstorex4(&t0[u + 24], neon_t0);
     }
 }
