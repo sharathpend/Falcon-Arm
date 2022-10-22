@@ -11,7 +11,8 @@
 CC = clang
 CFLAGS = -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O3
 LD = clang
-LDFLAGS = -O0
+LDFLAGS = -O3
+FFTFLAGS = -O3
 LIBS = 
 
 OBJ1 = build/codec.o build/poly_fft.o build/common.o build/fft.o build/keygen.o build/rng.o build/shake.o build/sign.o build/vrfy.o
@@ -58,7 +59,7 @@ build/fft.o: fast_fft.c $(HEAD1)
 	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O1 -c -o $@ fast_fft.c
 
 build/test_fft.o: fast_fft.c $(HEAD1)
-	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O3 -c -o $@ -DTEST_FFT=1 fast_fft.c
+	$(CC) -w -Wall -Wextra -Wpedantic -Wshadow -Wundef $(FFTFLAGS) -c -o $@ -DTEST_FFT=1 fast_fft.c
 
 build/fft_consts.o: fft_consts.c $(HEAD1)
 	$(CC) $(CFLAGS) -c -o $@ fft_consts.c
