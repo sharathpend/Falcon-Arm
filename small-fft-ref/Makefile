@@ -11,7 +11,7 @@
 CC = clang
 CFLAGS = -w -Wall -Wextra -Wpedantic -Wshadow -Wundef -O3
 LD = clang
-LDFLAGS = -O3
+LDFLAGS = -O0
 LIBS = 
 
 OBJ1 = build/codec.o build/poly_fft.o build/common.o build/fft.o build/keygen.o build/rng.o build/shake.o build/sign.o build/vrfy.o

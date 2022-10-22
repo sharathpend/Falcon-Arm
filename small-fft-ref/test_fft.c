@@ -20,7 +20,7 @@
 
 #endif
 
-#define ITERATIONS 10000
+#define ITERATIONS 50000
 uint64_t times[ITERATIONS];
 
 void print_header()
@@ -367,3 +367,8 @@ int main(void)
 
     return 0;
 }
+
+
+// Compile flags:
+// make test_fft_m1; sudo ./test_fft_m1
+// make test_fft_a72; sudo ./test_fft_a72
