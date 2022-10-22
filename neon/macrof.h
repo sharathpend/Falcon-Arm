@@ -130,16 +130,16 @@
 #define vfmls_lane(d, c, a, b, i) d = vfmsq_laneq_f64(c, a, b, i);
 
 #else
-// d = c + a *b
-#define vfmla(d, c, a, b) d = vmlaq_f64(c, a, b);
-// d = c - a *b
-#define vfmls(d, c, a, b) d = vmlsq_f64(c, a, b);
-// d = c + a * b[i]
-#define vfmla_lane(d, c, a, b, i) \
-    d = vaddq_f64(c, vmulq_laneq_f64(a, b, i));
+    // d = c + a *b
+    #define vfmla(d, c, a, b) d = vaddq_f64(c, vmulq_f64(a, b));
+    // d = c - a *b
+    #define vfmls(d, c, a, b) d = vsubq_f64(c, vmulq_f64(a, b));
+    // d = c + a * b[i]
+    #define vfmla_lane(d, c, a, b, i) \
+        d = vaddq_f64(c, vmulq_laneq_f64(a, b, i));
 
-#define vfmls_lane(d, c, a, b, i) \
-    d = vsubq_f64(c, vmulq_laneq_f64(a, b, i));
+    #define vfmls_lane(d, c, a, b, i) \
+        d = vsubq_f64(c, vmulq_laneq_f64(a, b, i));
 
 #endif
 
