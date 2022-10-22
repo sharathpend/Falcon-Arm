@@ -2,64 +2,139 @@
 
 Iterations: 50,000
 
-test_with_ref_FFF: -O0
-Compare my FFT versus reference FFT code
+## Compile with -O0 for both
 
 | Function (logn) | Fast FFT | Ref FFT |
 |:-------------|----------:|-----------:|
-| FFT 2 |      104 |      445
-| FFT 3 |      160 |     1265
-| FFT 4 |      259 |     3619
-| FFT 5 |      451 |     9194
-| FFT 6 |      867 |    21943
-| FFT 7 |     1756 |    50817
-| FFT 8 |     3812 |   116311
-| FFT 9 |     8366 |   262861
-| FFT 10 |    18350 |   587092
+| FWD_FFT 2 |      110 |      236
+| FWD_FFT 3 |      194 |      634
+| FWD_FFT 4 |      368 |     1806
+| FWD_FFT 5 |      790 |     4583
+| FWD_FFT 6 |     1783 |    11041
+| FWD_FFT 7 |     4093 |    25556
+| FWD_FFT 8 |     9297 |    58587
+| FWD_FFT 9 |    20874 |   132696
+| FWD_FFT 10 |    46370 |   297056
 
 
-test_with_ref_FFF: -O1
-Compare my FFT versus reference FFT code
 
 | Function (logn) | Fast FFT | Ref FFT |
 |:-------------|----------:|-----------:|
-| FFT 2 |      102 |      214
-| FFT 3 |      159 |      362
-| FFT 4 |      257 |      774
-| FFT 5 |      451 |     1865
-| FFT 6 |      868 |     4231
-| FFT 7 |     1757 |     9559
-| FFT 8 |     3812 |    21368
-| FFT 9 |     8368 |    47487
-| FFT 10 |    18350 |   105061
+| INV_FFT 2 |      157 |      276
+| INV_FFT 3 |      255 |      701
+| INV_FFT 4 |      476 |     1891
+| INV_FFT 5 |      983 |     4673
+| INV_FFT 6 |     2156 |    10990
+| INV_FFT 7 |     4787 |    25358
+| INV_FFT 8 |    10643 |    57826
+| INV_FFT 9 |    23529 |   130257
+| INV_FFT 10 |    51684 |   290135
 
-
-test_with_ref_FFF: -O2
-Compare my FFT versus reference FFT code
+## Compile with -O1 for both
 
 | Function (logn) | Fast FFT | Ref FFT |
 |:-------------|----------:|-----------:|
-| FFT 2 |      100 |      126
-| FFT 3 |      159 |      193
-| FFT 4 |      259 |      254
-| FFT 5 |      451 |      412
-| FFT 6 |      868 |      754
-| FFT 7 |     1757 |     1543
-| FFT 8 |     3814 |     4274
-| FFT 9 |     8369 |     8567
-| FFT 10 |    18352 |    17820
+| FWD_FFT 2 |       78 |      104
+| FWD_FFT 3 |      100 |      180
+| FWD_FFT 4 |      147 |      369
+| FWD_FFT 5 |      234 |      864
+| FWD_FFT 6 |      425 |     1988
+| FWD_FFT 7 |      864 |     4515
+| FWD_FFT 8 |     1863 |    10166
+| FWD_FFT 9 |     4140 |    22714
+| FWD_FFT 10 |     9155 |    50475
 
-test_with_ref_FFF: -O3
-Compare my FFT versus reference FFT code
 
 | Function (logn) | Fast FFT | Ref FFT |
 |:-------------|----------:|-----------:|
-| FFT 2 |      102 |      123
-| FFT 3 |      159 |      182
-| FFT 4 |      258 |      250
-| FFT 5 |      451 |      396
-| FFT 6 |      868 |      723
-| FFT 7 |     1756 |     1489
-| FFT 8 |     3814 |     4135
-| FFT 9 |     8369 |     8329
-| FFT 10 |    18352 |    17370
+| INV_FFT 2 |       85 |      166
+| INV_FFT 3 |      111 |      260
+| INV_FFT 4 |      164 |      479
+| INV_FFT 5 |      262 |     1040
+| INV_FFT 6 |      481 |     2297
+| INV_FFT 7 |      982 |     5096
+| INV_FFT 8 |     2072 |    11252
+| INV_FFT 9 |     4503 |    24823
+| INV_FFT 10 |     9891 |    54634
+
+## Compile with -O2 for both
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| FWD_FFT 2 |       83 |       86
+| FWD_FFT 3 |      111 |      125
+| FWD_FFT 4 |      178 |      170
+| FWD_FFT 5 |      278 |      251
+| FWD_FFT 6 |      501 |      419
+| FWD_FFT 7 |      967 |      775
+| FWD_FFT 8 |     1988 |     2055
+| FWD_FFT 9 |     4361 |     4144
+| FWD_FFT 10 |     9481 |     8670
+
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| INV_FFT 2 |       83 |       98
+| INV_FFT 3 |      107 |      126
+| INV_FFT 4 |      175 |      180
+| INV_FFT 5 |      282 |      258
+| INV_FFT 6 |      501 |      431
+| INV_FFT 7 |      968 |      866
+| INV_FFT 8 |     2035 |     2334
+| INV_FFT 9 |     4405 |     4523
+| INV_FFT 10 |     9486 |     9257
+
+## Compile with -O3 for both
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| FWD_FFT 2 |       83 |       84
+| FWD_FFT 3 |      110 |      118
+| FWD_FFT 4 |      173 |      164
+| FWD_FFT 5 |      272 |      240
+| FWD_FFT 6 |      482 |      401
+| FWD_FFT 7 |      926 |      746
+| FWD_FFT 8 |     1936 |     1980
+| FWD_FFT 9 |     4223 |     4026
+| FWD_FFT 10 |     9232 |     8434
+
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| INV_FFT 2 |       83 |       95
+| INV_FFT 3 |      107 |      126
+| INV_FFT 4 |      173 |      173
+| INV_FFT 5 |      273 |      254
+| INV_FFT 6 |      484 |      418
+| INV_FFT 7 |      927 |      839
+| INV_FFT 8 |     1973 |     2252
+| INV_FFT 9 |     4243 |     4399
+| INV_FFT 10 |     9216 |     9043
+
+
+## Compile with -Os for both
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| FWD_FFT 2 |       78 |       82
+| FWD_FFT 3 |       98 |       99
+| FWD_FFT 4 |      144 |      153
+| FWD_FFT 5 |      212 |      216
+| FWD_FFT 6 |      365 |      368
+| FWD_FFT 7 |      736 |      734
+| FWD_FFT 8 |     1578 |     1576
+| FWD_FFT 9 |     3520 |     3542
+| FWD_FFT 10 |     7783 |     7751
+
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| INV_FFT 2 |       79 |       86
+| INV_FFT 3 |      103 |      113
+| INV_FFT 4 |      146 |      164
+| INV_FFT 5 |      221 |      246
+| INV_FFT 6 |      396 |      434
+| INV_FFT 7 |      805 |      871
+| INV_FFT 8 |     1700 |     1818
+| INV_FFT 9 |     3723 |     3941
+| INV_FFT 10 |     8187 |     8526
