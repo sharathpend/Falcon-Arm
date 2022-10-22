@@ -111,3 +111,31 @@ Iterations: 10,000
 | INV_FFT 8 |     6,850 |     6,036
 | INV_FFT 9 |    14,819 |    13,081
 | INV_FFT 10 |    32,003 |    28,088
+
+
+## Compile with -Os for both
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| FWD_FFT 2 |       19 |       28
+| FWD_FFT 3 |       58 |       70
+| FWD_FFT 4 |      142 |      162
+| FWD_FFT 5 |      346 |      369
+| FWD_FFT 6 |      824 |      849
+| FWD_FFT 7 |     1964 |     2022
+| FWD_FFT 8 |     4605 |     4709
+| FWD_FFT 9 |    10451 |    10118
+| FWD_FFT 10 |    22797 |    23496
+
+
+| Function (logn) | Fast FFT | Ref FFT |
+|:-------------|----------:|-----------:|
+| INV_FFT 2 |       20 |       35
+| INV_FFT 3 |       59 |       80
+| INV_FFT 4 |      147 |      183
+| INV_FFT 5 |      359 |      421
+| INV_FFT 6 |      852 |      968
+| INV_FFT 7 |     2036 |     2283
+| INV_FFT 8 |     4696 |     5151
+| INV_FFT 9 |    10559 |    11052
+| INV_FFT 10 |    23524 |    24867
