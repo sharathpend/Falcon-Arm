@@ -397,42 +397,42 @@ int main(void)
         }
     }
 
-    // printf("\ntest_variant_fft: ");
-    // printf("\nCompare my (loop separated) FFT versus my (without loop separateed) FFT code\n");
+    printf("\ntest_variant_fft: ");
+    printf("\nCompare my (loop separated) FFT versus my (without loop separateed) FFT code\n");
 
-    // print_header();
-    // for (int logn = 2; logn < 11; logn++)
-    // {
-    //     if (test_variant_fft(logn, ITERATIONS))
-    //     {
-    //         printf("Error at LOGN = %d\n", logn);
-    //         return 1;
-    //     }
-    // }
+    print_header();
+    for (int logn = 2; logn < 11; logn++)
+    {
+        if (test_variant_fft(logn, ITERATIONS))
+        {
+            printf("Error at LOGN = %d\n", logn);
+            return 1;
+        }
+    }
 
-    // printf("\ntest_with_ref_FFF: ");
-    // printf("\nCompare my FFT versus reference FFT code\n");
-    // print_header2();
-    // for (int logn = 2; logn < 11; logn++)
-    // {
-    //     if (test_with_ref_FFF(logn, ITERATIONS))
-    //     {
-    //         printf("Error at LOGN = %d\n", logn);
-    //         return 1;
-    //     }
-    // }
+    printf("\ntest_with_ref_FFF: ");
+    printf("\nCompare my FFT versus reference FFT code\n");
+    print_header2();
+    for (int logn = 2; logn < 11; logn++)
+    {
+        if (test_with_ref_FFF(logn, ITERATIONS))
+        {
+            printf("Error at LOGN = %d\n", logn);
+            return 1;
+        }
+    }
 
-    // printf("\ntest_split_merge_function: ");
-    // printf("\nCompare my split/merge FFT versus reference split/merge FFT code\n");
-    // print_header();
-    // for (int logn = 2; logn < 11; logn++)
-    // {
-    //     if (test_split_merge_function(logn, ITERATIONS))
-    //     {
-    //         printf("Error at LOGN = %d\n", logn);
-    //         return 1;
-    //     }
-    // }
+    printf("\ntest_split_merge_function: ");
+    printf("\nCompare my split/merge FFT versus reference split/merge FFT code\n");
+    print_header();
+    for (int logn = 2; logn < 11; logn++)
+    {
+        if (test_split_merge_function(logn, ITERATIONS))
+        {
+            printf("Error at LOGN = %d\n", logn);
+            return 1;
+        }
+    }
 
     return 0;
 }
