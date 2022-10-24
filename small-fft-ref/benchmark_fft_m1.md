@@ -138,3 +138,31 @@ Iterations: 50,000
 | INV_FFT 8 |     1700 |     1818
 | INV_FFT 9 |     3723 |     3941
 | INV_FFT 10 |     8187 |     8526
+
+
+## Compare Split FFT versus Adjacent FFT, with -Os for both
+
+| Function (logn) | SplitFFT | AdjFFT |
+|:-------------|----------:|-----------:|
+| FWD_FFT 2 |       78 |       79
+| FWD_FFT 3 |       98 |      102
+| FWD_FFT 4 |      145 |      146
+| FWD_FFT 5 |      212 |      213
+| FWD_FFT 6 |      365 |      376
+| FWD_FFT 7 |      738 |      726
+| FWD_FFT 8 |     1580 |     1540
+| FWD_FFT 9 |     3515 |     3395
+| FWD_FFT 10 |     7799 |     7583
+
+
+| Function (logn) | SplitFFT | AdjFFT |
+|:-------------|----------:|-----------:|
+| INV_FFT 2 |       78 |       79
+| INV_FFT 3 |      106 |      102
+| INV_FFT 4 |      148 |      146
+| INV_FFT 5 |      222 |      216
+| INV_FFT 6 |      401 |      377
+| INV_FFT 7 |      805 |      745
+| INV_FFT 8 |     1702 |     1577
+| INV_FFT 9 |     3732 |     3472
+| INV_FFT 10 |     8201 |     7681
