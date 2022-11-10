@@ -1,5 +1,5 @@
 /*
- * Floating-point operations.
+ * Compressed floating-point Twiddle Factor.
  *
  * This file implements the non-inline functions declared in
  * fpr.h, as well as the constants for FFT / iFFT.
