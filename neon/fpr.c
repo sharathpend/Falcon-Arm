@@ -325,6 +325,7 @@ const fpr fpr_tab_log10[] = {
 };
 
 const fpr *fpr_table[] = {
+    NULL, NULL, 
     fpr_tab_log2,
     fpr_tab_log3,
     fpr_tab_log4,

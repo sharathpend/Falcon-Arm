@@ -286,7 +286,7 @@ void ZfN(FFT_log5)(fpr *f, const unsigned logn)
     const unsigned int falcon_n = 1 << logn;
     const unsigned int hn = falcon_n >> 1;
 
-    int level = logn - 5;
+    int level = logn - 3;
     const fpr *fpr_tab2 = fpr_table[level++],
         *fpr_tab3 = fpr_table[level++],
         *fpr_tab4 = fpr_table[level++],
@@ -604,7 +604,7 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
 
     const fpr *fpr_tab1 = NULL, *fpr_tab2 = NULL;
     unsigned l, len, start, j, k1, k2;
-    unsigned bar = logn - level;
+    unsigned bar = logn - level + 2;
     unsigned J;
 
     for (l = level - 1; l > 4; l -= 2)
@@ -713,7 +713,7 @@ void ZfN(FFT_logn2)(fpr *f, const unsigned logn, const unsigned level)
 
     const fpr *fpr_tab1 = NULL, *fpr_tab2 = NULL;
     unsigned l, len, start, j, k1, k2;
-    unsigned bar = logn - level;
+    unsigned bar = logn - level + 2;
 
     for (l = level - 1; l > 4; l -= 2)
     {
@@ -1135,7 +1135,7 @@ void ZfN(iFFT_log5)(fpr *f, const unsigned logn, const unsigned last)
     const unsigned n = 1 << logn;
     const unsigned hn = n >> 1;
 
-    int level = logn - 2;
+    int level = logn;
     const fpr *fpr_tab5 = fpr_table[level--], 
             *fpr_tab4 = fpr_table[level--], 
             *fpr_tab3 = fpr_table[level--], 
@@ -1642,7 +1642,7 @@ void ZfN(iFFT_logn2)(fpr *f, const unsigned logn, const unsigned level, unsigned
 
     const fpr *fpr_inv_tab1 = NULL, *fpr_inv_tab2 = NULL;
     unsigned l, len, start, j, k1, k2;
-    unsigned bar = logn - 4 - 2;
+    unsigned bar = logn - 4;
 
     for (l = 4; l < logn - level - 1; l += 2)
     {
