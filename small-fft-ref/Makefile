@@ -36,9 +36,11 @@ clean:
 
 build/kat512fpu: $(OBJ1) $(OBJ2) $(OBJ2a)
 	$(LD) $(LDFLAGS) -o build/kat512fpu $(OBJ1) $(OBJ2a) $(OBJ2) $(LIBS)
+	./$@
 
 build/kat1024fpu: $(OBJ1) $(OBJ3) $(OBJ3a)
 	$(LD) $(LDFLAGS) -o build/kat1024fpu $(OBJ1) $(OBJ3a) $(OBJ3) $(LIBS)
+	./$@
 
 test_fft_a72: ref_fft.c build/test_fft.o test_fft.c hal.c
 	$(LD) $(LDFLAGS) -o $@ hal.c      ref_fft.c build/test_fft.o -DAPPLE_M1=0 test_fft.c

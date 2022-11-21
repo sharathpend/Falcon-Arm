@@ -417,7 +417,7 @@ void Zf(FFT)(fpr *f, unsigned logn)
     {
         fpr_tab = fpr_table[level++];
         k = 0;
-        for (start = 0; start < hn; start = j + len)
+        for (start = 0; start < hn; start += 2*len)
         {
             zeta_re = fpr_tab[k++];
             zeta_im = fpr_tab[k++];
@@ -434,7 +434,7 @@ void Zf(FFT)(fpr *f, unsigned logn)
                 FPC_ADD(f[j], f[j + hn], a_re, a_im, t_re, t_im);
             }
 
-            start = j + len;
+            start += 2*len;
 
             for (j = start; j < start + len; j += 1)
             {
@@ -472,7 +472,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
     {
         fpr_tab_inv = fpr_table[level--];
         k = 0;
-        for (start = 0; start < hn; start = j + len)
+        for (start = 0; start < hn; start += 2*len)
         {
             // Conjugate of zeta is embeded in MUL
             zeta_re = fpr_tab_inv[k++];
@@ -490,7 +490,7 @@ void Zf(iFFT)(fpr *f, unsigned logn)
                 FPC_MUL_CONJ(f[j + len], f[j + len + hn], t_re, t_im, zeta_re, zeta_im);
             }
 
-            start = j + len;
+            start += 2*len;
 
             for (j = start; j < start + len; j += 1)
             {
