@@ -224,9 +224,10 @@ int main()
         {
             if (DEBUG)
             {
-                printf("ccs: %.10f\n", ccs);
-                printf("tmp: %.10f\n", tmp);
+                printf("ccs: %.10f (%8lx)\n", ccs, ccs);
+                printf("x: %.10f (%8lx)\n", tmp, tmp);
                 printf("%3lu: a, b: %8lx | %8lx\n", i, a, b);
+                printf("%3lu: a, b: %.10f | %.10f\n", i, a, b);
                 printf("diff: %lu\n", diff);
                 printf("=====\n");
             }

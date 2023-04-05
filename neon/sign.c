@@ -312,95 +312,179 @@ typedef int (*samplerZ)(void *ctx, fpr mu, fpr sigma);
  * is written over (t0,t1). The Gram matrix is modified as well. The
  * tmp[] buffer must have room for four polynomials.
  */
+
+/* 
+ * This code is developed by Raymond K. Zhao from https://eprint.iacr.org/2023/399
+ * Vectorize performance on ARMv8 remain unchanged.
+ */
+ typedef struct
+ {
+	fpr *t0; 
+	fpr *t1;
+	fpr *g00; 
+	fpr *g01; 
+	fpr *g11;
+	unsigned logn; 
+	fpr *tmp;
+	fpr *z0; 
+	fpr *z1;
+ } STACK;
+ 
+
 static void
 ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 	fpr *restrict t0, fpr *restrict t1,
 	fpr *restrict g00, fpr *restrict g01, fpr *restrict g11,
-	unsigned orig_logn, unsigned logn, fpr *restrict tmp)
+	unsigned orig_logn, unsigned logn, fpr *tmp)
 {
 	size_t n, hn;
-	fpr *z0, *z1;
+	STACK stack[orig_logn + 1];
+	unsigned stack_top = 0;
+	
+	stack[0].t0 = t0;
+	stack[0].t1 = t1;
+	stack[0].g00 = g00;
+	stack[0].g01 = g01;
+	stack[0].g11 = g11;
+	stack[0].logn = logn;
+	stack[0].tmp = tmp;
+	stack[0].z0 = NULL;
+	stack[0].z1 = NULL;
+	
+	while (1)
+	{
+		/*
+		 * Deepest level: the LDL tree leaf value is just g00 (the
+		 * array has length only 1 at this point); we normalize it
+		 * with regards to sigma, then use it for sampling.
+		 */
+		if (stack[stack_top].logn == 0) {
+			fpr leaf;
 
-	/*
-	 * Deepest level: the LDL tree leaf value is just g00 (the
-	 * array has length only 1 at this point); we normalize it
-	 * with regards to sigma, then use it for sampling.
-	 */
-	if (logn == 0) {
-		fpr leaf;
-
-		leaf = g00[0];
+			leaf = stack[stack_top].g00[0];
 #if FALCON_LOGN == 9
-		leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma_9);
+            leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma_9);
 #elif FALCON_LOGN == 10
-        leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma_10);
-#endif
-		t0[0] = fpr_of(samp(samp_ctx, t0[0], leaf));
-		t1[0] = fpr_of(samp(samp_ctx, t1[0], leaf));
-		return;
+            leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma_10);
+#endif		
+			stack[stack_top].t0[0] = fpr_of(samp(samp_ctx, stack[stack_top].t0[0], leaf));
+			stack[stack_top].t1[0] = fpr_of(samp(samp_ctx, stack[stack_top].t1[0], leaf));
+			
+			if (stack[--stack_top].z0 == NULL)
+			{
+				ZfN(poly_merge_fft)(stack[stack_top].tmp + 4, stack[stack_top].z1, stack[stack_top].z1 + 1, 1);
+			}
+			else
+			{
+				ZfN(poly_merge_fft)(stack[stack_top].t0, stack[stack_top].z0, stack[stack_top].z0 + 1, 1);
+			}
+		}
+		else
+		{
+			n = (size_t)1 << stack[stack_top].logn;
+			hn = n >> 1;
+
+			if (stack[stack_top].z1 == NULL)
+			{
+				/*
+				 * Decompose G into LDL. We only need d00 (identical to g00),
+				 * d11, and l10; we do that in place.
+				 */
+				ZfN(poly_LDL_fft)(stack[stack_top].g00, stack[stack_top].g01, stack[stack_top].g11, stack[stack_top].logn);
+
+				/*
+				 * Split d00 and d11 and expand them into half-size quasi-cyclic
+				 * Gram matrices. We also save l10 in tmp[].
+				 */
+				ZfN(poly_split_fft)(stack[stack_top].tmp, stack[stack_top].tmp + hn, stack[stack_top].g00, stack[stack_top].logn);
+				memcpy(stack[stack_top].g00, stack[stack_top].tmp, n * sizeof *tmp);
+				ZfN(poly_split_fft)(stack[stack_top].tmp, stack[stack_top].tmp + hn, stack[stack_top].g11, stack[stack_top].logn);
+				memcpy(stack[stack_top].g11, stack[stack_top].tmp, n * sizeof *tmp);
+				memcpy(stack[stack_top].tmp, stack[stack_top].g01, n * sizeof *g01);
+				memcpy(stack[stack_top].g01, stack[stack_top].g00, hn * sizeof *g00);
+				memcpy(stack[stack_top].g01 + hn, stack[stack_top].g11, hn * sizeof *g00);
+
+				/*
+				 * The half-size Gram matrices for the recursive LDL tree
+				 * building are now:
+				 *   - left sub-tree: g00, g00+hn, g01
+				 *   - right sub-tree: g11, g11+hn, g01+hn
+				 * l10 is in tmp[].
+				 */
+				 
+				/*
+				 * We split t1 and use the first recursive call on the two
+				 * halves, using the right sub-tree. The result is merged
+				 * back into tmp + 2*n.
+				 */
+				stack[stack_top].z1 = stack[stack_top].tmp + n;
+				ZfN(poly_split_fft)(stack[stack_top].z1, stack[stack_top].z1 + hn, stack[stack_top].t1, stack[stack_top].logn);
+
+				stack[stack_top + 1].t0 = stack[stack_top].z1;
+				stack[stack_top + 1].t1 = stack[stack_top].z1 + hn;
+				stack[stack_top + 1].g00 = stack[stack_top].g11;
+				stack[stack_top + 1].g01 = stack[stack_top].g11 + hn;
+				stack[stack_top + 1].g11 = stack[stack_top].g01 + hn;
+				stack[stack_top + 1].logn = stack[stack_top].logn - 1;
+				stack[stack_top + 1].tmp = stack[stack_top].z1 + n;
+				stack[stack_top + 1].z0 = NULL;
+				stack[++stack_top].z1 = NULL;
+			}
+			else if (stack[stack_top].z0 == NULL)
+			{
+				/*
+				 * Compute tb0 = t0 + (t1 - z1) * l10.
+				 * At that point, l10 is in tmp, t1 is unmodified, and z1 is
+				 * in tmp + (n << 1). The buffer in z1 is free.
+				 *
+				 * In the end, z1 is written over t1, and tb0 is in t0.
+				 */
+				memcpy(stack[stack_top].z1, stack[stack_top].t1, n * sizeof *t1);
+				ZfN(poly_sub)(stack[stack_top].z1, stack[stack_top].z1, stack[stack_top].tmp + (n << 1), stack[stack_top].logn);
+				memcpy(stack[stack_top].t1, stack[stack_top].tmp + (n << 1), n * sizeof *tmp);
+				ZfN(poly_mul_fft)(stack[stack_top].tmp, stack[stack_top].tmp, stack[stack_top].z1, stack[stack_top].logn);
+				ZfN(poly_add)(stack[stack_top].t0, stack[stack_top].t0, stack[stack_top].tmp, stack[stack_top].logn);
+
+				/*
+				 * Second recursive invocation, on the split tb0 (currently in t0)
+				 * and the left sub-tree.
+				 */
+				stack[stack_top].z0 = stack[stack_top].tmp;
+				ZfN(poly_split_fft)(stack[stack_top].z0, stack[stack_top].z0 + hn, stack[stack_top].t0, stack[stack_top].logn);
+
+				stack[stack_top + 1].t0 = stack[stack_top].z0;
+				stack[stack_top + 1].t1 = stack[stack_top].z0 + hn;
+				stack[stack_top + 1].g00 = stack[stack_top].g00;
+				stack[stack_top + 1].g01 = stack[stack_top].g00 + hn;
+				stack[stack_top + 1].g11 = stack[stack_top].g01;
+				stack[stack_top + 1].logn = stack[stack_top].logn - 1;
+				stack[stack_top + 1].tmp = stack[stack_top].z0 + n;
+				stack[stack_top + 1].z0 = NULL;
+				stack[++stack_top].z1 = NULL;
+			}
+			else
+			{
+				if (stack[stack_top].logn == orig_logn)
+				{
+					return;
+				}
+				else
+				{
+					if (stack[--stack_top].z0 == NULL)
+					{
+						ZfN(poly_merge_fft)(stack[stack_top].tmp + (n << 2), stack[stack_top].z1, stack[stack_top].z1 + n, stack[stack_top].logn);
+					}
+					else
+					{
+						ZfN(poly_merge_fft)(stack[stack_top].t0, stack[stack_top].z0, stack[stack_top].z0 + n, stack[stack_top].logn);
+					}
+				}
+			}
+		}
 	}
-
-	n = (size_t)1 << logn;
-	hn = n >> 1;
-
-	/*
-	 * Decompose G into LDL. We only need d00 (identical to g00),
-	 * d11, and l10; we do that in place.
-	 */
-	ZfN(poly_LDL_fft)(g00, g01, g11, logn);
-
-	/*
-	 * Split d00 and d11 and expand them into half-size quasi-cyclic
-	 * Gram matrices. We also save l10 in tmp[].
-	 */
-	ZfN(poly_split_fft)(tmp, tmp + hn, g00, logn);
-	memcpy(g00, tmp, n * sizeof *tmp);
-	ZfN(poly_split_fft)(tmp, tmp + hn, g11, logn);
-	memcpy(g11, tmp, n * sizeof *tmp);
-	memcpy(tmp, g01, n * sizeof *g01);
-	memcpy(g01, g00, hn * sizeof *g00);
-	memcpy(g01 + hn, g11, hn * sizeof *g00);
-
-	/*
-	 * The half-size Gram matrices for the recursive LDL tree
-	 * building are now:
-	 *   - left sub-tree: g00, g00+hn, g01
-	 *   - right sub-tree: g11, g11+hn, g01+hn
-	 * l10 is in tmp[].
-	 */
-
-	/*
-	 * We split t1 and use the first recursive call on the two
-	 * halves, using the right sub-tree. The result is merged
-	 * back into tmp + 2*n.
-	 */
-	z1 = tmp + n;
-	ZfN(poly_split_fft)(z1, z1 + hn, t1, logn);
-	ffSampling_fft_dyntree(samp, samp_ctx, z1, z1 + hn,
-		g11, g11 + hn, g01 + hn, orig_logn, logn - 1, z1 + n);
-	ZfN(poly_merge_fft)(tmp + (n << 1), z1, z1 + hn, logn);
-
-	/*
-	 * Compute tb0 = t0 + (t1 - z1) * l10.
-	 * At that point, l10 is in tmp, t1 is unmodified, and z1 is
-	 * in tmp + (n << 1). The buffer in z1 is free.
-	 *
-	 * In the end, z1 is written over t1, and tb0 is in t0.
-	 */
-	ZfN(poly_sub)(z1, t1, tmp + (n << 1), logn);
-	memcpy(t1, tmp + (n << 1), n * sizeof *tmp);
-    ZfN(poly_mul_add_fft)(t0, t0, tmp, z1, logn);
-
-	/*
-	 * Second recursive invocation, on the split tb0 (currently in t0)
-	 * and the left sub-tree.
-	 */
-	z0 = tmp;
-	ZfN(poly_split_fft)(z0, z0 + hn, t0, logn);
-	ffSampling_fft_dyntree(samp, samp_ctx, z0, z0 + hn,
-		g00, g00 + hn, g01, orig_logn, logn - 1, z0 + n);
-	ZfN(poly_merge_fft)(t0, z0, z0 + hn, logn);
 }
+
+
 
 /*
  * Perform Fast Fourier Sampling for target vector t and LDL tree T.
