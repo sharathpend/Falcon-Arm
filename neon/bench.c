@@ -102,7 +102,7 @@ void test_NTT(int16_t *a, unsigned logn)
     for (unsigned i = 0; i < ntests; i++)
     {
         TIME(start);
-        ZfN(poly_ntt)(a, 0);
+        ZfN(poly_ntt)(a, NTT_NONE);
         TIME(stop);
 
         times[i] = stop - start;
@@ -114,7 +114,7 @@ void test_NTT(int16_t *a, unsigned logn)
     for (unsigned i = 0; i < ntests; i++)
     {
         TIME(start);
-        ZfN(poly_invntt)(a, 0);
+        ZfN(poly_invntt)(a, INVNTT_NONE);
         TIME(stop);
 
         times[i] = stop - start;

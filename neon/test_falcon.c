@@ -2128,7 +2128,7 @@ test_codec_inner(unsigned logn, uint8_t *tmp, size_t tlen)
 }
 
 static void
-test_codec()
+test_codec(void)
 {
 	uint8_t *tmp;
 	size_t tlen;
@@ -2291,7 +2291,7 @@ test_vrfy_inner(unsigned logn, const int8_t *f, const int8_t *g,
 }
 
 static void
-test_vrfy()
+test_vrfy(void)
 {
 	uint8_t *tmp;
 	size_t tlen;
@@ -3722,7 +3722,7 @@ test_sign_self(const int8_t *f, const int8_t *g,
 }
 
 static void
-test_sign()
+test_sign(void)
 {
 	uint8_t *tmp;
 	size_t tlen;
