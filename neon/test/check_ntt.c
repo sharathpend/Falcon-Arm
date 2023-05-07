@@ -752,7 +752,7 @@ int test_invntt()
     return 0;
 }
 
-int test_neon_ntt(const int mont)
+int test_neon_ntt(ntt_domain_t mont)
 {
     int16_t gold[FALCON_N];
     int16_t test[FALCON_N];
@@ -768,7 +768,7 @@ int test_neon_ntt(const int mont)
         }
 
         ntt_rewrite_forward(gold);
-        if (mont)
+        if (mont == NTT_MONT)
         {
             mq_poly_tomonty(gold, FALCON_LOGN);
         }
@@ -799,7 +799,7 @@ int test_neon_invntt()
         }
 
         ntt_rewrite_inverse(gold);
-        ZfN(poly_invntt)(test, 1);
+        ZfN(poly_invntt)(test, INVNTT_NINV);
 
         // print_array(gold, FALCON_N);
         // print_array(test, FALCON_N);
@@ -820,11 +820,11 @@ int main()
     if (!ret) printf("ntt_rewrite_forward is equal to mq_NTT\n");
     ret |= test_invntt();
     if (!ret) printf("ntt_rewrite_inverse is equal to mq_iNTT\n");
-    ret |= test_neon_ntt(0);
+    ret |= test_neon_ntt(NTT_NONE);
     if (!ret) printf("ZfN(poly_ntt) is equal to ntt_rewrite_forward\n");
     ret |= test_neon_invntt();
     if (!ret) printf("ZfN(poly_invntt) is equal to ntt_rewrite_inverse\n");
-    ret |= test_neon_ntt(1);
+    ret |= test_neon_ntt(NTT_MONT);
     if (!ret) printf("ZfN(poly_ntt) to MONT is equal to ntt_rewrite_forward MONT\n");
 
     if (ret)

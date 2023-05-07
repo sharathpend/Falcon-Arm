@@ -28,26 +28,26 @@
 
 #include <stdio.h>
 
-#define MONT 1
-#define MONT_INV 2
-
 /*
  * Assume Input in the range [-Q/2, Q/2]
  * Total Barrett point for N = 512, 1024: 2048, 4096
  */
-void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
+void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
 {
     // Total SIMD registers 29 = 16 + 12 + 1
     int16x8x4_t v0, v1, v2, v3; // 16
     int16x8x4_t zl, zh, t, t2;  // 12
     int16x8x2_t zlh, zhh;       // 4
     int16x8_t neon_qmvq;        // 1
-    unsigned k = 0;
+    const int16_t *ptr_ntt_br = ntt_br;
+    const int16_t *ptr_ntt_qinv_br = ntt_qinv_br;
 
     neon_qmvq = vld1q_s16(qmvq);
-    zl.val[0] = vld1q_s16(&ntt_br[k]);
-    zh.val[0] = vld1q_s16(&ntt_qinv_br[k]);
-    k += 8;
+    zl.val[0] = vld1q_s16(ptr_ntt_br);
+    zh.val[0] = vld1q_s16(ptr_ntt_qinv_br);
+    ptr_ntt_br += 8;
+    ptr_ntt_qinv_br += 8;
+
 #if FALCON_N == 512
     // Layer 8, 7
     for (unsigned j = 0; j < 128; j += 32)
@@ -269,9 +269,10 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
         vload_s16_x4(v2, &a[j + 64]);
         vload_s16_x4(v3, &a[j + 96]);
 
-        vload_s16_x2(zlh, &ntt_br[k]);
-        vload_s16_x2(zhh, &ntt_qinv_br[k]);
-        k += 16;
+        vload_s16_x2(zlh, ptr_ntt_br);
+        vload_s16_x2(zhh, ptr_ntt_qinv_br);
+        ptr_ntt_br += 16;
+        ptr_ntt_qinv_br += 16;
 
         // Layer 6
         // v0 - v2, v1 - v3
@@ -424,9 +425,10 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
         // 4,  5,  6,  7  | 20, 21, 22, 23
         // 8,  9,  10, 11 | 24, 25, 26, 27
         // 12, 13, 14, 15 | 28, 29, 30, 31
-        vload_s16_x4(zl, &ntt_br[k]);
-        vload_s16_x4(zh, &ntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_ntt_br);
+        vload_s16_x4(zh, ptr_ntt_qinv_br);
+        ptr_ntt_br += 32; 
+        ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // ctbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -443,9 +445,10 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
         ctbf_bot(v2.val[0], v2.val[1], t.val[2]);
         ctbf_bot(v3.val[0], v3.val[1], t.val[3]);
 
-        vload_s16_x4(zl, &ntt_br[k]);
-        vload_s16_x4(zh, &ntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_ntt_br);
+        vload_s16_x4(zh, ptr_ntt_qinv_br);
+        ptr_ntt_br += 32; 
+        ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // ctbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -487,9 +490,10 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
         // v0.val[2]: 2, 6, 10, 14 | 18, 22, 26, 30
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
 
-        vload_s16_x4(zl, &ntt_br[k]);
-        vload_s16_x4(zh, &ntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_ntt_br);
+        vload_s16_x4(zh, ptr_ntt_qinv_br);
+        ptr_ntt_br += 32; 
+        ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // ctbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[1]);
@@ -533,9 +537,10 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
 
         // Layer 0
         // v(0, 2 - 1, 3)
-        vload_s16_x4(zl, &ntt_br[k]);
-        vload_s16_x4(zh, &ntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_ntt_br);
+        vload_s16_x4(zh, ptr_ntt_qinv_br);
+        ptr_ntt_br += 32; 
+        ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // ctbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -552,9 +557,10 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
         ctbf_bot(v2.val[0], v2.val[1], t.val[2]);
         ctbf_bot(v3.val[0], v3.val[1], t.val[3]);
 
-        vload_s16_x4(zl, &ntt_br[k]);
-        vload_s16_x4(zh, &ntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_ntt_br);
+        vload_s16_x4(zh, ptr_ntt_qinv_br);
+        ptr_ntt_br += 32; 
+        ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // ctbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -577,13 +583,13 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
         // 1.3
 #endif
 
-        if (mont == MONT)
+        if (mont == NTT_MONT)
         {
             // Convert to Montgomery domain by multiply with FALCON_MONT
             barmuli_mont_x8(v0, v1, neon_qmvq, t, t2);
             barmuli_mont_x8(v2, v3, neon_qmvq, t, t2);
         }
-        else if (mont == MONT_INV)
+        else if (mont == NTT_MONT_INV)
         {
             barmuli_mont_ninv_x8(v0, v1, neon_qmvq, t, t2);
             barmuli_mont_ninv_x8(v2, v3, neon_qmvq, t, t2);
@@ -600,16 +606,18 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont)
  * Assume input in range [-Q, Q]
  * Total Barrett point N = 512, 1024: 1792, 3840
  */
-void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
+void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
 {
     // Total SIMD registers: 29 = 16 + 12 + 1
     int16x8x4_t v0, v1, v2, v3; // 16
     int16x8x4_t zl, zh, t, t2;  // 12
     int16x8x2_t zlh, zhh;       // 4
     int16x8_t neon_qmvq;        // 1
+    const int16_t *ptr_invntt_br = invntt_br;
+    const int16_t *ptr_invntt_qinv_br = invntt_qinv_br;
 
     neon_qmvq = vld1q_s16(qmvq);
-    unsigned j, k = 0;
+    unsigned j;
 
     // Layer 0, 1, 2, 3, 4, 5, 6
     for (j = 0; j < FALCON_N; j += 128)
@@ -624,9 +632,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         // v0.val[1]: 1, 5, 9,  13 | 17, 21, 25, 29
         // v0.val[2]: 2, 6, 10, 14 | 18, 22, 26, 30
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
-        vload_s16_x4(zl, &invntt_br[k]);
-        vload_s16_x4(zh, &invntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_invntt_br);
+        vload_s16_x4(zh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 32;
+        ptr_invntt_qinv_br += 32;
 
         // 0 - 1*, 2 - 3*
         // gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
@@ -644,9 +653,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         gsbf_br_bot(v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
         gsbf_br_bot(v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        vload_s16_x4(zl, &invntt_br[k]);
-        vload_s16_x4(zh, &invntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_invntt_br);
+        vload_s16_x4(zh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 32;
+        ptr_invntt_qinv_br += 32;
 
         // gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -685,9 +695,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
         // 0 - 2*, 1 - 3*
 
-        vload_s16_x4(zl, &invntt_br[k]);
-        vload_s16_x4(zh, &invntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_invntt_br);
+        vload_s16_x4(zh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 32;
+        ptr_invntt_qinv_br += 32;
 
         // gsbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // gsbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[1]);
@@ -751,9 +762,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         // v0.val[2]: 8,  9,  10, 11 | 24,  25,  26,  27
         // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
         // 0 - 1*, 2 - 3*
-        vload_s16_x4(zl, &invntt_br[k]);
-        vload_s16_x4(zh, &invntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_invntt_br);
+        vload_s16_x4(zh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 32;
+        ptr_invntt_qinv_br += 32;
 
         // gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -770,9 +782,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         gsbf_br_bot(v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
         gsbf_br_bot(v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        vload_s16_x4(zl, &invntt_br[k]);
-        vload_s16_x4(zh, &invntt_qinv_br[k]);
-        k += 32;
+        vload_s16_x4(zl, ptr_invntt_br);
+        vload_s16_x4(zh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 32;
+        ptr_invntt_qinv_br += 32;
 
         // gsbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -821,9 +834,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         // v0.val[2]: 16, 17, 18, 19 | 20, 21, 22, 23
         // v0.val[3]: 24, 25, 26, 27 | 28, 29, 30, 31
         // 0 - 1, 2 - 3
-        vload_s16_x2(zlh, &invntt_br[k]);
-        vload_s16_x2(zhh, &invntt_qinv_br[k]);
-        k += 16;
+        vload_s16_x2(zlh, ptr_invntt_br);
+        vload_s16_x2(zhh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 16;
+        ptr_invntt_qinv_br += 16;
 
         // gsbf_bri(v0.val[0], v0.val[1], zlh.val[0], zhh.val[0], 0, neon_qmvq, t.val[0]);
         // gsbf_bri(v0.val[2], v0.val[3], zlh.val[0], zhh.val[0], 1, neon_qmvq, t.val[1]);
@@ -963,12 +977,13 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
     }
 
 #if FALCON_N == 512
-    zl.val[0] = vld1q_s16(&invntt_br[k]);
-    zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
+    zl.val[0] = vld1q_s16(ptr_invntt_br);
+    zh.val[0] = vld1q_s16(ptr_invntt_qinv_br);
 #elif FALCON_N == 1024
-    k += 8*ninv;
-    zl.val[0] = vld1q_s16(&invntt_br[k]);
-    zh.val[0] = vld1q_s16(&invntt_qinv_br[k]);
+    ptr_invntt_br += 8*ninv;
+    ptr_invntt_qinv_br += 8*ninv;
+    zl.val[0] = vld1q_s16(ptr_invntt_br);
+    zh.val[0] = vld1q_s16(ptr_invntt_qinv_br);
 #endif
 
 #if FALCON_N == 512
@@ -1020,7 +1035,7 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         // v1: 1.75
         // v2: 1.25
         // v3: 1.15
-        if (ninv)
+        if (ninv == INVNTT_NINV)
         {
             gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t);
             gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t2);
@@ -1101,7 +1116,7 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         // v1: 1
         // v2: .87
         // v3: .87
-        if (ninv)
+        if (ninv == INVNTT_NINV)
         {
             gsbf_bri_bot_x4(v2, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t);
             gsbf_bri_bot_x4(v3, zl.val[0], zh.val[0], 2, 2, 2, 2, neon_qmvq, t2);
@@ -1280,7 +1295,7 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], int ninv)
         // u1, 5: 1, .87
         // u3, 7: 2.3, 1.4
 
-        if (ninv)
+        if (ninv == INVNTT_NINV)
         {
             barmul_invntt_x2(u0, zl.val[0], zh.val[0], 7, neon_qmvq, t);
             barmul_invntt_x2(u1, zl.val[0], zh.val[0], 7, neon_qmvq, t);

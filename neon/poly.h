@@ -4,9 +4,20 @@
 #include "inner.h"
 #include "config.h"
 
-void ZfN(poly_ntt)(int16_t a[FALCON_N], const char mont);
+typedef enum {
+    NTT_NONE = 0,
+    NTT_MONT = 1,
+    NTT_MONT_INV = 2,
+} ntt_domain_t;
 
-void ZfN(poly_invntt)(int16_t a[FALCON_N], int inv);
+typedef enum {
+    INVNTT_NONE = 0,
+    INVNTT_NINV = 1,
+} invntt_domain_t;
+
+void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont);
+
+void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv);
 
 void ZfN(poly_int8_to_int16)(int16_t out[FALCON_N], const int8_t in[FALCON_N]);
 

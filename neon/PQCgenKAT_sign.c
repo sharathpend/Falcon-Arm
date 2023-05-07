@@ -29,7 +29,7 @@ char    AlgName[] = "My Alg Name";
 #define STR_(x)   #x
 
 int
-main()
+main(void)
 {
 #ifdef ALGNAME
     char                *fn_req, *fn_rsp;

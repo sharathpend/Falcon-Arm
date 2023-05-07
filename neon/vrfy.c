@@ -25,12 +25,12 @@
 /* see inner.h */
 void Zf(to_ntt)(int16_t *h)
 {
-    ZfN(poly_ntt)(h, 0);
+    ZfN(poly_ntt)(h, NTT_NONE);
 }
 
 void Zf(to_ntt_monty)(int16_t *h)
 {
-    ZfN(poly_ntt)(h, 1);
+    ZfN(poly_ntt)(h, NTT_MONT);
 }
 
 /* see inner.h */
@@ -44,10 +44,10 @@ int Zf(verify_raw)(const int16_t *c0, const int16_t *s2,
      */
 
     memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
-    ZfN(poly_ntt)(h, 0);
-    ZfN(poly_ntt)(tt, 2);
+    ZfN(poly_ntt)(h, NTT_NONE);
+    ZfN(poly_ntt)(tt, NTT_MONT_INV);
     ZfN(poly_montmul_ntt)(tt, h);
-    ZfN(poly_invntt)(tt, 0);
+    ZfN(poly_invntt)(tt, INVNTT_NONE);
     ZfN(poly_sub_barrett)(tt, c0, tt);
 
     /*
@@ -63,10 +63,10 @@ int Zf(compute_public)(int16_t *h, const int8_t *f, const int8_t *g, int16_t *tm
     int16_t *tt = tmp;
 
     ZfN(poly_int8_to_int16)(h, g);
-    ZfN(poly_ntt)(h, 0);
+    ZfN(poly_ntt)(h, NTT_NONE);
    
     ZfN(poly_int8_to_int16)(tt, f);
-    ZfN(poly_ntt)(tt, 1);
+    ZfN(poly_ntt)(tt, NTT_MONT);
 
     if (ZfN(poly_compare_with_zero)(tt))
     {
@@ -74,7 +74,7 @@ int Zf(compute_public)(int16_t *h, const int8_t *f, const int8_t *g, int16_t *tm
     }
     ZfN(poly_div_12289)(h, tt);
 
-    ZfN(poly_invntt)(h, 1);
+    ZfN(poly_invntt)(h, INVNTT_NINV);
 
     ZfN(poly_convert_to_unsigned)(h);
 
@@ -92,15 +92,15 @@ int Zf(complete_private)(int8_t *G, const int8_t *f,
     t2 = t1 + FALCON_N;
 
     ZfN(poly_int8_to_int16)(t1, g);
-    ZfN(poly_ntt)(t1, 0);
+    ZfN(poly_ntt)(t1, NTT_NONE);
 
     ZfN(poly_int8_to_int16)(t2, F);
-    ZfN(poly_ntt)(t2, 1);
+    ZfN(poly_ntt)(t2, NTT_MONT);
 
     ZfN(poly_montmul_ntt)(t1, t2);
 
     ZfN(poly_int8_to_int16)(t2, f);
-    ZfN(poly_ntt)(t2, 1);
+    ZfN(poly_ntt)(t2, NTT_MONT);
 
     if (ZfN(poly_compare_with_zero)(t2))
     {
@@ -108,7 +108,7 @@ int Zf(complete_private)(int8_t *G, const int8_t *f,
     }
     ZfN(poly_div_12289)(t1, t2);
 
-    ZfN(poly_invntt)(t1, 1);
+    ZfN(poly_invntt)(t1, INVNTT_NINV);
 
     if (ZfN(poly_int16_to_int8)(G, t1))
     {
@@ -124,7 +124,7 @@ int Zf(is_invertible)(const int16_t *s2, uint8_t *tmp)
     uint16_t r;
 
     memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
-    ZfN(poly_ntt)(tt, 1);
+    ZfN(poly_ntt)(tt, NTT_MONT);
 
     r = ZfN(poly_compare_with_zero)(tt);
 
@@ -148,18 +148,18 @@ int Zf(verify_recover)(int16_t *h, const int16_t *c0,
      */
 
     ZfN(poly_sub_barrett)(h, c0, s1);
-    ZfN(poly_ntt)(h, 0);
+    ZfN(poly_ntt)(h, NTT_NONE);
 
     /*
      * Reduce elements of s1 and s2 modulo q; then write s2 into tt[]
      * and c0 - s1 into h[].
      */
     memcpy(tt, s2, sizeof(int16_t) * FALCON_N);
-    ZfN(poly_ntt)(tt, 1);
+    ZfN(poly_ntt)(tt, NTT_MONT);
     r = ZfN(poly_compare_with_zero)(tt);
     ZfN(poly_div_12289)(h, tt);
 
-    ZfN(poly_invntt)(h, 1);
+    ZfN(poly_invntt)(h, INVNTT_NINV);
 
     /*
      * Signature is acceptable if and only if it is short enough,
@@ -177,7 +177,7 @@ int Zf(count_nttzero)(const int16_t *sig, uint8_t *tmp)
     int16_t *s2 = (int16_t *)tmp;
 
     memcpy(s2, sig, sizeof(int16_t) * FALCON_N);
-    ZfN(poly_ntt)(s2, 1);
+    ZfN(poly_ntt)(s2, NTT_MONT);
 
     int r = ZfN(poly_compare_with_zero)(s2);
 
