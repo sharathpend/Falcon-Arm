@@ -85,3 +85,6 @@ There is no need for `sudo`.
 
 See `small-fft-ref` folder for my compressed FFT roots in  `C` code. 
 
+## Future Work
+
+I'm writing a tool to convert all my intrinsic instructions to asm.
