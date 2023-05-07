@@ -4,13 +4,13 @@
 #include "inner.h"
 #include "config.h"
 
-typedef enum {
+typedef enum ntt_domain {
     NTT_NONE = 0,
     NTT_MONT = 1,
     NTT_MONT_INV = 2,
 } ntt_domain_t;
 
-typedef enum {
+typedef enum invntt_domain {
     INVNTT_NONE = 0,
     INVNTT_NINV = 1,
 } invntt_domain_t;
