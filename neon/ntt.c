@@ -427,7 +427,7 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
         // 12, 13, 14, 15 | 28, 29, 30, 31
         vload_s16_x4(zl, ptr_ntt_br);
         vload_s16_x4(zh, ptr_ntt_qinv_br);
-        ptr_ntt_br += 32; 
+        ptr_ntt_br += 32;
         ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
@@ -447,7 +447,7 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
 
         vload_s16_x4(zl, ptr_ntt_br);
         vload_s16_x4(zh, ptr_ntt_qinv_br);
-        ptr_ntt_br += 32; 
+        ptr_ntt_br += 32;
         ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
@@ -455,15 +455,15 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
         // ctbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
         // ctbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        ctbf_br_top(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t2.val[0]);
-        ctbf_br_top(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t2.val[1]);
-        ctbf_br_top(v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t2.val[2]);
-        ctbf_br_top(v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t2.val[3]);
+        ctbf_br_top(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        ctbf_br_top(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        ctbf_br_top(v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        ctbf_br_top(v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        ctbf_bot(v0.val[2], v0.val[3], t2.val[0]);
-        ctbf_bot(v1.val[2], v1.val[3], t2.val[1]);
-        ctbf_bot(v2.val[2], v2.val[3], t2.val[2]);
-        ctbf_bot(v3.val[2], v3.val[3], t2.val[3]);
+        ctbf_bot(v0.val[2], v0.val[3], t.val[0]);
+        ctbf_bot(v1.val[2], v1.val[3], t.val[1]);
+        ctbf_bot(v2.val[2], v2.val[3], t.val[2]);
+        ctbf_bot(v3.val[2], v3.val[3], t.val[3]);
 
 #if FALCON_N == 1024
         // 2.3 -> 0.5
@@ -492,7 +492,7 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
 
         vload_s16_x4(zl, ptr_ntt_br);
         vload_s16_x4(zh, ptr_ntt_qinv_br);
-        ptr_ntt_br += 32; 
+        ptr_ntt_br += 32;
         ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
@@ -510,20 +510,20 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
         ctbf_br_top(v1.val[2], zl.val[1], zh.val[1], neon_qmvq, t.val[2]);
         ctbf_br_top(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[3]);
 
-        ctbf_br_top(v2.val[2], zl.val[2], zh.val[2], neon_qmvq, t2.val[0]);
-        ctbf_br_top(v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t2.val[1]);
-        ctbf_br_top(v3.val[2], zl.val[3], zh.val[3], neon_qmvq, t2.val[2]);
-        ctbf_br_top(v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t2.val[3]);
-
         ctbf_bot(v0.val[0], v0.val[2], t.val[0]);
         ctbf_bot(v0.val[1], v0.val[3], t.val[1]);
         ctbf_bot(v1.val[0], v1.val[2], t.val[2]);
         ctbf_bot(v1.val[1], v1.val[3], t.val[3]);
 
-        ctbf_bot(v2.val[0], v2.val[2], t2.val[0]);
-        ctbf_bot(v2.val[1], v2.val[3], t2.val[1]);
-        ctbf_bot(v3.val[0], v3.val[2], t2.val[2]);
-        ctbf_bot(v3.val[1], v3.val[3], t2.val[3]);
+        ctbf_br_top(v2.val[2], zl.val[2], zh.val[2], neon_qmvq, t.val[0]);
+        ctbf_br_top(v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[1]);
+        ctbf_br_top(v3.val[2], zl.val[3], zh.val[3], neon_qmvq, t.val[2]);
+        ctbf_br_top(v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
+
+        ctbf_bot(v2.val[0], v2.val[2], t.val[0]);
+        ctbf_bot(v2.val[1], v2.val[3], t.val[1]);
+        ctbf_bot(v3.val[0], v3.val[2], t.val[2]);
+        ctbf_bot(v3.val[1], v3.val[3], t.val[3]);
 
 #if FALCON_N == 1024
         // 1.3
@@ -539,7 +539,7 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
         // v(0, 2 - 1, 3)
         vload_s16_x4(zl, ptr_ntt_br);
         vload_s16_x4(zh, ptr_ntt_qinv_br);
-        ptr_ntt_br += 32; 
+        ptr_ntt_br += 32;
         ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
@@ -559,7 +559,7 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
 
         vload_s16_x4(zl, ptr_ntt_br);
         vload_s16_x4(zh, ptr_ntt_qinv_br);
-        ptr_ntt_br += 32; 
+        ptr_ntt_br += 32;
         ptr_ntt_qinv_br += 32;
 
         // ctbf_br(v0.val[2], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
@@ -567,15 +567,15 @@ void ZfN(poly_ntt)(int16_t a[FALCON_N], ntt_domain_t mont)
         // ctbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
         // ctbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        ctbf_br_top(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t2.val[0]);
-        ctbf_br_top(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t2.val[1]);
-        ctbf_br_top(v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t2.val[2]);
-        ctbf_br_top(v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t2.val[3]);
+        ctbf_br_top(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
+        ctbf_br_top(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
+        ctbf_br_top(v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
+        ctbf_br_top(v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        ctbf_bot(v0.val[2], v0.val[3], t2.val[0]);
-        ctbf_bot(v1.val[2], v1.val[3], t2.val[1]);
-        ctbf_bot(v2.val[2], v2.val[3], t2.val[2]);
-        ctbf_bot(v3.val[2], v3.val[3], t2.val[3]);
+        ctbf_bot(v0.val[2], v0.val[3], t.val[0]);
+        ctbf_bot(v1.val[2], v1.val[3], t.val[1]);
+        ctbf_bot(v2.val[2], v2.val[3], t.val[2]);
+        ctbf_bot(v3.val[2], v3.val[3], t.val[3]);
 
 #if FALCON_N == 1024
         // 2.3
@@ -632,10 +632,21 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         // v0.val[1]: 1, 5, 9,  13 | 17, 21, 25, 29
         // v0.val[2]: 2, 6, 10, 14 | 18, 22, 26, 30
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
-        vload_s16_x4(zl, ptr_invntt_br);
-        vload_s16_x4(zh, ptr_invntt_qinv_br);
-        ptr_invntt_br += 32;
-        ptr_invntt_qinv_br += 32;
+
+        gsbf_top(v0.val[0], v0.val[1], t.val[0]);
+        gsbf_top(v1.val[0], v1.val[1], t.val[1]);
+        gsbf_top(v2.val[0], v2.val[1], t.val[2]);
+        gsbf_top(v3.val[0], v3.val[1], t.val[3]);
+
+        gsbf_top(v0.val[2], v0.val[3], t2.val[0]);
+        gsbf_top(v1.val[2], v1.val[3], t2.val[1]);
+        gsbf_top(v2.val[2], v2.val[3], t2.val[2]);
+        gsbf_top(v3.val[2], v3.val[3], t2.val[3]);
+
+        vload_s16_x2(zlh, ptr_invntt_br);
+        vload_s16_x2(zhh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 16;
+        ptr_invntt_qinv_br += 16;
 
         // 0 - 1*, 2 - 3*
         // gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
@@ -643,15 +654,16 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         // gsbf_br(v2.val[0], v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
         // gsbf_br(v3.val[0], v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
 
-        gsbf_top(v0.val[0], v0.val[1], t.val[0]);
-        gsbf_top(v1.val[0], v1.val[1], t.val[1]);
-        gsbf_top(v2.val[0], v2.val[1], t.val[2]);
-        gsbf_top(v3.val[0], v3.val[1], t.val[3]);
+        gsbf_br_bot(v0.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br_bot(v1.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1]);
 
-        gsbf_br_bot(v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
-        gsbf_br_bot(v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
-        gsbf_br_bot(v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
-        gsbf_br_bot(v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
+        vload_s16_x2(zlh, ptr_invntt_br);
+        vload_s16_x2(zhh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 16;
+        ptr_invntt_qinv_br += 16;
+
+        gsbf_br_bot(v2.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2]);
+        gsbf_br_bot(v3.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3]);
 
         vload_s16_x4(zl, ptr_invntt_br);
         vload_s16_x4(zh, ptr_invntt_qinv_br);
@@ -662,11 +674,6 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         // gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
         // gsbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
         // gsbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
-
-        gsbf_top(v0.val[2], v0.val[3], t2.val[0]);
-        gsbf_top(v1.val[2], v1.val[3], t2.val[1]);
-        gsbf_top(v2.val[2], v2.val[3], t2.val[2]);
-        gsbf_top(v3.val[2], v3.val[3], t2.val[3]);
 
         gsbf_br_bot(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t2.val[0]);
         gsbf_br_bot(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t2.val[1]);
@@ -695,10 +702,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         // v0.val[3]: 3, 7, 11, 15 | 19, 23, 27, 31
         // 0 - 2*, 1 - 3*
 
-        vload_s16_x4(zl, ptr_invntt_br);
-        vload_s16_x4(zh, ptr_invntt_qinv_br);
-        ptr_invntt_br += 32;
-        ptr_invntt_qinv_br += 32;
+        vload_s16_x2(zlh, ptr_invntt_br);
+        vload_s16_x2(zhh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 16;
+        ptr_invntt_qinv_br += 16;
 
         // gsbf_br(v0.val[0], v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // gsbf_br(v0.val[1], v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[1]);
@@ -720,15 +727,20 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         gsbf_top(v3.val[0], v3.val[2], t2.val[2]);
         gsbf_top(v3.val[1], v3.val[3], t2.val[3]);
 
-        gsbf_br_bot(v0.val[2], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
-        gsbf_br_bot(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t.val[1]);
-        gsbf_br_bot(v1.val[2], zl.val[1], zh.val[1], neon_qmvq, t.val[2]);
-        gsbf_br_bot(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[3]);
+        gsbf_br_bot(v0.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br_bot(v0.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t.val[1]);
+        gsbf_br_bot(v1.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t.val[2]);
+        gsbf_br_bot(v1.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3]);
 
-        gsbf_br_bot(v2.val[2], zl.val[2], zh.val[2], neon_qmvq, t2.val[0]);
-        gsbf_br_bot(v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t2.val[1]);
-        gsbf_br_bot(v3.val[2], zl.val[3], zh.val[3], neon_qmvq, t2.val[2]);
-        gsbf_br_bot(v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t2.val[3]);
+        vload_s16_x2(zlh, ptr_invntt_br);
+        vload_s16_x2(zhh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 16;
+        ptr_invntt_qinv_br += 16;
+
+        gsbf_br_bot(v2.val[2], zlh.val[0], zhh.val[0], neon_qmvq, t2.val[0]);
+        gsbf_br_bot(v2.val[3], zlh.val[0], zhh.val[0], neon_qmvq, t2.val[1]);
+        gsbf_br_bot(v3.val[2], zlh.val[1], zhh.val[1], neon_qmvq, t2.val[2]);
+        gsbf_br_bot(v3.val[3], zlh.val[1], zhh.val[1], neon_qmvq, t2.val[3]);
 
         // 0: 2.5
         // 1: 2.6
@@ -762,10 +774,10 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         // v0.val[2]: 8,  9,  10, 11 | 24,  25,  26,  27
         // v0.val[3]: 12, 13, 14, 15 | 28,  29,  30,  31
         // 0 - 1*, 2 - 3*
-        vload_s16_x4(zl, ptr_invntt_br);
-        vload_s16_x4(zh, ptr_invntt_qinv_br);
-        ptr_invntt_br += 32;
-        ptr_invntt_qinv_br += 32;
+        vload_s16_x2(zlh, ptr_invntt_br);
+        vload_s16_x2(zhh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 16;
+        ptr_invntt_qinv_br += 16;
 
         // gsbf_br(v0.val[0], v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
         // gsbf_br(v1.val[0], v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
@@ -777,10 +789,21 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         gsbf_top(v2.val[0], v2.val[1], t.val[2]);
         gsbf_top(v3.val[0], v3.val[1], t.val[3]);
 
-        gsbf_br_bot(v0.val[1], zl.val[0], zh.val[0], neon_qmvq, t.val[0]);
-        gsbf_br_bot(v1.val[1], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
-        gsbf_br_bot(v2.val[1], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
-        gsbf_br_bot(v3.val[1], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
+        gsbf_top(v0.val[2], v0.val[3], t2.val[0]);
+        gsbf_top(v1.val[2], v1.val[3], t2.val[1]);
+        gsbf_top(v2.val[2], v2.val[3], t2.val[2]);
+        gsbf_top(v3.val[2], v3.val[3], t2.val[3]);
+
+        gsbf_br_bot(v0.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[0]);
+        gsbf_br_bot(v1.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[1]);
+
+        vload_s16_x2(zlh, ptr_invntt_br);
+        vload_s16_x2(zhh, ptr_invntt_qinv_br);
+        ptr_invntt_br += 16;
+        ptr_invntt_qinv_br += 16;
+
+        gsbf_br_bot(v2.val[1], zlh.val[0], zhh.val[0], neon_qmvq, t.val[2]);
+        gsbf_br_bot(v3.val[1], zlh.val[1], zhh.val[1], neon_qmvq, t.val[3]);
 
         vload_s16_x4(zl, ptr_invntt_br);
         vload_s16_x4(zh, ptr_invntt_qinv_br);
@@ -791,11 +814,6 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
         // gsbf_br(v1.val[2], v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t.val[1]);
         // gsbf_br(v2.val[2], v2.val[3], zl.val[2], zh.val[2], neon_qmvq, t.val[2]);
         // gsbf_br(v3.val[2], v3.val[3], zl.val[3], zh.val[3], neon_qmvq, t.val[3]);
-
-        gsbf_top(v0.val[2], v0.val[3], t2.val[0]);
-        gsbf_top(v1.val[2], v1.val[3], t2.val[1]);
-        gsbf_top(v2.val[2], v2.val[3], t2.val[2]);
-        gsbf_top(v3.val[2], v3.val[3], t2.val[3]);
 
         gsbf_br_bot(v0.val[3], zl.val[0], zh.val[0], neon_qmvq, t2.val[0]);
         gsbf_br_bot(v1.val[3], zl.val[1], zh.val[1], neon_qmvq, t2.val[1]);
@@ -980,8 +998,8 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
     zl.val[0] = vld1q_s16(ptr_invntt_br);
     zh.val[0] = vld1q_s16(ptr_invntt_qinv_br);
 #elif FALCON_N == 1024
-    ptr_invntt_br += 8*ninv;
-    ptr_invntt_qinv_br += 8*ninv;
+    ptr_invntt_br += 8 * ninv;
+    ptr_invntt_qinv_br += 8 * ninv;
     zl.val[0] = vld1q_s16(ptr_invntt_br);
     zh.val[0] = vld1q_s16(ptr_invntt_qinv_br);
 #endif
@@ -1029,7 +1047,6 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
 
         gsbf_top_x4(v0, v2, t);
         gsbf_top_x4(v1, v3, t2);
-
 
         // v0: 2
         // v1: 1.75
@@ -1110,7 +1127,6 @@ void ZfN(poly_invntt)(int16_t a[FALCON_N], invntt_domain_t ninv)
 
         gsbf_top_x4(v0, v2, t);
         gsbf_top_x4(v1, v3, t2);
-
 
         // v0: 1
         // v1: 1
