@@ -3658,7 +3658,7 @@ solve_NTRU_binary_depth1(unsigned logn_top,
 	ZfN(poly_mul_fft)(rt3, rt3, rt5, logn);
 	ZfN(poly_sub)(rt1, rt1, rt3, logn);
 	ZfN(iFFT)(rt1, logn);
-    
+
 	ZfN(poly_mul_fft)(rt4, rt4, rt5, logn);
 	ZfN(poly_sub)(rt2, rt2, rt4, logn);
 	ZfN(iFFT)(rt2, logn);
@@ -4199,8 +4199,6 @@ Zf(keygen)(inner_shake256_context *rng,
 		 */
 		normf = poly_small_sqnorm(f, logn);
 		normg = poly_small_sqnorm(g, logn);
-        // normf = ZfN(poly_small_sqnorm)(f);
-        // normg = ZfN(poly_small_sqnorm)(g);
 		norm = (normf + normg) | -((normf | normg) >> 31);
 		if (norm >= 16823) {
 			continue;
