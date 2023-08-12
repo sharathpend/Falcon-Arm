@@ -293,7 +293,7 @@ static int randombytes_linux_randombytes_urandom(void *buf, size_t n) {
 #endif /* defined(__linux__) && !defined(SYS_getrandom) */
 
 
-#if defined(BSD)
+#if defined(BSD_NOTUSE)
 static int randombytes_bsd_randombytes(void *buf, size_t n) {
     arc4random_buf(buf, n);
     return 0;
@@ -333,30 +333,35 @@ static int randombytes_js_randombytes_nodejs(void *buf, size_t n) {
 
 
 int randombytes(uint8_t *output, size_t n) {
-    void *buf = (void *)output;
-    #if defined(__EMSCRIPTEN__)
-    return randombytes_js_randombytes_nodejs(buf, n);
-    #elif defined(__linux__)
-    # if defined(USE_GLIBC)
-    /* Use getrandom system call */
-    return randombytes_linux_randombytes_getrandom(buf, n);
-    # elif defined(SYS_getrandom)
-    /* Use getrandom system call */
-    return randombytes_linux_randombytes_getrandom(buf, n);
-    # else
-    /* When we have enough entropy, we can read from /dev/urandom */
-    return randombytes_linux_randombytes_urandom(buf, n);
-    # endif
-    #elif defined(BSD)
-    /* Use arc4random system call */
-    return randombytes_bsd_randombytes(buf, n);
-    #elif defined(_WIN32)
-    /* Use windows API */
-    return randombytes_win32_randombytes(buf, n);
-    #elif defined(__wasi__)
-    /* Use WASI */
-    return randombytes_wasi_randombytes(buf, n);
-    #else
-# error "randombytes(...) is not supported on this platform"
-    #endif
+//     void *buf = (void *)output;
+//     #if defined(__EMSCRIPTEN__)
+//     return randombytes_js_randombytes_nodejs(buf, n);
+//     #elif defined(__linux__)
+//     # if defined(USE_GLIBC)
+//     /* Use getrandom system call */
+//     return randombytes_linux_randombytes_getrandom(buf, n);
+//     # elif defined(SYS_getrandom)
+//     /* Use getrandom system call */
+//     return randombytes_linux_randombytes_getrandom(buf, n);
+//     # else
+//     /* When we have enough entropy, we can read from /dev/urandom */
+//     return randombytes_linux_randombytes_urandom(buf, n);
+//     # endif
+//     #elif defined(BSD)
+//     /* Use arc4random system call */
+//     return randombytes_bsd_randombytes(buf, n);
+//     #elif defined(_WIN32)
+//     /* Use windows API */
+//     return randombytes_win32_randombytes(buf, n);
+//     #elif defined(__wasi__)
+//     /* Use WASI */
+//     return randombytes_wasi_randombytes(buf, n);
+//     #else
+// # error "randombytes(...) is not supported on this platform"
+//     #endif
+    for (size_t i = 0; i < n; i++)
+    {
+        output[i] = rand() & 0xff;
+    }
+    return 0;
 }
