@@ -199,12 +199,13 @@ uint16_t PQCLEAN_FALCON512_AARCH64_poly_compare_with_zero(int16_t f[FALCON_N]) {
  * If coefficient is larger than Q, it is subtracted with Q
  */
 void PQCLEAN_FALCON512_AARCH64_poly_convert_to_unsigned(int16_t f[FALCON_N]) {
-    // Total SIMD registers: 25 = 8 + 16 + 1
+    // Total SIMD registers: 26 = 8 + 16 + 2
     uint16x8x4_t b0, b1;        // 8
     int16x8x4_t a0, a1, c0, c1; // 16
-    uint16x8_t neon_q;          // 1
+    uint16x8_t neon_q, neon_2q; // 2
 
     neon_q = vdupq_n_u16(FALCON_Q);
+    neon_2q = vdupq_n_u16(FALCON_Q << 1);
 
     for (int i = 0; i < FALCON_N; i += 64) {
         vload_s16_x4(a0, &f[i]);
@@ -216,20 +217,21 @@ void PQCLEAN_FALCON512_AARCH64_poly_convert_to_unsigned(int16_t f[FALCON_N]) {
 
         vload_s16_x4(a1, &f[i + 32]);
 
+        // Conditional addition with 2*FALCON_Q
         b1.val[0] = vcltzq_s16(a1.val[0]);
         b1.val[1] = vcltzq_s16(a1.val[1]);
         b1.val[2] = vcltzq_s16(a1.val[2]);
         b1.val[3] = vcltzq_s16(a1.val[3]);
 
-        c0.val[0] = vandq_s16(b0.val[0], neon_q);
-        c0.val[1] = vandq_s16(b0.val[1], neon_q);
-        c0.val[2] = vandq_s16(b0.val[2], neon_q);
-        c0.val[3] = vandq_s16(b0.val[3], neon_q);
+        c0.val[0] = vandq_s16(b0.val[0], neon_2q);
+        c0.val[1] = vandq_s16(b0.val[1], neon_2q);
+        c0.val[2] = vandq_s16(b0.val[2], neon_2q);
+        c0.val[3] = vandq_s16(b0.val[3], neon_2q);
 
-        c1.val[0] = vandq_s16(b1.val[0], neon_q);
-        c1.val[1] = vandq_s16(b1.val[1], neon_q);
-        c1.val[2] = vandq_s16(b1.val[2], neon_q);
-        c1.val[3] = vandq_s16(b1.val[3], neon_q);
+        c1.val[0] = vandq_s16(b1.val[0], neon_2q);
+        c1.val[1] = vandq_s16(b1.val[1], neon_2q);
+        c1.val[2] = vandq_s16(b1.val[2], neon_2q);
+        c1.val[3] = vandq_s16(b1.val[3], neon_2q);
 
         vadd_x4(a0, a0, c0);
         vadd_x4(a1, a1, c1);
@@ -310,15 +312,8 @@ int PQCLEAN_FALCON512_AARCH64_poly_int16_to_int8(int8_t G[FALCON_N], const int16
         c1.val[2] = vandq_s16(c1.val[2], neon_q);
         c1.val[3] = vandq_s16(c1.val[3], neon_q);
 
-        a.val[0] = vsubq_s16(a.val[0], c0.val[0]);
-        a.val[1] = vsubq_s16(a.val[1], c0.val[1]);
-        a.val[2] = vsubq_s16(a.val[2], c0.val[2]);
-        a.val[3] = vsubq_s16(a.val[3], c0.val[3]);
-
-        f.val[0] = vsubq_s16(f.val[0], c1.val[0]);
-        f.val[1] = vsubq_s16(f.val[1], c1.val[1]);
-        f.val[2] = vsubq_s16(f.val[2], c1.val[2]);
-        f.val[3] = vsubq_s16(f.val[3], c1.val[3]);
+        vsub_x4(a, a, c0);
+        vsub_x4(f, f, c1);
 
         // -Q/2 > a ? 1: 0
         d0.val[0] = vcgtq_s16(neon__q_2, a.val[0]);
@@ -342,15 +337,8 @@ int PQCLEAN_FALCON512_AARCH64_poly_int16_to_int8(int8_t G[FALCON_N], const int16
         d1.val[2] = vandq_s16(d1.val[2], neon_q);
         d1.val[3] = vandq_s16(d1.val[3], neon_q);
 
-        a.val[0] = vaddq_s16(a.val[0], d0.val[0]);
-        a.val[1] = vaddq_s16(a.val[1], d0.val[1]);
-        a.val[2] = vaddq_s16(a.val[2], d0.val[2]);
-        a.val[3] = vaddq_s16(a.val[3], d0.val[3]);
-
-        f.val[0] = vaddq_s16(f.val[0], d1.val[0]);
-        f.val[1] = vaddq_s16(f.val[1], d1.val[1]);
-        f.val[2] = vaddq_s16(f.val[2], d1.val[2]);
-        f.val[3] = vaddq_s16(f.val[3], d1.val[3]);
+        vadd_x4(a, a, d0);
+        vadd_x4(f, f, d1);
 
         g.val[0] = vmovn_high_s16(vmovn_s16(a.val[0]), a.val[1]);
         g.val[1] = vmovn_high_s16(vmovn_s16(a.val[2]), a.val[3]);

@@ -32,12 +32,6 @@ static void fullcycle(uint8_t *public_key, uint8_t *secret_key,
     printf("verify error. Exiting. %u\n", count);
     exit(-1);
   }
-//   if (count == 170) {
-//     print(public_key, PQCLEAN_FALCON1024_CLEAN_CRYPTO_PUBLICKEYBYTES, "public_key");
-//     print(secret_key, PQCLEAN_FALCON1024_CLEAN_CRYPTO_SECRETKEYBYTES, "secret_key");
-//     // print(signature, signature_len, "signature");
-//     exit(0);
-//   }
 }
 
 int main(void) {
@@ -58,13 +52,11 @@ int main(void) {
     entropy_input[i] = i;
   }
 
-//   randombytes_init(entropy_input, NULL, 256);
+  srand(0);
   randombytes(message, message_len);
 
   unsigned count = 0;
   while (1) {
-    printf(".");
-    fflush(stdout);
     fullcycle(public_key, secret_key, signature, signature_len, message,
               message_len, count);
     count++;

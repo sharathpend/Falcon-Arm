@@ -2,11 +2,11 @@
 
 LIB=libfalcon-512_clean.a
 
-SOURCES = codec.c common.c fft.c fpr.c keygen.c pqclean.c rng.c sign.c vrfy.c ../../../common/randombytes.c ../../../common/fips202.c
-OBJECTS = codec.o common.o fft.o fpr.o keygen.o pqclean.o rng.o sign.o vrfy.o ../../../common/randombytes.o ../../../common/fips202.o
-HEADERS = api.h fpr.h inner.h
+SOURCES = codec.c keygen.c poly_float.c common.c fft_tree.c ntt_consts.c poly_int.c sign.c fpr.c ntt.c rng.c util.c fft.c sampler.c vrfy.c ../../../common/randombytes.c ../../../common/fips202.c pqclean.c
+OBJECTS = codec.o keygen.o poly_float.o common.o fft_tree.o ntt_consts.o poly_int.o sign.o fpr.o ntt.o rng.o util.o fft.o sampler.o vrfy.o ../../../common/randombytes.o ../../../common/fips202.o pqclean.o
+HEADERS = api.h fpr.h inner.h macrof.h macrofx4.h macrous.h ntt_consts.h params.h poly.h util.h
 
-CFLAGS=-std=c99 -O2 -W -Wall -Wconversion -Wextra -Wpedantic -Wvla -Werror -Wmissing-prototypes -Wredundant-decls -I../../../common $(EXTRAFLAGS)
+CFLAGS=-std=c99 -O3 -W -Wall -Wconversion -Wextra -Wpedantic -Wvla -Werror -Wmissing-prototypes -Wredundant-decls -I../../../common $(EXTRAFLAGS)
 
 all: $(LIB)
 test: test_api.o test_api
