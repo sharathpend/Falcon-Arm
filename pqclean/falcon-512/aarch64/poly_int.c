@@ -196,6 +196,7 @@ uint16_t PQCLEAN_FALCON512_AARCH64_poly_compare_with_zero(int16_t f[FALCON_N]) {
 
 /*
  * Branchless conditional addtion with FALCON_Q if coeffcient is < 0
+ * If coefficient is larger than Q, it is subtracted with Q
  */
 void PQCLEAN_FALCON512_AARCH64_poly_convert_to_unsigned(int16_t f[FALCON_N]) {
     // Total SIMD registers: 25 = 8 + 16 + 1
@@ -220,21 +221,47 @@ void PQCLEAN_FALCON512_AARCH64_poly_convert_to_unsigned(int16_t f[FALCON_N]) {
         b1.val[2] = vcltzq_s16(a1.val[2]);
         b1.val[3] = vcltzq_s16(a1.val[3]);
 
-        c0.val[0] = (int16x8_t)vandq_u16(b0.val[0], neon_q);
-        c0.val[1] = (int16x8_t)vandq_u16(b0.val[1], neon_q);
-        c0.val[2] = (int16x8_t)vandq_u16(b0.val[2], neon_q);
-        c0.val[3] = (int16x8_t)vandq_u16(b0.val[3], neon_q);
+        c0.val[0] = vandq_s16(b0.val[0], neon_q);
+        c0.val[1] = vandq_s16(b0.val[1], neon_q);
+        c0.val[2] = vandq_s16(b0.val[2], neon_q);
+        c0.val[3] = vandq_s16(b0.val[3], neon_q);
 
-        c1.val[0] = (int16x8_t)vandq_u16(b1.val[0], neon_q);
-        c1.val[1] = (int16x8_t)vandq_u16(b1.val[1], neon_q);
-        c1.val[2] = (int16x8_t)vandq_u16(b1.val[2], neon_q);
-        c1.val[3] = (int16x8_t)vandq_u16(b1.val[3], neon_q);
+        c1.val[0] = vandq_s16(b1.val[0], neon_q);
+        c1.val[1] = vandq_s16(b1.val[1], neon_q);
+        c1.val[2] = vandq_s16(b1.val[2], neon_q);
+        c1.val[3] = vandq_s16(b1.val[3], neon_q);
 
-        vadd_x4(c0, a0, c0);
-        vadd_x4(c1, a1, c1);
+        vadd_x4(a0, a0, c0);
+        vadd_x4(a1, a1, c1);
 
-        vstore_s16_x4(&f[i], c0);
-        vstore_s16_x4(&f[i + 32], c1);
+        // a > Q ? 1 : 0
+        b0.val[0] = vcgtq_s16(a0.val[0], neon_q);
+        b0.val[1] = vcgtq_s16(a0.val[1], neon_q);
+        b0.val[2] = vcgtq_s16(a0.val[2], neon_q);
+        b0.val[3] = vcgtq_s16(a0.val[3], neon_q);
+
+        b1.val[0] = vcgtq_s16(a1.val[0], neon_q);
+        b1.val[1] = vcgtq_s16(a1.val[1], neon_q);
+        b1.val[2] = vcgtq_s16(a1.val[2], neon_q);
+        b1.val[3] = vcgtq_s16(a1.val[3], neon_q);
+
+        // Conditional subtraction with FALCON_Q
+
+        c0.val[0] = vandq_s16(b0.val[0], neon_q);
+        c0.val[1] = vandq_s16(b0.val[1], neon_q);
+        c0.val[2] = vandq_s16(b0.val[2], neon_q);
+        c0.val[3] = vandq_s16(b0.val[3], neon_q);
+
+        c1.val[0] = vandq_s16(b1.val[0], neon_q);
+        c1.val[1] = vandq_s16(b1.val[1], neon_q);
+        c1.val[2] = vandq_s16(b1.val[2], neon_q);
+        c1.val[3] = vandq_s16(b1.val[3], neon_q);
+
+        vsub_x4(a0, a0, c0);
+        vsub_x4(a1, a1, c1);
+
+        vstore_s16_x4(&f[i], a0);
+        vstore_s16_x4(&f[i + 32], a1);
     }
 }
 
