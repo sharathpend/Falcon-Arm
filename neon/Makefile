@@ -24,11 +24,13 @@ OBJ_SPEED_Ghz = falcon.c speed_freq.c
 OBJ_BENCH = bench.c
 OBJ_KAT = PQCgenKAT_sign.c
 OBJ_TEST_FALCON = falcon.c test_falcon.c
+OBJ_TEST_API = test_api.c
 
 HEAD = api.h fpr.h inner.h config.h katrng.h params.h macrous.h macrof.h macrofx4.h
 HEAD1 = falcon.h
 
 all: build kat
+test: build/test_api512 build/test_api1024
 kat: build/kat512fpu build/kat1024fpu
 m1_test: build/m1_test_falcon512 build/m1_test_falcon1024
 m1: build/m1_speed512 build/m1_speed1024 build/m1_bench512 build/m1_bench1024
@@ -53,6 +55,14 @@ clean:
 	-rm -f build/m1_speed512_ghz build/m1_speed1024_ghz
 	-rm -f build/a72_speed_59b_512 build/a72_speed_59b_1024
 	-rm -f build/m1_speed_59b_512 build/m1_speed_59b_1024
+
+build/test_api512: $(HEAD) $(OBJ) $(OBJ_TEST_API)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) $(OBJ_TEST_API)
+	$@
+
+build/test_api1024: $(HEAD) $(OBJ) $(OBJ_TEST_API)
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10  -o $@ $(OBJ) $(OBJ_TEST_API)
+	$@
 
 build/kat512fpu: $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -DALGNAME=falcon512fpu  -o $@ $(OBJ) $(OBJ_KAT)

@@ -2,7 +2,7 @@
  * poly_int.c
  *
  * =============================================================================
- * Copyright (c) 2021 by Cryptographic Engineering Research Group (CERG)
+ * Copyright (c) 2023 by Cryptographic Engineering Research Group (CERG)
  * ECE Department, George Mason University
  * Fairfax, VA, U.S.A.
  * Author: Duc Tri Nguyen
@@ -16,23 +16,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * =============================================================================
- * @author   Duc Tri Nguyen <dnguye69@gmu.edu>
+ * @author   Duc Tri Nguyen <dnguye69@gmu.edu>, <cothannguyen@gmail.com>
  */
 
 #include <arm_neon.h>
 #include "macrous.h"
-#include "config.h"
+#include "params.h"
 #include "poly.h"
 #include "ntt_consts.h"
 
-void ZfN(poly_int8_to_int16)(int16_t out[FALCON_N], const int8_t in[FALCON_N])
-{
+void PQCLEAN_FALCON512_AARCH64_poly_int8_to_int16(int16_t out[FALCON_N], const int8_t in[FALCON_N]) {
     // Total SIMD registers: 24 = 16 + 8
     int16x8x4_t a, b, e, f; // 16
     int8x16x4_t c, d;       // 8
 
-    for (int i = 0; i < FALCON_N; i += 128)
-    {
+    for (int i = 0; i < FALCON_N; i += 128) {
         c = vld1q_s8_x4(&in[i]);
 
         a.val[0] = vmovl_s8(vget_low_s8(c.val[0]));
@@ -69,19 +67,17 @@ void ZfN(poly_int8_to_int16)(int16_t out[FALCON_N], const int8_t in[FALCON_N])
  * See assembly https://godbolt.org/z/od3Ex7Mbx
  */
 
-void ZfN(poly_div_12289)(int16_t f[FALCON_N], const int16_t g[FALCON_N])
-{
+void PQCLEAN_FALCON512_AARCH64_poly_div_12289(int16_t f[FALCON_N], const int16_t g[FALCON_N]) {
     // Total SIMD registers: 24 = 4 + 19 + 1
     int16x8x4_t src, dst, t, k; // 4
     int16x8x4_t y0, y1, y2, y3, y4, y5,
-        y6, y7, y8, y9, y10, y11, y12,
-        y13, y14, y15, y16, y17, y18; // 19
+                y6, y7, y8, y9, y10, y11, y12,
+                y13, y14, y15, y16, y17, y18; // 19
     int16x8_t neon_qmvm;              // 1
 
-    neon_qmvm = vld1q_s16(qmvq);
+    neon_qmvm = vld1q_s16(PQCLEAN_FALCON512_AARCH64_qmvq);
 
-    for (int i = 0; i < FALCON_N; i += 32)
-    {
+    for (int i = 0; i < FALCON_N; i += 32) {
         // Find y0 = g^12287
         vload_s16_x4(y0, &g[i]);
 
@@ -105,7 +101,7 @@ void ZfN(poly_div_12289)(int16_t f[FALCON_N], const int16_t g[FALCON_N])
         montmul_x4(y16, y15, y10, neon_qmvm, k);
         montmul_x4(y17, y16, y16, neon_qmvm, t);
         montmul_x4(y18, y17, y0, neon_qmvm, k);
-        
+
         vload_s16_x4(src, &f[i]);
 
         montmul_x4(dst, y18, src, neon_qmvm, t);
@@ -115,18 +111,16 @@ void ZfN(poly_div_12289)(int16_t f[FALCON_N], const int16_t g[FALCON_N])
 }
 
 
-/* 
+/*
  * f = g - s
  */
-void ZfN(poly_sub_barrett)(int16_t f[FALCON_N], const int16_t g[FALCON_N], const int16_t s[FALCON_N])
-{
+void PQCLEAN_FALCON512_AARCH64_poly_sub_barrett(int16_t f[FALCON_N], const int16_t g[FALCON_N], const int16_t s[FALCON_N]) {
     // Total SIMD registers: 29 = 28 + 1
     int16x8x4_t a, b, c, d, e, h, t; // 28
     int16x8_t neon_qmvm;             // 1
-    neon_qmvm = vld1q_s16(qmvq);
+    neon_qmvm = vld1q_s16(PQCLEAN_FALCON512_AARCH64_qmvq);
 
-    for (int i = 0; i < FALCON_N; i += 64)
-    {
+    for (int i = 0; i < FALCON_N; i += 64) {
         vload_s16_x4(a, &g[i]);
         vload_s16_x4(b, &s[i]);
 
@@ -157,8 +151,7 @@ void ZfN(poly_sub_barrett)(int16_t f[FALCON_N], const int16_t g[FALCON_N], const
  * 1 if 0 in f[]
  * otherwise, 0
  */
-uint16_t ZfN(poly_compare_with_zero)(int16_t f[FALCON_N])
-{
+uint16_t PQCLEAN_FALCON512_AARCH64_poly_compare_with_zero(int16_t f[FALCON_N]) {
     // Total SIMD registers: 22 = 12 + 8 + 2
     int16x8x4_t a, b;      // 8
     uint16x8x4_t c, d, e1; // 12
@@ -166,8 +159,7 @@ uint16_t ZfN(poly_compare_with_zero)(int16_t f[FALCON_N])
 
     e2.val[1] = vdupq_n_u16(0);
 
-    for (int i = 0; i < FALCON_N; i += 64)
-    {
+    for (int i = 0; i < FALCON_N; i += 64) {
         vload_s16_x4(a, &f[i]);
 
         // Compare bitwise Equal to zero (vector)
@@ -204,9 +196,9 @@ uint16_t ZfN(poly_compare_with_zero)(int16_t f[FALCON_N])
 
 /*
  * Branchless conditional addtion with FALCON_Q if coeffcient is < 0
+ * If coefficient is larger than Q, it is subtracted with Q
  */
-void ZfN(poly_convert_to_unsigned)(int16_t f[FALCON_N])
-{
+void PQCLEAN_FALCON512_AARCH64_poly_convert_to_unsigned(int16_t f[FALCON_N]) {
     // Total SIMD registers: 26 = 8 + 16 + 2
     uint16x8x4_t b0, b1;        // 8
     int16x8x4_t a0, a1, c0, c1; // 16
@@ -275,8 +267,10 @@ void ZfN(poly_convert_to_unsigned)(int16_t f[FALCON_N])
     }
 }
 
-int ZfN(poly_int16_to_int8)(int8_t G[FALCON_N], const int16_t t[FALCON_N])
-{
+/*
+ * Perform conditional subtraction with Q and compare with min, max = -127, 127
+ */
+int PQCLEAN_FALCON512_AARCH64_poly_int16_to_int8(int8_t G[FALCON_N], const int16_t t[FALCON_N]) {
     // Total SIMD registers: 32
     int16x8x4_t a, f;                                           // 8
     uint16x8x4_t c0, c1, d0, d1;                                // 16
@@ -397,8 +391,7 @@ int ZfN(poly_int16_to_int8)(int8_t G[FALCON_N], const int16_t t[FALCON_N])
 
         e.val[1] = vorrq_u16(e.val[1], e.val[0]);
     }
-    if (vmaxvq_u16(e.val[1]))
-    {
+    if (vmaxvq_u16(e.val[1])) {
         return 1;
     }
     return 0;
@@ -410,12 +403,11 @@ int ZfN(poly_int16_to_int8)(int8_t G[FALCON_N], const int16_t t[FALCON_N])
  * Return 1 if True
  * Otherwise 0
  */
-int ZfN(poly_check_bound_int8)(const int8_t t[FALCON_N], 
-                        const int8_t low, const int8_t high)
-{
+int PQCLEAN_FALCON512_AARCH64_poly_check_bound_int8(const int8_t t[FALCON_N],
+        const int8_t low, const int8_t high) {
     // Total SIMD registers: 15
     int8x16x4_t a;                 // 4
-    uint8x16x4_t c,d;              // 8
+    uint8x16x4_t c, d;             // 8
     uint8x16_t e;                  // 1
     int8x16_t neon_low, neon_high; // 2
 
@@ -423,8 +415,7 @@ int ZfN(poly_check_bound_int8)(const int8_t t[FALCON_N],
     neon_low = vdupq_n_s8(low);
     e = vdupq_n_u8(0);
 
-    for (int i = 0; i < FALCON_N; i += 64)
-    {
+    for (int i = 0; i < FALCON_N; i += 64) {
         a = vld1q_s8_x4(&t[i]);
 
         // low > a ? 1 : 0
@@ -450,8 +441,7 @@ int ZfN(poly_check_bound_int8)(const int8_t t[FALCON_N],
 
         e = vorrq_u8(e, c.val[0]);
 
-        if (vmaxvq_u8(e))
-        {
+        if (vmaxvq_u8(e)) {
             return 1;
         }
     }
@@ -464,12 +454,11 @@ int ZfN(poly_check_bound_int8)(const int8_t t[FALCON_N],
  * Otherwise 0
  * Work for FALCON_N >= 32, or FALCON_LOGN >= 5
  */
-int ZfN(poly_check_bound_int16)(const int16_t t[FALCON_N], 
-                    const int16_t low, const int16_t high)
-{
+int PQCLEAN_FALCON512_AARCH64_poly_check_bound_int16(const int16_t t[FALCON_N],
+        const int16_t low, const int16_t high) {
     // Total SIMD registers = 15
     int16x8x4_t a;                 // 4
-    uint16x8x4_t c,d;              // 8
+    uint16x8x4_t c, d;             // 8
     uint16x8_t e;                  // 1
     int16x8_t neon_low, neon_high; // 2
 
@@ -477,8 +466,7 @@ int ZfN(poly_check_bound_int16)(const int16_t t[FALCON_N],
     neon_low = vdupq_n_s16(low);
     e = vdupq_n_u16(0);
 
-    for (int i = 0; i < FALCON_N; i += 32)
-    {
+    for (int i = 0; i < FALCON_N; i += 32) {
         a = vld1q_s16_x4(&t[i]);
 
         // low > a ? 1 : 0
@@ -504,8 +492,7 @@ int ZfN(poly_check_bound_int16)(const int16_t t[FALCON_N],
 
         e = vorrq_u16(e, c.val[0]);
 
-        if (vmaxvq_u16(e))
-        {
+        if (vmaxvq_u16(e)) {
             return 1;
         }
     }

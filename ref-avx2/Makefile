@@ -48,12 +48,14 @@ CFLAGS = -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
 LD = clang -O3 -Wall -Wextra -Wshadow -Wundef #-pg -fno-pie
 LDFLAGS = #-pg -no-pie
 LIBS =
+OBJ_TEST_API = test_api.c
 
 # =====================================================================
 
 OBJ = codec.o common.o falcon.o fft.o my_fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o katrng.o
 
 all: test_falcon
+test: test_api512 test_api1024
 a72: a72_speed a72_bench
 a72_59b: a72_speed_59b_512 a72_speed_59b_1024
 m1: m1_speed m1_bench
@@ -74,7 +76,16 @@ clean:
 	-rm -f m1_speed_59b_512 m1_speed_59b_1024
 	-rm -f avx_bench avx_speed avx_speed_ghz
 	-rm -f avx2_speed_59b_512 avx2_speed_59b_1024
+	-rm -f test_api512 test_api1024
 	-rm -f *.o
+
+test_api512: $(HEAD) $(OBJ) $(OBJ_TEST_API) nist_512.o
+	$(CC) $(CFLAGS) -DFALCON_LOGN=9  -o $@ $(OBJ) nist_512.o $(OBJ_TEST_API)
+	./$@
+
+test_api1024: $(HEAD) $(OBJ) $(OBJ_TEST_API) nist_1024.o
+	$(CC) $(CFLAGS) -DFALCON_LOGN=10  -o $@ $(OBJ) nist_1024.o $(OBJ_TEST_API)
+	./$@
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
