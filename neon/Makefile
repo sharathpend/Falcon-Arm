@@ -26,6 +26,8 @@ OBJ_KAT = PQCgenKAT_sign.c
 OBJ_TEST_FALCON = falcon.c test_falcon.c
 OBJ_TEST_API = test_api.c
 
+NUM_SAMPLERZ_ITER = 1000
+
 HEAD = api.h fpr.h inner.h config.h katrng.h params.h macrous.h macrof.h macrofx4.h
 HEAD1 = falcon.h
 
@@ -154,3 +156,14 @@ build/a72_speed_59b_512: $(HEAD1) $(HEAD) $(OBJ)
 build/a72_speed_59b_1024: $(HEAD1) $(HEAD) $(OBJ)
 	$(CC) $(CFLAGS) -DFALCON_LOGN=10 -DAPPLE_M1=0 -o $@ hal.c $(OBJ) speed_59b_1024.c
 	$@
+
+run_m1_bench512_1000:
+	# Ensure log directory exists and clear the log once before the loop
+	@-mkdir -p build
+	@> build/m1_bench512.log
+	for i in $(shell seq 1 $(NUM_SAMPLERZ_ITER)); do \
+		$(MAKE) clean >> build/m1_bench512.log 2>&1; \
+		$(MAKE) build/m1_bench512 >> build/m1_bench512.log 2>&1; \
+	done
+	@avg=$$(grep "|  sampler |" build/m1_bench512.log | awk '{sum+=$$6} END {if(NR>0) print sum/$(NUM_SAMPLERZ_ITER); else print 0}'); \
+	echo "Average sampler value: $$avg"

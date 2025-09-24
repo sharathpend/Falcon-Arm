@@ -428,6 +428,193 @@ void test_compute_bnorm(fpr *restrict fa, fpr *restrict fb, char *string)
     printf("| %8s | %8u | %8lld\n", string, FALCON_LOGN, fft);
 }
 
+// Test Gaussian0 Sampler
+// void test_gaussian0_sampler()
+// {
+// #if BENCH_CYCLES == 0
+//     struct timespec start, stop;
+// #else
+//     long long start, stop;
+// #endif
+//     long long result;
+//     unsigned ntests = ITERATIONS;
+    
+//     // Initialize RNG
+//     inner_shake256_context rng;
+//     prng p;
+//     inner_shake256_init(&rng);
+//     Zf(prng_init)(&p, &rng);
+    
+//     /* =================================== */
+//     for (unsigned i = 0; i < ntests; i++)
+//     {
+//         TIME(start);
+//         ZfN(gaussian0_sampler)(&p);
+//         TIME(stop);
+
+//         times[i] = stop - start;
+//     }
+//     qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+//     result = times[ITERATIONS >> 1];
+
+//     printf("| %8s | %8u | %8lld\n", "gauss0", FALCON_LOGN, result);
+// }
+
+
+// Test Full Sampler 1 run
+void test_sampler_single_run()
+{
+#if BENCH_CYCLES == 0
+    struct timespec start, stop;
+#else
+    long long start, stop;
+#endif
+    long long result;
+    unsigned ntests = ITERATIONS;
+    
+    // Initialize sampler context
+    sampler_context spc;
+    inner_shake256_context rng;
+    inner_shake256_init(&rng);
+    
+    // Use specific seed: 0x1570F5400B5D4105A9AD59
+    //uint8_t seed_data[] = {0x15, 0x70, 0xF5, 0x40, 0x0B, 0x5D, 0x41, 0x05, 0xA9, 0xAD, 0x59};
+    //inner_shake256_inject(&rng, seed_data, sizeof(seed_data));
+    //inner_shake256_flip(&rng);
+    
+    Zf(prng_init)(&spc.p, &rng);
+    
+#if FALCON_LOGN == 9
+    spc.sigma_min = fpr_sigma_min_9;
+#else
+    spc.sigma_min = fpr_sigma_min_10;
+#endif
+
+    // mu_min = -75.0
+    // mu_max = 75.0
+    // sigma_min = 1.277833697
+    // sigma_max = 1.8205
+
+    double mu_min = -75.0, mu_max = 75.0;
+    double sigma_min = 1.277833697, sigma_max = 1.8205;
+
+    
+    
+    // fpr mu = fpr_of(-44.301977378143064);
+    // fpr isigma = fpr_of(1.767660377221966);
+
+    
+    /* =================================== */
+    for (unsigned i = 0; i <1; i++)
+    {
+        // Uniform random double in [0,1)
+        double urand = (double)rand() / ((double)RAND_MAX + 1.0);
+
+        // Uniform mu in [mu_min, mu_max]
+        double mu_val = mu_min + urand * (mu_max - mu_min);
+
+        // Uniform sigma in [sigma_min, sigma_max]
+        urand = (double)rand() / ((double)RAND_MAX + 1.0);
+        double sigma_val = sigma_min + urand * (sigma_max - sigma_min);
+
+        fpr mu = fpr_of(mu_val);
+        fpr sigma = fpr_of(sigma_val);
+        fpr isigma = 1/sigma;
+
+        TIME(start);
+        Zf(sampler)(&spc, mu, isigma);
+        TIME(stop);
+
+// #if BENCH_CYCLES == 0
+//         times[i] = (uint64_t)((stop.tv_sec - start.tv_sec) * 1000000000LL + (stop.tv_nsec - start.tv_nsec));
+// #else
+        times[i] = stop - start;
+// #endif
+    }
+    //qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    //result = times[ITERATIONS >> 1];
+    result = times[0];
+    printf("| %8s | %8u | %8lld \n", "sampler", FALCON_LOGN, result);
+}
+
+
+
+// Test Full Sampler
+void test_sampler()
+{
+#if BENCH_CYCLES == 0
+    struct timespec start, stop;
+#else
+    long long start, stop;
+#endif
+    long long result;
+    unsigned ntests = ITERATIONS;
+    
+    // Initialize sampler context
+    sampler_context spc;
+    inner_shake256_context rng;
+    inner_shake256_init(&rng);
+    
+    // Use specific seed: 0x1570F5400B5D4105A9AD59
+    //uint8_t seed_data[] = {0x15, 0x70, 0xF5, 0x40, 0x0B, 0x5D, 0x41, 0x05, 0xA9, 0xAD, 0x59};
+    //inner_shake256_inject(&rng, seed_data, sizeof(seed_data));
+    //inner_shake256_flip(&rng);
+    
+    Zf(prng_init)(&spc.p, &rng);
+    
+#if FALCON_LOGN == 9
+    spc.sigma_min = fpr_sigma_min_9;
+#else
+    spc.sigma_min = fpr_sigma_min_10;
+#endif
+
+    // mu_min = -75.0
+    // mu_max = 75.0
+    // sigma_min = 1.277833697
+    // sigma_max = 1.8205
+
+    double mu_min = -75.0, mu_max = 75.0;
+    double sigma_min = 1.277833697, sigma_max = 1.8205;
+
+    
+    
+    // fpr mu = fpr_of(-44.301977378143064);
+    // fpr isigma = fpr_of(1.767660377221966);
+
+    
+    /* =================================== */
+    for (unsigned i = 0; i <ITERATIONS; i++)
+    {
+        // Uniform random double in [0,1)
+        double urand = (double)rand() / ((double)RAND_MAX + 1.0);
+
+        // Uniform mu in [mu_min, mu_max]
+        double mu_val = mu_min + urand * (mu_max - mu_min);
+
+        // Uniform sigma in [sigma_min, sigma_max]
+        urand = (double)rand() / ((double)RAND_MAX + 1.0);
+        double sigma_val = sigma_min + urand * (sigma_max - sigma_min);
+
+        fpr mu = fpr_of(mu_val);
+        fpr sigma = fpr_of(sigma_val);
+        fpr isigma = 1/sigma;
+
+        TIME(start);
+        Zf(sampler)(&spc, mu, isigma);
+        TIME(stop);
+
+// #if BENCH_CYCLES == 0
+//         times[i] = (uint64_t)((stop.tv_sec - start.tv_sec) * 1000000000LL + (stop.tv_nsec - start.tv_nsec));
+// #else
+        times[i] = stop - start;
+// #endif
+    }
+    qsort(times, ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
+    result = times[ITERATIONS >> 1];
+    // result = times[0];
+    printf("| %8s | %8u | %8lld \n", "sampler", FALCON_LOGN, result);
+}
+
 int main()
 {
     fpr f[FALCON_N], fa[FALCON_N], fb[FALCON_N], fc[FALCON_N], tmp[FALCON_N] = {0};
@@ -449,71 +636,79 @@ int main()
 #endif
 #endif
 
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_FFT(f, i);
-    }
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_FFT(f, i);
+    // }
 
-    test_NTT(a, FALCON_LOGN);
+    // test_NTT(a, FALCON_LOGN);
 
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_add(fc, fa, fb, i, "poly_add");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_sub(fc, fa, fb, i, "poly_sub");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_neg(fc, fa, fb, i, "poly_neg");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_adj_fft(fc, fa, fb, i, "poly_adj_fft");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_mul_fft(fc, fa, fb, i, "poly_mul_fft");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_invnorm2_fft(fc, fa, fb, i, "poly_invnorm2_fft");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_mul_autoadj_fft(fc, fa, fb, i, "poly_mul_autoadj_fft");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_LDL_fft(fc, fa, fb, i, "poly_LDL_fft");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_LDLmv_fft(f, tmp, fc, fa, fb, i, "poly_LDLmv_fft");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_split_fft(fa, fb, f, i, "poly_split_fft");
-    }
-    print_header();
-    for (unsigned i = 0; i <= FALCON_LOGN; i++)
-    {
-        test_poly_merge_fft(f, fa, fb, i, "poly_merge_fft");
-    }
-    print_header();
-    test_compute_bnorm(fa, fb, "compute_bnorm");
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_add(fc, fa, fb, i, "poly_add");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_sub(fc, fa, fb, i, "poly_sub");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_neg(fc, fa, fb, i, "poly_neg");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_adj_fft(fc, fa, fb, i, "poly_adj_fft");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_mul_fft(fc, fa, fb, i, "poly_mul_fft");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_invnorm2_fft(fc, fa, fb, i, "poly_invnorm2_fft");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_mul_autoadj_fft(fc, fa, fb, i, "poly_mul_autoadj_fft");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_LDL_fft(fc, fa, fb, i, "poly_LDL_fft");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_LDLmv_fft(f, tmp, fc, fa, fb, i, "poly_LDLmv_fft");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_split_fft(fa, fb, f, i, "poly_split_fft");
+    // }
+    // print_header();
+    // for (unsigned i = 0; i <= FALCON_LOGN; i++)
+    // {
+    //     test_poly_merge_fft(f, fa, fb, i, "poly_merge_fft");
+    // }
+    // print_header();
+    // test_compute_bnorm(fa, fb, "compute_bnorm");
     
+    print_header();
+    // test_gaussian0_sampler();
+    // test_sampler();
+
+    test_sampler_single_run();
+
+    // print_header();
+    // test_mul();
 
     return 0;
 }

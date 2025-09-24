@@ -31,6 +31,7 @@
 
 #include "inner.h"
 #include <arm_neon.h>
+// #include <stdio.h>
 
 /*
  * Sample an integer value along a half-gaussian distribution centered
@@ -196,7 +197,9 @@ BerExp(prng *p, fpr x, fpr ccs)
 	i = 64;
 	do {
 		i -= 8;
-		w = prng_get_u8(p) - ((uint32_t)(z >> i) & 0xFF);
+		// w = prng_get_u8(p) - ((uint32_t)(z >> i) & 0xFF);
+		w = (uint8_t)0 - ((uint32_t)(z >> i) & 0xFF);
+		// printf("BEREXP RAN!\n");
 	} while (!w && i > 0);
 	return (int)(w >> 31);
 }
@@ -255,6 +258,7 @@ Zf(sampler)(void *ctx, fpr mu, fpr isigma)
 		 */
 		z0 = ZfN(gaussian0_sampler)(&spc->p);
 		b = (int)prng_get_u8(&spc->p) & 1;
+		// b = (int)(0) & 1;
 		z = b + ((b << 1) - 1) * z0;
 
 		/*
@@ -290,6 +294,9 @@ Zf(sampler)(void *ctx, fpr mu, fpr isigma)
 			 * actual center is mu = s + r.
 			 */
 			return s + z;
-		}
+		} 
+		// else {
+		// 	printf("BerExp loop failed\n");
+		// }
 	}
 }
