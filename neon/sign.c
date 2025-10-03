@@ -37,6 +37,84 @@
 #include <stdio.h>
 /* =================================================================== */
 
+// #if BENCH_CYCLES == 1
+
+// #if APPLE_M1 == 1
+
+
+
+
+// #else
+// 
+// // Result is cycle per call
+// #include "hal.h"
+// 
+// #define TIME(s) s = hal_get_time();
+// #define CALC(start, stop, ntests) (stop - start) / ntests;
+// #endif
+// 
+// #else
+// 
+// #include <time.h>
+// // Result is nanosecond per call
+// 
+// #define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
+// #define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
+// #endif
+
+// Result is cycle per call
+#include "m1cycles.h"
+
+#define TIME(s) s = rdtsc();
+#define CALC(start, stop, ntests) (stop - start) / ntests;
+
+//#define ENABLE_SIGN_TIMING_SINGLE
+//#define ENABLE_SIGN_TIMING_DOUBLE
+/*
+ * Compatibility shim:
+ * Allow builds to define either ENABLE_SIGN_TIMING_SINGLE or
+ * ENABLE_SIGN_TIMING_DOUBLE and map them to ENABLE_SIGN_TIMING so the
+ * existing code below remains unchanged.
+ */
+#if defined(ENABLE_SIGN_TIMING_SINGLE) && defined(ENABLE_SIGN_TIMING_DOUBLE)
+#error "Define only one of ENABLE_SIGN_TIMING_SINGLE or ENABLE_SIGN_TIMING_DOUBLE"
+#endif
+
+#if defined(ENABLE_SIGN_TIMING_SINGLE) || defined(ENABLE_SIGN_TIMING_DOUBLE)
+#ifndef ENABLE_SIGN_TIMING
+#define ENABLE_SIGN_TIMING 1
+#endif
+#endif
+
+
+#ifdef ENABLE_SIGN_TIMING
+/*
+ * File-scope timing variables for dynamic signing routines. These are
+ * declared here so they can be accessed from nested sampling functions
+ * such as ffSampling_fft_dyntree when performing benchmarking.
+ */
+/* File-scope timing variables for dynamic signing routines. */
+//#if BENCH_CYCLES == 0
+//static struct timespec start_do_sign_dyn, stop_do_sign_dyn;
+//#else
+static long long start_do_sign_dyn, stop_do_sign_dyn;
+//#endif
+static long long result_do_sign_dyn = 0;
+static unsigned ntests_do_sign_dyn = 0;
+static uint64_t times_do_sign_dyn = 0;
+
+
+//#if BENCH_CYCLES == 0
+//static struct timespec start_do_sign_tree, stop_do_sign_tree;
+//#else
+static long long start_do_sign_tree, stop_do_sign_tree;
+//#endif
+static long long result_do_sign_tree = 0;
+static unsigned ntests_do_sign_tree = 0;
+static uint64_t times_do_sign_tree = 0;
+
+#endif
+
 /*
  * Compute degree N from logarithm 'logn'.
  */
@@ -335,8 +413,21 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 #elif FALCON_LOGN == 10
         leaf = fpr_mul(fpr_sqrt(leaf), fpr_inv_sigma_10);
 #endif
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(start_do_sign_dyn);
+		#endif
 		t0[0] = fpr_of(samp(samp_ctx, t0[0], leaf));
+		#ifdef ENABLE_SIGN_TIMING_SINGLE
+			TIME(stop_do_sign_dyn);
+			times_do_sign_dyn += stop_do_sign_dyn - start_do_sign_dyn;
+			TIME(start_do_sign_dyn);
+		#endif
 		t1[0] = fpr_of(samp(samp_ctx, t1[0], leaf));
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(stop_do_sign_dyn);
+			times_do_sign_dyn += stop_do_sign_dyn - start_do_sign_dyn;
+			ntests_do_sign_dyn = ntests_do_sign_dyn + 2;
+		#endif
 		return;
 	}
 
@@ -448,8 +539,21 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		x0 = w2;
 		x1 = w3;
 		sigma = tree1[3];
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(start_do_sign_tree);
+		#endif
 		w2 = fpr_of(samp(samp_ctx, x0, sigma));
+		#ifdef ENABLE_SIGN_TIMING_SINGLE
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			TIME(start_do_sign_tree);
+		#endif
 		w3 = fpr_of(samp(samp_ctx, x1, sigma));
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+		#endif
 		a_re = fpr_sub(x0, w2);
 		a_im = fpr_sub(x1, w3);
 		b_re = tree1[0];
@@ -459,8 +563,21 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		x0 = fpr_add(c_re, w0);
 		x1 = fpr_add(c_im, w1);
 		sigma = tree1[2];
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(start_do_sign_tree);
+		#endif
 		w0 = fpr_of(samp(samp_ctx, x0, sigma));
+		#ifdef ENABLE_SIGN_TIMING_SINGLE
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			TIME(start_do_sign_tree);
+		#endif
 		w1 = fpr_of(samp(samp_ctx, x1, sigma));
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+		#endif
 
         // Merge
 		a_re = w0;
@@ -521,8 +638,21 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		x0 = w2;
 		x1 = w3;
 		sigma = tree0[3];
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(start_do_sign_tree);
+		#endif
 		w2 = y0 = fpr_of(samp(samp_ctx, x0, sigma));
+		#ifdef ENABLE_SIGN_TIMING_SINGLE
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			TIME(start_do_sign_tree);
+		#endif
 		w3 = y1 = fpr_of(samp(samp_ctx, x1, sigma));
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+		#endif
 		a_re = fpr_sub(x0, y0);
 		a_im = fpr_sub(x1, y1);
 		b_re = tree0[0];
@@ -532,8 +662,21 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		x0 = fpr_add(c_re, w0);
 		x1 = fpr_add(c_im, w1);
 		sigma = tree0[2];
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(start_do_sign_tree);
+		#endif
 		w0 = fpr_of(samp(samp_ctx, x0, sigma));
+		#ifdef ENABLE_SIGN_TIMING_SINGLE
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			TIME(start_do_sign_tree);
+		#endif
 		w1 = fpr_of(samp(samp_ctx, x1, sigma));
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+		#endif
 
         // Merge
 		a_re = w0;
@@ -560,8 +703,22 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
         float64x2_t x, y, a, b, c, w;
         fpr buf[2];
 
-        z1[0] = fpr_of(samp(samp_ctx, t1[0], tree[3]));
-		z1[1] = fpr_of(samp(samp_ctx, t1[1], tree[3]));
+			#ifdef ENABLE_SIGN_TIMING
+				TIME(start_do_sign_tree);
+			#endif
+      z1[0] = fpr_of(samp(samp_ctx, t1[0], tree[3]));
+			#ifdef ENABLE_SIGN_TIMING_SINGLE
+				TIME(stop_do_sign_tree);
+				times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+				TIME(start_do_sign_tree);
+			#endif
+			z1[1] = fpr_of(samp(samp_ctx, t1[1], tree[3]));
+			#ifdef ENABLE_SIGN_TIMING
+				TIME(stop_do_sign_tree);
+				times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+				ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			#endif
+
 
         vload(w, &t0[0]);
         vload(x, &t1[0]);
@@ -575,8 +732,22 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 
         vstore(&buf[0], x);
 
-        z0[0] = fpr_of(samp(samp_ctx, buf[0], tree[2]));
-		z0[1] = fpr_of(samp(samp_ctx, buf[1], tree[2]));
+
+			#ifdef ENABLE_SIGN_TIMING
+				TIME(start_do_sign_tree);
+			#endif
+      z0[0] = fpr_of(samp(samp_ctx, buf[0], tree[2]));
+			#ifdef ENABLE_SIGN_TIMING_SINGLE
+				TIME(stop_do_sign_tree);
+				times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+				TIME(start_do_sign_tree);
+			#endif
+			z0[1] = fpr_of(samp(samp_ctx, buf[1], tree[2]));
+			#ifdef ENABLE_SIGN_TIMING
+				TIME(stop_do_sign_tree);
+				times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+				ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			#endif
 
 #else 
         fpr x0, x1, y0, y1, sigma;
@@ -585,8 +756,22 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		x0 = t1[0];
 		x1 = t1[1];
 		sigma = tree[3];
+	
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(start_do_sign_tree);
+		#endif
 		z1[0] = y0 = fpr_of(samp(samp_ctx, x0, sigma));
+		#ifdef ENABLE_SIGN_TIMING_SINGLE
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			TIME(start_do_sign_tree);
+		#endif
 		z1[1] = y1 = fpr_of(samp(samp_ctx, x1, sigma));
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+		#endif
 		a_re = fpr_sub(x0, y0);
 		a_im = fpr_sub(x1, y1);
 		b_re = tree[0];
@@ -596,8 +781,21 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		x0 = fpr_add(c_re, t0[0]);
 		x1 = fpr_add(c_im, t0[1]);
 		sigma = tree[2];
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(start_do_sign_tree);
+		#endif
 		z0[0] = fpr_of(samp(samp_ctx, x0, sigma));
+		#ifdef ENABLE_SIGN_TIMING_SINGLE
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			TIME(start_do_sign_tree);
+		#endif
 		z0[1] = fpr_of(samp(samp_ctx, x1, sigma));
+		#ifdef ENABLE_SIGN_TIMING
+			TIME(stop_do_sign_tree);
+			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
+			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+		#endif
 #endif
 
 		return;
@@ -689,6 +887,16 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 	ffSampling_fft(samp, samp_ctx, tx, ty, tree, t0, t1, FALCON_LOGN, ty + FALCON_N);
 
+	#ifdef ENABLE_SIGN_TIMING
+		result_do_sign_tree = times_do_sign_tree / ntests_do_sign_tree;
+		printf("| %8s | %8u | %8lld \n", "spendya do sign tree sampler", (uint32_t)ntests_do_sign_tree, result_do_sign_tree);
+		times_do_sign_tree = 0;
+		result_do_sign_tree = 0;
+		ntests_do_sign_tree = 0;
+	#endif
+
+
+
 	/*
 	 * Get the lattice point corresponding to that tiny vector.
 	 */
@@ -696,7 +904,7 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	ZfN(poly_mul_add_fft)(t0, t0, ty, b10, FALCON_LOGN);
 	ZfN(iFFT)(t0, FALCON_LOGN);
 	
-    ZfN(poly_mul_fft)(t1, tx, b01, FALCON_LOGN);
+  ZfN(poly_mul_fft)(t1, tx, b01, FALCON_LOGN);
 	ZfN(poly_mul_add_fft)(t1, t1, ty, b11, FALCON_LOGN);
 	ZfN(iFFT)(t1, FALCON_LOGN);
     
@@ -714,10 +922,10 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 * hm[] for the next iteration.
 	 */
 
-    s1tmp = (int16_t *)tx;
+	s1tmp = (int16_t *)tx;
 	s2tmp = (int16_t *)tmp;
 
-    if (ZfN(is_short_tmp)(s1tmp, s2tmp, (int16_t *) hm, t0, t1)){
+	if (ZfN(is_short_tmp)(s1tmp, s2tmp, (int16_t *) hm, t0, t1)){
 		memcpy(s2, s2tmp, FALCON_N * sizeof *s2);
 		memcpy(tmp, s1tmp, FALCON_N * sizeof *s1tmp);
 		return 1;
@@ -745,6 +953,11 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	fpr ni;
 	int16_t *s1tmp, *s2tmp;
 
+
+    /* timing variables are file-scope globals (start_do_sign_dyn, stop_do_sign_dyn,
+     * result_do_sign_dyn, times_do_sign_dyn) so they can be accessed from
+     * nested sampling functions. */
+
 	/*
 	 * Lattice basis is B = [[g, -f], [G, -F]]. We convert it to FFT.
 	 */
@@ -752,7 +965,7 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	b01 = b00 + FALCON_N;
 	b10 = b01 + FALCON_N;
 	b11 = b10 + FALCON_N;
-    t0 = b11 + FALCON_N;
+  t0 = b11 + FALCON_N;
 	t1 = t0 + FALCON_N;
 
 	smallints_to_fpr(b00, g, FALCON_LOGN);
@@ -794,10 +1007,10 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	ZfN(poly_mulselfadj_fft)(b00, b00, FALCON_LOGN);   // b00 <- b00*adj(b00)
 	ZfN(poly_add)(b00, b00, t0, FALCON_LOGN);      // b00 <- g00
     
-    memcpy(t0, b01, FALCON_N * sizeof *b01);
-    ZfN(poly_muladj_add_fft)(b01, t1, b01, b11, FALCON_LOGN);  // b01 <- b01*adj(b11)
-	
-    ZfN(poly_mulselfadj_fft)(b10, b10, FALCON_LOGN);   // b10 <- b10*adj(b10)
+	memcpy(t0, b01, FALCON_N * sizeof *b01);
+	ZfN(poly_muladj_add_fft)(b01, t1, b01, b11, FALCON_LOGN);  // b01 <- b01*adj(b11)
+
+	ZfN(poly_mulselfadj_fft)(b10, b10, FALCON_LOGN);   // b10 <- b10*adj(b10)
 	ZfN(poly_mulselfadj_add_fft)(b10, b10, b11, FALCON_LOGN);    // t1 = g11 <- b11*adj(b11)
 
     /*
@@ -820,7 +1033,7 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	/*
 	 * Set the target vector to [hm, 0] (hm is the hashed message).
 	 */
-    ZfN(poly_fpr_of_s16)(t0, hm, FALCON_N);
+	ZfN(poly_fpr_of_s16)(t0, hm, FALCON_N);
 
     
 	/*
@@ -849,7 +1062,15 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
 	 */
 	ffSampling_fft_dyntree(samp, samp_ctx,
 		t0, t1, g00, g01, g11, FALCON_LOGN, FALCON_LOGN, t1 + FALCON_N);
-    
+  
+	#ifdef ENABLE_SIGN_TIMING
+		result_do_sign_dyn = times_do_sign_dyn / ntests_do_sign_dyn;
+		printf("| %8s | %8u | %8lld \n", "spendya do sign dynamic sampler", (uint32_t)ntests_do_sign_dyn, result_do_sign_dyn);
+		times_do_sign_dyn = 0;
+		result_do_sign_dyn = 0;
+		ntests_do_sign_dyn = 0;    
+	#endif
+
 	/*
 	 * We arrange the layout back to:
 	 *     b00 b01 b10 b11 t0 t1
@@ -923,6 +1144,12 @@ Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
 	const fpr *restrict expanded_key,
 	const uint16_t *hm, uint8_t *tmp)
 {
+
+	// long long start_sign_tree, stop_sign_tree;
+	// long long result_sign_tree;
+	// unsigned ntests = 1;
+	// uint64_t times_sign_tree = 0;
+
 	fpr *ftmp;
 
 	ftmp = (fpr *)tmp;
@@ -953,7 +1180,14 @@ Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
 #error "Support 512, 1024 only"
 #endif
 		Zf(prng_init)(&spc.p, rng);
-		samp = Zf(sampler);
+		
+	//TIME(start_sign_tree);
+	samp = Zf(sampler);
+	//TIME(stop_sign_tree);
+
+	//result_sign_tree = CALC(start_sign_tree, stop_sign_tree, ntests);
+	//printf("| %8s | %8u | %8lld \n", "spendya sign tree sampler", (uint32_t)ntests, result_sign_tree);
+
 		samp_ctx = &spc;
 
 		/*
@@ -972,7 +1206,13 @@ Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
 	const int8_t *restrict f, const int8_t *restrict g,
 	const int8_t *restrict F, const int8_t *restrict G,
 	const uint16_t *hm, uint8_t *tmp)
-{
+{	
+	// long long start_sign_dyn, stop_sign_dyn;
+	// long long result_sign_dyn;
+	// unsigned ntests = 1;
+	// uint64_t times_sign_dyn = 0;
+
+
 	fpr *ftmp;
 
 	ftmp = (fpr *)tmp;
@@ -1004,7 +1244,14 @@ Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
 #error "Support 512, 1024 only"
 #endif
 		Zf(prng_init)(&spc.p, rng);
-		samp = Zf(sampler);
+
+	//TIME(start_sign_dyn);
+	samp = Zf(sampler);
+	//TIME(stop_sign_dyn);
+
+	//result_sign_dyn = CALC(start_sign_dyn, stop_sign_dyn, ntests);
+	//printf("| %8s | %8u | %8lld \n", "spendya sign dynamic sampler", (uint32_t)ntests, result_sign_dyn);
+
 		samp_ctx = &spc;
 
 		/*
