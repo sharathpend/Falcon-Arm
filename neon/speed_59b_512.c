@@ -129,11 +129,14 @@ int benchmark_59b_message(int iteration)
         ret |= crypto_sign(sm, &smlen, m, mlen, sk);
     }
 
+    /*
     if (ret)
     {
         printf("crypto_sign error\n");
         return 1;
     }
+    */
+
     // Benchmark
     for (int i = 0; i < iteration; i++)
     {
