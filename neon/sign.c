@@ -37,45 +37,14 @@
 #include <stdio.h>
 /* =================================================================== */
 
-// #if BENCH_CYCLES == 1
-
-// #if APPLE_M1 == 1
-
-
-
-
-// #else
-// 
-// // Result is cycle per call
-// #include "hal.h"
-// 
-// #define TIME(s) s = hal_get_time();
-// #define CALC(start, stop, ntests) (stop - start) / ntests;
-// #endif
-// 
-// #else
-// 
-// #include <time.h>
-// // Result is nanosecond per call
-// 
-// #define TIME(s) clock_gettime(CLOCK_MONOTONIC_RAW, &s);
-// #define CALC(start, stop, ntests) ((double)((stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec))) / ntests;
-// #endif
-
-// Result is cycle per call
 #include "m1cycles.h"
+
+#define ITERATIONS 10000
 
 #define TIME(s) s = rdtsc();
 #define CALC(start, stop, ntests) (stop - start) / ntests;
 
-//#define ENABLE_SIGN_TIMING_SINGLE
-//#define ENABLE_SIGN_TIMING_DOUBLE
-/*
- * Compatibility shim:
- * Allow builds to define either ENABLE_SIGN_TIMING_SINGLE or
- * ENABLE_SIGN_TIMING_DOUBLE and map them to ENABLE_SIGN_TIMING so the
- * existing code below remains unchanged.
- */
+
 #if defined(ENABLE_SIGN_TIMING_SINGLE) && defined(ENABLE_SIGN_TIMING_DOUBLE)
 #error "Define only one of ENABLE_SIGN_TIMING_SINGLE or ENABLE_SIGN_TIMING_DOUBLE"
 #endif
@@ -88,30 +57,39 @@
 
 
 #ifdef ENABLE_SIGN_TIMING
-/*
- * File-scope timing variables for dynamic signing routines. These are
- * declared here so they can be accessed from nested sampling functions
- * such as ffSampling_fft_dyntree when performing benchmarking.
- */
-/* File-scope timing variables for dynamic signing routines. */
-//#if BENCH_CYCLES == 0
-//static struct timespec start_do_sign_dyn, stop_do_sign_dyn;
-//#else
+
 static long long start_do_sign_dyn, stop_do_sign_dyn;
-//#endif
 static long long result_do_sign_dyn = 0;
 static unsigned ntests_do_sign_dyn = 0;
 static uint64_t times_do_sign_dyn = 0;
 
+static long long result_do_sign_dyn_array[ITERATIONS];
+static unsigned result_do_sign_dyn_index = 0;
+static long long median_value_sign_dyn = 0;
 
-//#if BENCH_CYCLES == 0
-//static struct timespec start_do_sign_tree, stop_do_sign_tree;
-//#else
 static long long start_do_sign_tree, stop_do_sign_tree;
-//#endif
 static long long result_do_sign_tree = 0;
 static unsigned ntests_do_sign_tree = 0;
 static uint64_t times_do_sign_tree = 0;
+
+
+static long long result_do_sign_tree_array[ITERATIONS];
+static unsigned result_do_sign_tree_index = 0;
+static long long median_value_sign_tree = 0;
+
+static int compare_function(const void *a, const void *b)
+{
+	const long long *x = a;
+	const long long *y = b;
+
+	if (*x < *y) {
+		return -1;
+	} else if (*x > *y) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
 
 #endif
 
@@ -426,7 +404,7 @@ ffSampling_fft_dyntree(samplerZ samp, void *samp_ctx,
 		#ifdef ENABLE_SIGN_TIMING
 			TIME(stop_do_sign_dyn);
 			times_do_sign_dyn += stop_do_sign_dyn - start_do_sign_dyn;
-			ntests_do_sign_dyn = ntests_do_sign_dyn + 2;
+			ntests_do_sign_dyn = ntests_do_sign_dyn + 1;
 		#endif
 		return;
 	}
@@ -552,7 +530,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		#ifdef ENABLE_SIGN_TIMING
 			TIME(stop_do_sign_tree);
 			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			ntests_do_sign_tree = ntests_do_sign_tree + 1;
 		#endif
 		a_re = fpr_sub(x0, w2);
 		a_im = fpr_sub(x1, w3);
@@ -576,7 +554,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		#ifdef ENABLE_SIGN_TIMING
 			TIME(stop_do_sign_tree);
 			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			ntests_do_sign_tree = ntests_do_sign_tree + 1;
 		#endif
 
         // Merge
@@ -651,7 +629,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		#ifdef ENABLE_SIGN_TIMING
 			TIME(stop_do_sign_tree);
 			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			ntests_do_sign_tree = ntests_do_sign_tree + 1;
 		#endif
 		a_re = fpr_sub(x0, y0);
 		a_im = fpr_sub(x1, y1);
@@ -675,7 +653,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		#ifdef ENABLE_SIGN_TIMING
 			TIME(stop_do_sign_tree);
 			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			ntests_do_sign_tree = ntests_do_sign_tree + 1;
 		#endif
 
         // Merge
@@ -716,7 +694,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 			#ifdef ENABLE_SIGN_TIMING
 				TIME(stop_do_sign_tree);
 				times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-				ntests_do_sign_tree = ntests_do_sign_tree + 2;
+				ntests_do_sign_tree = ntests_do_sign_tree + 1;
 			#endif
 
 
@@ -746,7 +724,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 			#ifdef ENABLE_SIGN_TIMING
 				TIME(stop_do_sign_tree);
 				times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-				ntests_do_sign_tree = ntests_do_sign_tree + 2;
+				ntests_do_sign_tree = ntests_do_sign_tree + 1;
 			#endif
 
 #else 
@@ -770,7 +748,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		#ifdef ENABLE_SIGN_TIMING
 			TIME(stop_do_sign_tree);
 			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			ntests_do_sign_tree = ntests_do_sign_tree + 1;
 		#endif
 		a_re = fpr_sub(x0, y0);
 		a_im = fpr_sub(x1, y1);
@@ -794,7 +772,7 @@ ffSampling_fft(samplerZ samp, void *samp_ctx,
 		#ifdef ENABLE_SIGN_TIMING
 			TIME(stop_do_sign_tree);
 			times_do_sign_tree += stop_do_sign_tree - start_do_sign_tree;
-			ntests_do_sign_tree = ntests_do_sign_tree + 2;
+			ntests_do_sign_tree = ntests_do_sign_tree + 1;
 		#endif
 #endif
 
@@ -889,7 +867,18 @@ do_sign_tree(samplerZ samp, void *samp_ctx, int16_t *s2,
 
 	#ifdef ENABLE_SIGN_TIMING
 		result_do_sign_tree = times_do_sign_tree / ntests_do_sign_tree;
-		printf("| %8s | %8u | %8lld \n", "spendya do sign tree sampler", (uint32_t)ntests_do_sign_tree, result_do_sign_tree);
+		//printf("| %8s | %8u | %8lld \n", "do sign tree sampler", (uint32_t)ntests_do_sign_tree, result_do_sign_tree);
+		if (result_do_sign_tree_index < ITERATIONS) {
+			result_do_sign_tree_array[result_do_sign_tree_index] = result_do_sign_tree;
+			//printf("| %8s | %8u | %8lld | %8lld \n", "do sign tree sampler", (uint32_t)result_do_sign_tree_index, result_do_sign_tree, result_do_sign_tree_array[result_do_sign_tree_index]);
+			result_do_sign_tree_index++;
+		}
+		if (result_do_sign_tree_index == ITERATIONS) {
+			qsort(result_do_sign_tree_array, ITERATIONS, sizeof(result_do_sign_tree_array[0]), compare_function);
+			median_value_sign_tree = result_do_sign_tree_array[ITERATIONS >> 1];
+			printf("Median value of SamplerZ pair exec cycles in Sign Tree: %lld\n", median_value_sign_tree);
+			result_do_sign_tree_index++;
+		}
 		times_do_sign_tree = 0;
 		result_do_sign_tree = 0;
 		ntests_do_sign_tree = 0;
@@ -1065,7 +1054,18 @@ do_sign_dyn(samplerZ samp, void *samp_ctx, int16_t *s2,
   
 	#ifdef ENABLE_SIGN_TIMING
 		result_do_sign_dyn = times_do_sign_dyn / ntests_do_sign_dyn;
-		printf("| %8s | %8u | %8lld \n", "spendya do sign dynamic sampler", (uint32_t)ntests_do_sign_dyn, result_do_sign_dyn);
+		//printf("| %8s | %8u | %8lld \n", "do sign dynamic sampler", (uint32_t)ntests_do_sign_dyn, result_do_sign_dyn);
+		if (result_do_sign_dyn_index < ITERATIONS) {
+			result_do_sign_dyn_array[result_do_sign_dyn_index] = result_do_sign_dyn;
+			//printf("| %8s | %8u | %8lld | %8lld \n", "do sign dynamic sampler", (uint32_t)result_do_sign_dyn_index, result_do_sign_dyn, result_do_sign_dyn_array[result_do_sign_dyn_index]);
+			result_do_sign_dyn_index++;
+		}
+		if (result_do_sign_dyn_index == ITERATIONS) {
+			qsort(result_do_sign_dyn_array, ITERATIONS, sizeof(result_do_sign_dyn_array[0]), compare_function);
+			median_value_sign_dyn = result_do_sign_dyn_array[ITERATIONS >> 1];
+			printf("Median value of SamplerZ pair exec cycles in Sign Dyn: %lld\n", median_value_sign_dyn);
+			result_do_sign_dyn_index++;
+		}
 		times_do_sign_dyn = 0;
 		result_do_sign_dyn = 0;
 		ntests_do_sign_dyn = 0;    
